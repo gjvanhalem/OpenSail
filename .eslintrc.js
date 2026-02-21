@@ -13,12 +13,10 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
-    'plugin:react-native/all',
     'prettier',
   ],
-  plugins: ['@typescript-eslint', 'react', 'react-native'],
+  plugins: ['@typescript-eslint', 'react'],
   env: {
-    'react-native/react-native': true,
     node: true,
     es2021: true,
   },
@@ -33,7 +31,5 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'react/prop-types': 'off',
     'react/react-in-jsx-scope': 'off',
-    'react-native/no-inline-styles': 'warn',
-    'react-native/no-color-literals': 'warn',
   },
 };

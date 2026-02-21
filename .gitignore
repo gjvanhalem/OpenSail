@@ -6,42 +6,6 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# React Native
-.expo/
-.expo-shared/
-
-# Android
-android/app/build/
-android/build/
-android/.gradle/
-android/local.properties
-*.apk
-*.ap_
-*.aab
-
-# iOS
-ios/build/
-ios/Pods/
-ios/*.xcworkspace
-!ios/*.xcworkspace/contents.xcworkspacedata
-ios/*.xcuserdata
-ios/*.xcuserdatad
-*.ipa
-*.dSYM.zip
-*.dSYM
-
-# Fastlane
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots
-fastlane/test_output
-
-# Bundle artifacts
-*.jsbundle
-
-# CocoaPods
-ios/Pods/
-
 # TypeScript
 dist/
 *.tsbuildinfo
@@ -64,5 +28,11 @@ coverage/
 # Temporary files
 OpenSailTemp/
 
-# Windows specific (not using RN Windows desktop)
-windows/
+# PWA Build Outputs
+pwa/dist/
+pwa/dev-dist/
+pwa/.vite/
+pwa/playwright-report/
+pwa/test-results/
+pwa/performance-reports/
+

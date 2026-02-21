@@ -68,12 +68,7 @@
                 - generic [ref=e65]: Man Overboard
           - button "Close" [ref=e67]
       - main [ref=e68]:
-        - generic [ref=e69]:
-          - button "Offline Charts" [ref=e70]:
-            - img [ref=e71]
-            - text: Offline Charts
-          - generic [ref=e74]:
-            - region "Map" [ref=e75]
-            - link "Mapbox homepage" [ref=e77] [cursor=pointer]:
-              - /url: https://www.mapbox.com/
+        - button "Offline Charts" [ref=e70]:
+          - img [ref=e71]
+          - text: Offline Charts
 ```

@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowJs": true,
-    "jsx": "react-native",
+    "jsx": "react",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
