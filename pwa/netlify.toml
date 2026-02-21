@@ -1,0 +1,115 @@
+# Netlify Configuration for OpenSail PWA
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Build command
+  command = "npm run build"
+  
+  # Directory with build output
+  publish = "dist"
+  
+  # Base directory for build
+  base = "pwa"
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "20"
+  
+  # NPM version
+  NPM_VERSION = "10"
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# Headers for security and PWA
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Content Security Policy
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.mapbox.com;
+      style-src 'self' 'unsafe-inline' https://api.mapbox.com;
+      img-src 'self' data: blob: https://api.mapbox.com https://*.tiles.mapbox.com;
+      font-src 'self' data:;
+      connect-src 'self' https://api.mapbox.com https://events.mapbox.com;
+      worker-src 'self' blob:;
+      child-src 'self' blob:;
+    """
+    
+    # Permissions Policy
+    Permissions-Policy = "geolocation=(self), usb=(self), bluetooth=(self)"
+
+# Service Worker headers
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache images
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Manifest file
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=86400"
+
+# Environment-specific settings
+[context.production]
+  [context.production.environment]
+    NODE_ENV = "production"
+
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NODE_ENV = "production"
+
+[context.branch-deploy]
+  [context.branch-deploy.environment]
+    NODE_ENV = "production"
+
+# Plugin configuration
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+  
+  [plugins.inputs]
+    # Run Lighthouse audits on deploy
+    output_path = "lighthouse-reports"
+    
+    [plugins.inputs.thresholds]
+      performance = 0.8
+      accessibility = 0.9
+      best-practices = 0.9
+      seo = 0.9
+      pwa = 0.9

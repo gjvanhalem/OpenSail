@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "⚠️ Browser Compatibility Notice" [level=3] [ref=e7]
+      - paragraph [ref=e8]:
+        - strong [ref=e9]: "Browser:"
+        - text: Firefox 146
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: "Warnings:"
+        - list [ref=e12]:
+          - listitem [ref=e13]: USB instrument connections not available. Use Chrome or Edge for USB NMEA device support.
+          - listitem [ref=e14]: Bluetooth instrument connections not available. Use Chrome, Edge, or Safari 15.4+ for Bluetooth support.
+          - listitem [ref=e15]: Firefox does not support USB or Bluetooth instrument connections. For full functionality, use Chrome or Edge.
+      - generic [ref=e16]:
+        - paragraph [ref=e17]: "Recommendation:"
+        - paragraph [ref=e18]: For full functionality including USB and Bluetooth instrument connections, we recommend using Chrome 89+ or Edge 89+.
+      - paragraph [ref=e20]: Core navigation features will work, but some advanced functionality may be limited.
+    - button "Dismiss warning" [ref=e21]: ×
+  - generic [ref=e22]:
+    - navigation [ref=e23]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - button "Toggle sidebar" [ref=e27]:
+            - img
+          - link "OpenSail" [ref=e28] [cursor=pointer]:
+            - /url: /chart
+        - generic [ref=e29]:
+          - button "Toggle fullscreen" [ref=e30]:
+            - img
+          - button "Toggle mobile menu" [ref=e31]:
+            - img
+    - generic [ref=e32]:
+      - complementary [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - heading "Tools" [level=2] [ref=e36]
+            - button "Collapse sidebar" [ref=e37]:
+              - img
+          - generic [ref=e39]:
+            - button "🧭 Route Planner" [ref=e40]:
+              - generic [ref=e41]: 🧭
+              - generic [ref=e42]: Route Planner
+            - button "📍 Waypoints" [ref=e43]:
+              - generic [ref=e44]: 📍
+              - generic [ref=e45]: Waypoints
+            - button "🎯 Track Recording" [ref=e46]:
+              - generic [ref=e47]: 🎯
+              - generic [ref=e48]: Track Recording
+            - button "🚢 AIS Targets" [ref=e49]:
+              - generic [ref=e50]: 🚢
+              - generic [ref=e51]: AIS Targets
+            - button "📊 Instruments" [ref=e52]:
+              - generic [ref=e53]: 📊
+              - generic [ref=e54]: Instruments
+            - generic [ref=e55]:
+              - heading "Quick Actions" [level=3] [ref=e56]
+              - button "📥 Download Charts" [ref=e57]:
+                - generic [ref=e58]: 📥
+                - generic [ref=e59]: Download Charts
+              - button "⚓ Anchor Watch" [ref=e60]:
+                - generic [ref=e61]: ⚓
+                - generic [ref=e62]: Anchor Watch
+              - button "🆘 Man Overboard" [ref=e63]:
+                - generic [ref=e64]: 🆘
+                - generic [ref=e65]: Man Overboard
+          - button "Close" [ref=e67]
+      - main [ref=e68]:
+        - button "Offline Charts" [ref=e70]:
+          - img [ref=e71]
+          - text: Offline Charts
+```

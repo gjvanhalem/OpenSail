@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenSail - Offline</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      
+      .container {
+        text-align: center;
+        max-width: 500px;
+      }
+      
+      .icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+      }
+      
+      h1 {
+        font-size: 32px;
+        margin-bottom: 16px;
+        font-weight: 600;
+      }
+      
+      p {
+        font-size: 18px;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 24px;
+      }
+      
+      .features {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 32px;
+        text-align: left;
+      }
+      
+      .features h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      
+      .features ul {
+        list-style: none;
+        padding: 0;
+      }
+      
+      .features li {
+        padding: 8px 0;
+        padding-left: 24px;
+        position: relative;
+      }
+      
+      .features li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+      }
+      
+      .button {
+        display: inline-block;
+        background: white;
+        color: #0c4a6e;
+        padding: 12px 32px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        margin-top: 24px;
+        transition: transform 0.2s;
+      }
+      
+      .button:hover {
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">⚓</div>
+      <h1>You're Offline</h1>
+      <p>
+        No internet connection detected. OpenSail is designed to work offline with cached charts and data.
+      </p>
+      
+      <div class="features">
+        <h2>Available Offline:</h2>
+        <ul>
+          <li>View cached nautical charts</li>
+          <li>Navigate saved routes</li>
+          <li>Record vessel tracks</li>
+          <li>Connect to instruments</li>
+          <li>Access logbook entries</li>
+        </ul>
+      </div>
+      
+      <a href="/" class="button">Return to Navigation</a>
+    </div>
+  </body>
+</html>

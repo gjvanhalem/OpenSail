@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "⚠️ Browser Compatibility Notice" [level=3] [ref=e7]
+      - paragraph [ref=e8]:
+        - strong [ref=e9]: "Browser:"
+        - text: Safari 26
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: "Warnings:"
+        - list [ref=e12]:
+          - listitem [ref=e13]: USB instrument connections not available. Use Chrome or Edge for USB NMEA device support.
+          - listitem [ref=e14]: Bluetooth instrument connections not available. Use Chrome, Edge, or Safari 15.4+ for Bluetooth support.
+          - listitem [ref=e15]: Browser notifications not available. You may miss important alerts.
+          - listitem [ref=e16]: Safari has limited Bluetooth support and no USB support. For full functionality, use Chrome or Edge.
+      - generic [ref=e17]:
+        - paragraph [ref=e18]: "Recommendation:"
+        - paragraph [ref=e19]: For full functionality including USB and Bluetooth instrument connections, we recommend using Chrome 89+ or Edge 89+.
+      - paragraph [ref=e21]: Core navigation features will work, but some advanced functionality may be limited.
+    - button "Dismiss warning" [ref=e22]: ×
+  - generic [ref=e23]:
+    - navigation [ref=e24]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - button "Toggle sidebar" [ref=e28]:
+            - img
+          - link "OpenSail" [ref=e30]:
+            - /url: /chart
+        - generic [ref=e31]:
+          - button "Toggle fullscreen" [ref=e32]:
+            - img
+          - button "Toggle mobile menu" [ref=e34]:
+            - img
+    - main [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - generic [ref=e41]:
+            - heading "Routes" [level=1] [ref=e42]
+            - button "+ New Route" [ref=e43]
+          - generic [ref=e45]:
+            - paragraph [ref=e46]: No routes yet
+            - paragraph [ref=e47]: Create your first route to get started
+        - generic [ref=e50]:
+          - region "Map" [ref=e51]
+          - link "Mapbox homepage" [ref=e53] [cursor=pointer]:
+            - /url: https://www.mapbox.com/
+```

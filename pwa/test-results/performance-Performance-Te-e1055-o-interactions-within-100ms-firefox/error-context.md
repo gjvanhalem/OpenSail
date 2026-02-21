@@ -1,0 +1,61 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - button "Toggle sidebar" [ref=e8]:
+          - img
+        - link "OpenSail" [ref=e9] [cursor=pointer]:
+          - /url: /chart
+      - generic [ref=e10]:
+        - button "Toggle fullscreen" [ref=e11]:
+          - img
+        - button "Toggle mobile menu" [ref=e12]:
+          - img
+  - generic [ref=e13]:
+    - complementary [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - heading "Tools" [level=2] [ref=e17]
+          - button "Collapse sidebar" [ref=e18]:
+            - img
+        - generic [ref=e20]:
+          - button "🧭 Route Planner" [ref=e21]:
+            - generic [ref=e22]: 🧭
+            - generic [ref=e23]: Route Planner
+          - button "📍 Waypoints" [ref=e24]:
+            - generic [ref=e25]: 📍
+            - generic [ref=e26]: Waypoints
+          - button "🎯 Track Recording" [ref=e27]:
+            - generic [ref=e28]: 🎯
+            - generic [ref=e29]: Track Recording
+          - button "🚢 AIS Targets" [ref=e30]:
+            - generic [ref=e31]: 🚢
+            - generic [ref=e32]: AIS Targets
+          - button "📊 Instruments" [ref=e33]:
+            - generic [ref=e34]: 📊
+            - generic [ref=e35]: Instruments
+          - generic [ref=e36]:
+            - heading "Quick Actions" [level=3] [ref=e37]
+            - button "📥 Download Charts" [ref=e38]:
+              - generic [ref=e39]: 📥
+              - generic [ref=e40]: Download Charts
+            - button "⚓ Anchor Watch" [ref=e41]:
+              - generic [ref=e42]: ⚓
+              - generic [ref=e43]: Anchor Watch
+            - button "🆘 Man Overboard" [ref=e44]:
+              - generic [ref=e45]: 🆘
+              - generic [ref=e46]: Man Overboard
+        - button "Close" [ref=e48]
+    - main [ref=e49]:
+      - generic [ref=e50]:
+        - button "Offline Charts" [ref=e51]:
+          - img [ref=e52]
+          - text: Offline Charts
+        - generic [ref=e55]:
+          - region "Map" [ref=e56]
+          - link "Mapbox homepage" [ref=e58] [cursor=pointer]:
+            - /url: https://www.mapbox.com/
+```
