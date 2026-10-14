@@ -1,14 +1,24 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+type MockFn = ReturnType<typeof vi.fn>;
+
+interface MockServiceWorkerRegistration {
+  installing: null;
+  waiting: null;
+  active: { state: string; postMessage: MockFn };
+  addEventListener: MockFn;
+  removeEventListener: MockFn;
+}
+
 describe('Service Worker Integration Tests', () => {
-  let mockServiceWorker: any;
+  let mockServiceWorker: MockServiceWorkerRegistration;
   let mockCache: Map<string, Response>;
 
   beforeEach(() => {
     // Mock Cache API
     mockCache = new Map();
 
-    (globalThis as any).caches = {
+    globalThis.caches = {
       open: vi.fn().mockResolvedValue({
         match: vi.fn((request: string) => {
           return Promise.resolve(mockCache.get(request));
@@ -32,7 +42,7 @@ describe('Service Worker Integration Tests', () => {
       delete: vi.fn(),
       has: vi.fn(),
       keys: vi.fn(),
-    } as any;
+    } as unknown as CacheStorage;
 
     // Mock Service Worker registration
     mockServiceWorker = {
@@ -212,7 +222,7 @@ describe('Service Worker Integration Tests', () => {
       const cache = await caches.open('api-data');
       
       // Mock fetch
-      (globalThis as any).fetch = vi.fn().mockResolvedValue(
+      globalThis.fetch = vi.fn().mockResolvedValue(
         new Response(JSON.stringify({ fresh: true }), {
           headers: { 'Content-Type': 'application/json' },
         })

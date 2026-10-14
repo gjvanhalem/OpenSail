@@ -2,13 +2,25 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { TrackPoint } from '@/database/db';
 import type { TrackProcessingMessage, TrackProcessingResult } from '@/workers/trackProcessor.worker';
 
+type ResultCallback = (data: TrackProcessingResult['data']) => void;
+
+/** Register a typed resolver for a given worker result type */
+function setCallback<K extends TrackProcessingResult['type']>(
+  callbacks: Map<TrackProcessingResult['type'], ResultCallback>,
+  type: K,
+  callback: (data: Extract<TrackProcessingResult, { type: K }>['data']) => void
+): void {
+  // The worker always pairs a result type with its matching data shape
+  callbacks.set(type, callback as ResultCallback);
+}
+
 /**
  * Hook to use Web Worker for track processing
  * Offloads heavy computations from main thread
  */
 export function useTrackProcessor() {
   const workerRef = useRef<Worker | null>(null);
-  const callbacksRef = useRef<Map<string, (result: any) => void>>(new Map());
+  const callbacksRef = useRef<Map<TrackProcessingResult['type'], ResultCallback>>(new Map());
 
   useEffect(() => {
     // Create worker
@@ -41,7 +53,7 @@ export function useTrackProcessor() {
           return;
         }
 
-        callbacksRef.current.set('compressed', resolve);
+        setCallback(callbacksRef.current, 'compressed', resolve);
         const message: TrackProcessingMessage = {
           type: 'compress',
           data: { points, tolerance },
@@ -67,7 +79,7 @@ export function useTrackProcessor() {
           return;
         }
 
-        callbacksRef.current.set('calculated', resolve);
+        setCallback(callbacksRef.current, 'calculated', resolve);
         const message: TrackProcessingMessage = {
           type: 'calculate',
           data: { points },
@@ -86,7 +98,7 @@ export function useTrackProcessor() {
           return;
         }
 
-        callbacksRef.current.set('simplified', resolve);
+        setCallback(callbacksRef.current, 'simplified', resolve);
         const message: TrackProcessingMessage = {
           type: 'simplify',
           data: { points, tolerance },

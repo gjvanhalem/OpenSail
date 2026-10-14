@@ -17,7 +17,7 @@ test.describe('Chart Display', () => {
     
     // Get initial viewport state
     const initialState = await page.evaluate(() => {
-      const map = (window as any).map;
+      const map = (window as Window & { map?: { getZoom(): number; getCenter(): { lng: number; lat: number } } }).map;
       if (map) {
         return {
           zoom: map.getZoom(),
@@ -39,7 +39,7 @@ test.describe('Chart Display', () => {
     
     // Verify map state changed (if map is available)
     const newState = await page.evaluate(() => {
-      const map = (window as any).map;
+      const map = (window as Window & { map?: { getZoom(): number; getCenter(): { lng: number; lat: number } } }).map;
       if (map) {
         return {
           zoom: map.getZoom(),

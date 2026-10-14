@@ -115,7 +115,9 @@ class PerformanceMonitor {
    */
   getMemoryUsage(): number {
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
+      const memory = (
+        performance as Performance & { memory: { usedJSHeapSize: number; jsHeapSizeLimit: number } }
+      ).memory;
       return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
     }
     return 0;

@@ -235,7 +235,7 @@ describe('Map Interaction Integration Tests', () => {
 
   describe('Map Controls', () => {
     it('should handle zoom in/out', () => {
-      let zoom = 10;
+      const zoom = 10;
       
       const zoomIn = () => zoom + 1;
       const zoomOut = () => zoom - 1;
@@ -245,7 +245,7 @@ describe('Map Interaction Integration Tests', () => {
     });
 
     it('should handle map rotation', () => {
-      let bearing = 0;
+      const bearing = 0;
       
       const rotate = (degrees: number) => bearing + degrees;
 

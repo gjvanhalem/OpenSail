@@ -9,20 +9,19 @@ import type { Route, Waypoint } from '@/models';
 
 export const RoutesPage: React.FC = () => {
   const dispatch = useDispatch();
-  const routes = useSelector((state: RootState) => state.routes.routes) as any[];
+  const routes = useSelector((state: RootState) => state.routes.routes);
   const activeRouteId = useSelector((state: RootState) => state.routes.activeRouteId) as string | null;
   
   const [showPlanner, setShowPlanner] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const [_isAddingWaypoint, setIsAddingWaypoint] = useState(false);
 
   // Load routes from database on mount
   useEffect(() => {
     const loadRoutes = async () => {
       try {
         const loadedRoutes = await routeRepository.getAll();
-        dispatch(setRoutes(loadedRoutes as any));
+        dispatch(setRoutes(loadedRoutes));
       } catch (error) {
         console.error('Failed to load routes:', error);
       }
@@ -33,7 +32,6 @@ export const RoutesPage: React.FC = () => {
   const handleNewRoute = useCallback(() => {
     setEditingRouteId(null);
     setShowPlanner(true);
-    setIsAddingWaypoint(true);
   }, []);
 
   const handleEditRoute = useCallback((routeId: string) => {
@@ -52,7 +50,7 @@ export const RoutesPage: React.FC = () => {
     }
   }, [dispatch]);
 
-  const handleSelectRoute = useCallback((route: any) => {
+  const handleSelectRoute = useCallback((route: Route) => {
     setSelectedRoute(route);
     dispatch(setActiveRoute(route.id!));
   }, [dispatch]);
@@ -86,7 +84,7 @@ export const RoutesPage: React.FC = () => {
             </div>
           ) : (
             <div className="p-2 space-y-2">
-              {routes.map((route: any) => (
+              {routes.map((route) => (
                 <div
                   key={route.id}
                   className={`p-3 border rounded-md cursor-pointer hover:border-blue-300 ${
@@ -159,7 +157,6 @@ export const RoutesPage: React.FC = () => {
               editingRouteId={editingRouteId}
               onClose={() => {
                 setShowPlanner(false);
-                setIsAddingWaypoint(false);
               }}
               onWaypointClick={handleWaypointClick}
             />

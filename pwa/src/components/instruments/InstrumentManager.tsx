@@ -5,7 +5,7 @@
  * and displays connection status and received data.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   addConnection,
@@ -28,6 +28,16 @@ interface ConnectionItem {
   connection: SerialConnection | BluetoothConnection;
 }
 
+function formatTimestamp(timestamp: number | null): string {
+  if (!timestamp) return 'Never';
+  const now = Date.now();
+  const diff = now - timestamp;
+  if (diff < 1000) return 'Just now';
+  if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  return new Date(timestamp).toLocaleTimeString();
+}
+
 export function InstrumentManager() {
   const dispatch = useAppDispatch();
   const connections = useAppSelector((state) => state.instruments.connections);
@@ -37,27 +47,18 @@ export function InstrumentManager() {
   const [activeConnections, setActiveConnections] = useState<Map<string, ConnectionItem>>(new Map());
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolType>('NMEA0183');
   const [connectionType, setConnectionType] = useState<'serial' | 'bluetooth'>('serial');
-  const [isSerialSupported, setIsSerialSupported] = useState(true);
-  const [isBluetoothSupported, setIsBluetoothSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   // Check feature support using compatibility hook
-  const webSerialSupported = useFeatureSupport('webSerial');
-  const webBluetoothSupported = useFeatureSupport('webBluetooth');
+  const isSerialSupported = useFeatureSupport('webSerial');
+  const isBluetoothSupported = useFeatureSupport('webBluetooth');
   
   // Create InstrumentDataService instance
   const dataServiceRef = useRef<InstrumentDataService | null>(null);
   
-  if (!dataServiceRef.current) {
+  if (dataServiceRef.current == null) {
     dataServiceRef.current = new InstrumentDataService(dispatch);
   }
-
-  useEffect(() => {
-    // Check if Web Serial API is supported
-    setIsSerialSupported(webSerialSupported);
-    // Check if Web Bluetooth API is supported
-    setIsBluetoothSupported(webBluetoothSupported);
-  }, [webSerialSupported, webBluetoothSupported]);
 
   const handleConnect = async () => {
     setError(null);
@@ -238,16 +239,6 @@ export function InstrumentManager() {
       default:
         return '○';
     }
-  };
-
-  const formatTimestamp = (timestamp: number | null): string => {
-    if (!timestamp) return 'Never';
-    const now = Date.now();
-    const diff = now - timestamp;
-    if (diff < 1000) return 'Just now';
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    return new Date(timestamp).toLocaleTimeString();
   };
 
   if (!isSerialSupported && !isBluetoothSupported) {

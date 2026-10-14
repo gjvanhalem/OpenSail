@@ -39,6 +39,19 @@ const initialState: SettingsState = {
   isInitialized: false,
 };
 
+export interface SettingUpdate {
+  key: keyof AppSettings;
+  value: AppSettings[keyof AppSettings];
+}
+
+function setSettingValue<K extends keyof AppSettings>(
+  settings: AppSettings,
+  key: K,
+  value: AppSettings[K]
+): void {
+  settings[key] = value;
+}
+
 // Async thunks
 export const loadSettings = createAsyncThunk(
   'settings/load',
@@ -50,7 +63,7 @@ export const loadSettings = createAsyncThunk(
 
 export const updateSetting = createAsyncThunk(
   'settings/update',
-  async ({ key, value }: { key: keyof AppSettings; value: any }) => {
+  async ({ key, value }: SettingUpdate) => {
     await settingsRepository.set(key, value);
     return { key, value };
   }
@@ -79,9 +92,9 @@ const settingsSlice = createSlice({
     // Optimistic update for immediate UI feedback
     setSettingOptimistic: (
       state,
-      action: PayloadAction<{ key: keyof AppSettings; value: any }>
+      action: PayloadAction<SettingUpdate>
     ) => {
-      (state.settings as any)[action.payload.key] = action.payload.value;
+      setSettingValue(state.settings, action.payload.key, action.payload.value);
     },
   },
   extraReducers: (builder) => {
@@ -102,7 +115,7 @@ const settingsSlice = createSlice({
 
     // Update single setting
     builder.addCase(updateSetting.fulfilled, (state, action) => {
-      (state.settings as any)[action.payload.key] = action.payload.value;
+      setSettingValue(state.settings, action.payload.key, action.payload.value);
     });
     builder.addCase(updateSetting.rejected, (state, action) => {
       state.error = action.error.message || 'Failed to update setting';

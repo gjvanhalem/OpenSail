@@ -1,5 +1,3 @@
-/// <reference path="../../types/bluetooth.d.ts" />
-
 /**
  * BluetoothConnection - Web Bluetooth API wrapper for Bluetooth instrument connections
  * 
@@ -93,8 +91,8 @@ export class BluetoothConnection {
     try {
       // Note: getDevices() requires the Web Bluetooth Scanning API
       // which may not be available in all browsers
-      if ('getDevices' in navigator.bluetooth) {
-        return await (navigator.bluetooth as any).getDevices();
+      if ('getDevices' in navigator.bluetooth && navigator.bluetooth.getDevices) {
+        return await navigator.bluetooth.getDevices();
       }
       return [];
     } catch (error) {

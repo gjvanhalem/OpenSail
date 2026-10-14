@@ -76,11 +76,12 @@ export async function validateRoute(route: Route): Promise<RouteValidation> {
  * @param minDepth Minimum safe depth in meters
  * @returns Array of shallow water warnings
  */
-export async function checkShallowWater(
-  _start: Waypoint,
-  _end: Waypoint,
-  _minDepth: number = 3.0
-): Promise<RouteWarning[]> {
+// Placeholder: parameters are part of the public signature but not used until chart data is integrated
+export const checkShallowWater: (
+  start: Waypoint,
+  end: Waypoint,
+  minDepth?: number
+) => Promise<RouteWarning[]> = async () => {
   const warnings: RouteWarning[] = [];
   
   // TODO: Integrate with chart data when available
@@ -91,7 +92,7 @@ export async function checkShallowWater(
   // 3. Generate warnings for shallow areas
   
   return warnings;
-}
+};
 
 /**
  * Check if a route leg passes near hazards
@@ -101,11 +102,12 @@ export async function checkShallowWater(
  * @param corridorWidth Width of corridor to check in nautical miles
  * @returns Array of hazard warnings
  */
-export async function checkHazards(
-  _start: Waypoint,
-  _end: Waypoint,
-  _corridorWidth: number = 0.1
-): Promise<RouteWarning[]> {
+// Placeholder: parameters are part of the public signature but not used until chart data is integrated
+export const checkHazards: (
+  start: Waypoint,
+  end: Waypoint,
+  corridorWidth?: number
+) => Promise<RouteWarning[]> = async () => {
   const warnings: RouteWarning[] = [];
   
   // TODO: Integrate with chart data when available
@@ -116,7 +118,7 @@ export async function checkHazards(
   // 3. Generate warnings for hazards within corridor
   
   return warnings;
-}
+};
 
 /**
  * Check if a route leg passes through restricted areas
@@ -125,10 +127,11 @@ export async function checkHazards(
  * @param end End waypoint
  * @returns Array of restricted area warnings
  */
-export async function checkRestrictedAreas(
-  _start: Waypoint,
-  _end: Waypoint
-): Promise<RouteWarning[]> {
+// Placeholder: parameters are part of the public signature but not used until chart data is integrated
+export const checkRestrictedAreas: (
+  start: Waypoint,
+  end: Waypoint
+) => Promise<RouteWarning[]> = async () => {
   const warnings: RouteWarning[] = [];
   
   // TODO: Integrate with chart data when available
@@ -139,7 +142,7 @@ export async function checkRestrictedAreas(
   // 3. Generate warnings with area details
   
   return warnings;
-}
+};
 
 /**
  * Sample points along a route leg for analysis

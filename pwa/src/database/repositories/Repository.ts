@@ -1,3 +1,5 @@
+import type { Table, UpdateSpec } from 'dexie';
+
 // Generic repository interface for CRUD operations
 export interface Repository<T, K = string> {
   getAll(): Promise<T[]>;
@@ -10,7 +12,7 @@ export interface Repository<T, K = string> {
 
 // Base repository implementation
 export abstract class BaseRepository<T extends { id?: K }, K = string> implements Repository<T, K> {
-  protected abstract getTable(): any;
+  protected abstract getTable(): Table<T, K>;
   protected abstract generateId(): K;
 
   async getAll(): Promise<T[]> {
@@ -29,7 +31,8 @@ export abstract class BaseRepository<T extends { id?: K }, K = string> implement
   }
 
   async update(id: K, item: Partial<T>): Promise<T> {
-    await this.getTable().update(id, item);
+    // Partial<T> is structurally an UpdateSpec<T>; TS cannot prove it for an unresolved generic T
+    await this.getTable().update(id, item as UpdateSpec<T>);
     const updated = await this.getById(id);
     if (!updated) {
       throw new Error(`Item with id ${id} not found after update`);

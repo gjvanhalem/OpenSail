@@ -31,10 +31,10 @@ export interface RoutePlannerHook {
 
 export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps): RoutePlannerHook => {
   const dispatch = useDispatch();
-  const routes = useSelector((state: RootState) => state.routes.routes) as any[];
+  const routes = useSelector((state: RootState) => state.routes.routes);
   
   const editingRoute = editingRouteId 
-    ? routes.find((r: any) => r.id === editingRouteId) 
+    ? routes.find((r) => r.id === editingRouteId) 
     : null;
 
   const [routeName, setRouteName] = useState(editingRoute?.name || '');
@@ -101,11 +101,11 @@ export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps):
       if (editingRouteId && editingRoute) {
         // Update existing route
         const updated = await routeRepository.update(editingRouteId, routeData);
-        dispatch(updateRoute(updated as any));
+        dispatch(updateRoute(updated));
       } else {
         // Create new route
         const created = await routeRepository.create(routeData);
-        dispatch(addRoute(created as any));
+        dispatch(addRoute(created));
         dispatch(setActiveRoute(created.id!));
       }
 

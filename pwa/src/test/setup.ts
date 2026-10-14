@@ -8,9 +8,16 @@ afterEach(() => {
   cleanup();
 });
 
+// Writable view of navigator so read-only / non-standard APIs can be mocked
+const mockableNavigator = globalThis.navigator as unknown as {
+  serial?: unknown;
+  bluetooth?: unknown;
+  geolocation: unknown;
+};
+
 // Mock Web APIs that aren't available in jsdom
-(globalThis as any).navigator.serial = undefined;
-(globalThis as any).navigator.bluetooth = undefined;
+mockableNavigator.serial = undefined;
+mockableNavigator.bluetooth = undefined;
 
 // Mock Geolocation API
 const mockGeolocation = {
@@ -18,7 +25,7 @@ const mockGeolocation = {
   watchPosition: vi.fn(),
   clearWatch: vi.fn(),
 };
-(globalThis as any).navigator.geolocation = mockGeolocation;
+mockableNavigator.geolocation = mockGeolocation;
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -36,14 +43,14 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock ResizeObserver
-(globalThis as any).ResizeObserver = vi.fn().mockImplementation(() => ({
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
 
 // Mock IntersectionObserver
-(globalThis as any).IntersectionObserver = vi.fn().mockImplementation(() => ({
+globalThis.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),

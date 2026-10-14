@@ -87,7 +87,7 @@ export class GeolocationService {
       this.isActive = true;
       this.dispatch(setGPSActive(true));
       console.log('GeolocationService started successfully');
-    } catch (error) {
+    } catch {
       const navError = new NavigationError(
         'Failed to start geolocation service',
         ErrorCode.GPS_SIGNAL_LOST,

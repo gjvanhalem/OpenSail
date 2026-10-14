@@ -60,7 +60,7 @@ test.describe('PWA Installation', () => {
     const manifest = await manifestResponse.json();
     
     // Check for common icon sizes
-    const iconSizes = manifest.icons.map((icon: any) => icon.sizes);
+    const iconSizes = manifest.icons.map((icon: { sizes: string }) => icon.sizes);
     expect(iconSizes).toContain('192x192');
     expect(iconSizes).toContain('512x512');
   });

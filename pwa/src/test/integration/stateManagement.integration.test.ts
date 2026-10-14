@@ -26,6 +26,14 @@ import aisReducer, {
 } from '@/store/slices/aisSlice';
 import type { Route, Waypoint, Position, AISTarget } from '@/models';
 
+// Shape of the combined state used across the test stores below
+interface TestRootState {
+  navigation: ReturnType<typeof navigationReducer>;
+  routes: ReturnType<typeof routesReducer>;
+  tracks: ReturnType<typeof tracksReducer>;
+  ais: ReturnType<typeof aisReducer>;
+}
+
 describe('State Management Integration Tests', () => {
   describe('Navigation State', () => {
     let store: ReturnType<typeof configureStore>;
@@ -48,7 +56,7 @@ describe('State Management Integration Tests', () => {
 
       store.dispatch(updatePosition(position));
 
-      const state = (store.getState() as any).navigation;
+      const state = (store.getState() as TestRootState).navigation;
       expect(state.position).toEqual(position);
       expect(state.isGPSActive).toBe(true);
     });
@@ -57,7 +65,7 @@ describe('State Management Integration Tests', () => {
       store.dispatch(updateHeading(180));
       store.dispatch(updateSpeed(5.5));
 
-      const state = (store.getState() as any).navigation;
+      const state = (store.getState() as TestRootState).navigation;
       expect(state.heading).toBe(180);
       expect(state.speed).toBe(5.5);
     });
@@ -73,7 +81,7 @@ describe('State Management Integration Tests', () => {
 
       store.dispatch(resetNavigation());
 
-      const state = (store.getState() as any).navigation;
+      const state = (store.getState() as TestRootState).navigation;
       expect(state.position).toBeNull();
       expect(state.heading).toBeNull();
       expect(state.isGPSActive).toBe(false);
@@ -104,7 +112,7 @@ describe('State Management Integration Tests', () => {
 
       store.dispatch(addRoute(route));
 
-      const state = (store.getState() as any).routes;
+      const state = (store.getState() as TestRootState).routes;
       expect(state.routes).toHaveLength(1);
       expect(state.routes[0].name).toBe('Test Route');
     });
@@ -126,7 +134,7 @@ describe('State Management Integration Tests', () => {
         name: 'Updated',
       }));
 
-      const state = (store.getState() as any).routes;
+      const state = (store.getState() as TestRootState).routes;
       expect(state.routes[0].name).toBe('Updated');
     });
 
@@ -144,7 +152,7 @@ describe('State Management Integration Tests', () => {
       store.dispatch(addRoute(route));
       store.dispatch(deleteRoute('route-1'));
 
-      const state = (store.getState() as any).routes;
+      const state = (store.getState() as TestRootState).routes;
       expect(state.routes).toHaveLength(0);
     });
 
@@ -181,22 +189,22 @@ describe('State Management Integration Tests', () => {
       store.dispatch(addRoute(route));
       store.dispatch(startNavigation('route-1'));
 
-      let state = (store.getState() as any).routes;
+      let state = (store.getState() as TestRootState).routes;
       expect(state.isNavigating).toBe(true);
       expect(state.activeRouteId).toBe('route-1');
       expect(state.activeWaypointIndex).toBe(0);
 
       store.dispatch(advanceToNextWaypoint());
-      state = (store.getState() as any).routes;
+      state = (store.getState() as TestRootState).routes;
       expect(state.activeWaypointIndex).toBe(1);
 
       store.dispatch(advanceToNextWaypoint());
-      state = (store.getState() as any).routes;
+      state = (store.getState() as TestRootState).routes;
       expect(state.activeWaypointIndex).toBe(2);
 
       // Advancing past last waypoint should stop navigation
       store.dispatch(advanceToNextWaypoint());
-      state = (store.getState() as any).routes;
+      state = (store.getState() as TestRootState).routes;
       expect(state.isNavigating).toBe(false);
     });
 
@@ -226,7 +234,7 @@ describe('State Management Integration Tests', () => {
       store.dispatch(addRoute(route));
       store.dispatch(addWaypointToRoute({ routeId: 'route-1', waypoint }));
 
-      const state = (store.getState() as any).routes;
+      const state = (store.getState() as TestRootState).routes;
       expect(state.routes[0].waypoints).toHaveLength(1);
       expect(state.routes[0].waypoints[0].name).toBe('Waypoint 1');
     });
@@ -253,14 +261,14 @@ describe('State Management Integration Tests', () => {
     it('should start and stop recording', () => {
       store.dispatch(startRecording({ id: 'track-1', name: 'Test Track' }));
 
-      let state = (store.getState() as any).tracks;
+      let state = (store.getState() as TestRootState).tracks;
       expect(state.isRecording).toBe(true);
       expect(state.currentTrack).toBeDefined();
       expect(state.currentTrack?.name).toBe('Test Track');
 
       store.dispatch(stopRecording());
 
-      state = (store.getState() as any).tracks;
+      state = (store.getState() as TestRootState).tracks;
       expect(state.isRecording).toBe(false);
     });
 
@@ -283,7 +291,7 @@ describe('State Management Integration Tests', () => {
         timestamp: new Date(),
       }));
 
-      const state = (store.getState() as any).tracks;
+      const state = (store.getState() as TestRootState).tracks;
       expect(state.currentTrack?.points).toHaveLength(2);
     });
   });
@@ -329,7 +337,7 @@ describe('State Management Integration Tests', () => {
 
       store.dispatch(updateTarget(target));
 
-      const state = (store.getState() as any).ais;
+      const state = (store.getState() as TestRootState).ais;
       expect(state.targets['123456789']).toBeDefined();
       expect(state.targets['123456789'].name).toBe('Test Vessel');
     });
@@ -358,7 +366,7 @@ describe('State Management Integration Tests', () => {
       store.dispatch(updateTarget(target));
       store.dispatch(removeTarget('123456789'));
 
-      const state = (store.getState() as any).ais;
+      const state = (store.getState() as TestRootState).ais;
       expect(state.targets['123456789']).toBeUndefined();
     });
 
@@ -409,7 +417,7 @@ describe('State Management Integration Tests', () => {
       // Clear targets older than 24 hours (24 * 60 * 60 * 1000 ms)
       store.dispatch(clearOldTargets(24 * 60 * 60 * 1000));
 
-      const state = (store.getState() as any).ais;
+      const state = (store.getState() as TestRootState).ais;
       expect(state.targets['111111111']).toBeDefined();
       expect(state.targets['222222222']).toBeUndefined();
     });
@@ -483,7 +491,7 @@ describe('State Management Integration Tests', () => {
         timestamp: new Date(),
       }));
 
-      const state = store.getState() as any;
+      const state = store.getState() as TestRootState;
       expect(state.routes.isNavigating).toBe(true);
       expect(state.tracks.isRecording).toBe(true);
       expect(state.navigation.position).toEqual(position);

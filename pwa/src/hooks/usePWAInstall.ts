@@ -5,15 +5,19 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+function isStandalone(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches;
+}
+
 export function usePWAInstall() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  // Check if already installed (running in standalone display mode)
+  const [isInstalled, setIsInstalled] = useState(isStandalone);
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
+    // Already installed: no need to listen for install events
+    if (isStandalone()) {
       return;
     }
 

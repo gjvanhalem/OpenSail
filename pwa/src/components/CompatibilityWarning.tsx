@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   getFeatureSupport,
   getBrowserInfo,
@@ -10,73 +10,75 @@ interface CompatibilityWarningProps {
   onDismiss?: () => void;
 }
 
+interface CompatibilityIssues {
+  warnings: string[];
+  criticalIssues: string[];
+}
+
+function computeCompatibilityIssues(): CompatibilityIssues {
+  const features = getFeatureSupport();
+  const browserInfo = getBrowserInfo();
+  const newWarnings: string[] = [];
+  const newCriticalIssues: string[] = [];
+
+  // Check secure context first
+  if (!isSecureContext()) {
+    newCriticalIssues.push(
+      'This app must be accessed via HTTPS for PWA features to work. Please use https:// instead of http://'
+    );
+  }
+
+  // Check critical features
+  if (!features.serviceWorker.supported) {
+    newCriticalIssues.push(features.serviceWorker.reason || 'Service Worker not supported');
+  }
+
+  if (!features.indexedDB.supported) {
+    newCriticalIssues.push(features.indexedDB.reason || 'IndexedDB not supported');
+  }
+
+  if (!features.geolocation.supported) {
+    newCriticalIssues.push(features.geolocation.reason || 'Geolocation not supported');
+  }
+
+  // Check optional but important features
+  if (!features.webSerial.supported) {
+    newWarnings.push(
+      'USB instrument connections not available. Use Chrome or Edge for USB NMEA device support.'
+    );
+  }
+
+  if (!features.webBluetooth.supported) {
+    newWarnings.push(
+      'Bluetooth instrument connections not available. Use Chrome, Edge, or Safari 15.4+ for Bluetooth support.'
+    );
+  }
+
+  if (!features.notifications.supported) {
+    newWarnings.push('Browser notifications not available. You may miss important alerts.');
+  }
+
+  // Add browser-specific recommendations
+  if (browserInfo.name === 'Firefox') {
+    newWarnings.push(
+      'Firefox does not support USB or Bluetooth instrument connections. For full functionality, use Chrome or Edge.'
+    );
+  } else if (browserInfo.name === 'Safari') {
+    newWarnings.push(
+      'Safari has limited Bluetooth support and no USB support. For full functionality, use Chrome or Edge.'
+    );
+  }
+
+  return { warnings: newWarnings, criticalIssues: newCriticalIssues };
+}
+
 export const CompatibilityWarning: React.FC<CompatibilityWarningProps> = ({ onDismiss }) => {
-  const [dismissed, setDismissed] = useState(false);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [criticalIssues, setCriticalIssues] = useState<string[]>([]);
-
-  useEffect(() => {
-    const features = getFeatureSupport();
-    const browserInfo = getBrowserInfo();
-    const newWarnings: string[] = [];
-    const newCriticalIssues: string[] = [];
-
-    // Check secure context first
-    if (!isSecureContext()) {
-      newCriticalIssues.push(
-        'This app must be accessed via HTTPS for PWA features to work. Please use https:// instead of http://'
-      );
-    }
-
-    // Check critical features
-    if (!features.serviceWorker.supported) {
-      newCriticalIssues.push(features.serviceWorker.reason || 'Service Worker not supported');
-    }
-
-    if (!features.indexedDB.supported) {
-      newCriticalIssues.push(features.indexedDB.reason || 'IndexedDB not supported');
-    }
-
-    if (!features.geolocation.supported) {
-      newCriticalIssues.push(features.geolocation.reason || 'Geolocation not supported');
-    }
-
-    // Check optional but important features
-    if (!features.webSerial.supported) {
-      newWarnings.push(
-        'USB instrument connections not available. Use Chrome or Edge for USB NMEA device support.'
-      );
-    }
-
-    if (!features.webBluetooth.supported) {
-      newWarnings.push(
-        'Bluetooth instrument connections not available. Use Chrome, Edge, or Safari 15.4+ for Bluetooth support.'
-      );
-    }
-
-    if (!features.notifications.supported) {
-      newWarnings.push('Browser notifications not available. You may miss important alerts.');
-    }
-
-    // Add browser-specific recommendations
-    if (browserInfo.name === 'Firefox') {
-      newWarnings.push(
-        'Firefox does not support USB or Bluetooth instrument connections. For full functionality, use Chrome or Edge.'
-      );
-    } else if (browserInfo.name === 'Safari') {
-      newWarnings.push(
-        'Safari has limited Bluetooth support and no USB support. For full functionality, use Chrome or Edge.'
-      );
-    }
-
-    setWarnings(newWarnings);
-    setCriticalIssues(newCriticalIssues);
-
-    // Auto-dismiss if no issues
-    if (newWarnings.length === 0 && newCriticalIssues.length === 0) {
-      setDismissed(true);
-    }
-  }, []);
+  // Compatibility issues are computed once on mount
+  const [{ warnings, criticalIssues }] = useState(computeCompatibilityIssues);
+  // Auto-dismiss if no issues
+  const [dismissed, setDismissed] = useState(
+    () => warnings.length === 0 && criticalIssues.length === 0
+  );
 
   const handleDismiss = () => {
     setDismissed(true);

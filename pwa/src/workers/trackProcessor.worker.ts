@@ -8,15 +8,22 @@ import type { TrackPoint as DBTrackPoint } from '@/database/db';
 // Use database TrackPoint type which has flat structure
 type TrackPoint = DBTrackPoint;
 
-export interface TrackProcessingMessage {
-  type: 'compress' | 'calculate' | 'simplify';
-  data: any;
+export interface TrackStats {
+  distance: number;
+  avgSpeed: number;
+  maxSpeed: number;
+  duration: number;
 }
 
-export interface TrackProcessingResult {
-  type: 'compressed' | 'calculated' | 'simplified';
-  data: any;
-}
+export type TrackProcessingMessage =
+  | { type: 'compress'; data: { points: TrackPoint[]; tolerance: number } }
+  | { type: 'calculate'; data: { points: TrackPoint[] } }
+  | { type: 'simplify'; data: { points: TrackPoint[]; tolerance: number } };
+
+export type TrackProcessingResult =
+  | { type: 'compressed'; data: string }
+  | { type: 'calculated'; data: TrackStats }
+  | { type: 'simplified'; data: TrackPoint[] };
 
 // Douglas-Peucker algorithm for track simplification
 function simplifyTrack(points: TrackPoint[], tolerance: number): TrackPoint[] {

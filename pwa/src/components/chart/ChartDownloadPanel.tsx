@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store';
 import { chartDownloadService } from '@/services/ChartDownloadService';
@@ -22,18 +22,17 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
 
   const [regionName, setRegionName] = useState('');
   const [selectedZoomLevels, setSelectedZoomLevels] = useState<number[]>([8, 9, 10, 11, 12]);
-  const [estimatedSize, setEstimatedSize] = useState(0);
+  const estimatedSize = useMemo(
+    () =>
+      selectedBounds
+        ? chartDownloadService.estimateDownloadSize(selectedBounds, selectedZoomLevels)
+        : 0,
+    [selectedBounds, selectedZoomLevels]
+  );
 
   useEffect(() => {
     dispatch(loadCacheStats());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (selectedBounds) {
-      const size = chartDownloadService.estimateDownloadSize(selectedBounds, selectedZoomLevels);
-      setEstimatedSize(size);
-    }
-  }, [selectedBounds, selectedZoomLevels]);
 
   const handleDownload = async () => {
     if (!selectedBounds || !regionName.trim()) return;

@@ -54,7 +54,8 @@ export const ChartPage: React.FC = () => {
       navigation.position !== lastPositionRef.current
     ) {
       lastPositionRef.current = navigation.position;
-      
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs external GPS position (Redux) into the locally owned, user-editable viewport; cannot be derived during render because the user can pan away from it
       setViewport((prev) => ({
         ...prev,
         latitude: navigation.position!.latitude,

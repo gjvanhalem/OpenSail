@@ -24,11 +24,11 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  * Throttle a callback to limit execution frequency
  * Useful for scroll handlers, resize handlers, etc.
  */
-export function useThrottle<T extends (...args: any[]) => any>(
+export function useThrottle<T extends (...args: never[]) => unknown>(
   callback: T,
   delay: number = 300
 ): T {
-  const [lastRun, setLastRun] = useState(Date.now());
+  const [lastRun, setLastRun] = useState(() => Date.now());
 
   return ((...args: Parameters<T>) => {
     const now = Date.now();

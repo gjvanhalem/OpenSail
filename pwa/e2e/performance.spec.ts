@@ -130,7 +130,6 @@ test.describe('Performance Testing', () => {
         return new Promise<{ avgFps: number; minFps: number }>((resolve) => {
           const frames: number[] = [];
           let lastTime = performance.now();
-          let frameCount = 0;
           const duration = 2000; // Measure for 2 seconds
           const startTime = performance.now();
           
@@ -140,7 +139,6 @@ test.describe('Performance Testing', () => {
             const fps = 1000 / delta;
             frames.push(fps);
             lastTime = currentTime;
-            frameCount++;
             
             if (currentTime - startTime < duration) {
               requestAnimationFrame(measureFrame);
@@ -272,7 +270,7 @@ test.describe('Performance Testing', () => {
       // Get initial memory
       const initialMetrics = await page.evaluate(() => {
         if ('memory' in performance) {
-          return (performance as any).memory.usedJSHeapSize;
+          return (performance as Performance & { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize;
         }
         return 0;
       });
@@ -290,7 +288,7 @@ test.describe('Performance Testing', () => {
       // Force garbage collection if available
       await page.evaluate(() => {
         if ('gc' in window) {
-          (window as any).gc();
+          (window as Window & { gc: () => void }).gc();
         }
       });
       
@@ -299,7 +297,7 @@ test.describe('Performance Testing', () => {
       // Get final memory
       const finalMetrics = await page.evaluate(() => {
         if ('memory' in performance) {
-          return (performance as any).memory.usedJSHeapSize;
+          return (performance as Performance & { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize;
         }
         return 0;
       });

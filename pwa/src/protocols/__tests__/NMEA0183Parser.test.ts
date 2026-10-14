@@ -42,7 +42,7 @@ describe('NMEA0183Parser', () => {
       const message = parser.parse(sentence);
       const data = parser.parseToInstrumentData(message!);
       
-      expect((data?.value as any).latitude).toBeCloseTo(48.1173, 4);
+      expect((data?.value as { latitude: number }).latitude).toBeCloseTo(48.1173, 4);
     });
 
     it('should parse longitude correctly', () => {
@@ -50,7 +50,7 @@ describe('NMEA0183Parser', () => {
       const message = parser.parse(sentence);
       const data = parser.parseToInstrumentData(message!);
       
-      expect((data?.value as any).longitude).toBeCloseTo(11.5167, 4);
+      expect((data?.value as { longitude: number }).longitude).toBeCloseTo(11.5167, 4);
     });
   });
 
