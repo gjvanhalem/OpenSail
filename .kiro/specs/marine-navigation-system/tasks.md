@@ -1,5 +1,168 @@
 # Implementation Plan
 
+## STATUS: Core infrastructure complete, but UI integration missing
+
+The protocol parsers, services, database, and UI components exist but are not connected. The app shows a map but no data flows through the system.
+
+## CRITICAL INTEGRATION TASKS (Must Complete to Make App Functional)
+
+- [x] 22. Connect GPS and position data to the system
+
+
+
+
+
+- [x] 22.1 Implement browser Geolocation API integration
+
+
+  - Create GeolocationService to wrap browser Geolocation API
+  - Dispatch position updates to Redux navigationSlice
+  - Handle permission requests and errors
+  - Add position accuracy monitoring
+  - _Requirements: 1.2, 6.1_
+
+- [x] 22.2 Add simulated GPS data for development
+
+
+  - Create GPS simulator with realistic movement
+  - Add UI toggle to switch between real GPS and simulator
+  - Implement predefined test tracks (harbor, coastal, open water)
+  - _Requirements: 1.2, 10.4_
+
+- [x] 22.3 Connect position data to ChartView
+
+
+  - Ensure VesselMarker receives position from Redux
+  - Auto-center map on vessel position
+  - Update vessel heading indicator
+  - _Requirements: 1.2, 1.5_
+
+- [ ] 23. Wire up instrument services to Redux
+- [ ] 23.1 Connect InstrumentService to Redux store
+  - Dispatch instrument data to Redux slices
+  - Update instrumentsSlice with real-time data
+  - Connect depth, wind, speed, heading to Redux
+  - _Requirements: 3.4, 3.5, 14.3_
+
+- [ ] 23.2 Connect instrument gauges to Redux data
+  - Update SpeedGauge to read from Redux
+  - Update DepthGauge to read from Redux
+  - Update WindGauge to read from Redux
+  - Update HeadingCompass to read from Redux
+  - _Requirements: 14.1, 14.2, 14.3_
+
+- [ ] 23.3 Add instrument data simulator
+  - Enable protocol stub by default in development
+  - Add UI controls to adjust simulated values
+  - Create realistic data variation
+  - _Requirements: 10.4, 10.5_
+
+- [ ] 24. Implement route planning functionality
+- [ ] 24.1 Enable waypoint creation on map
+  - Add click handler to ChartView for waypoint placement
+  - Connect RoutePlannerUI to map interactions
+  - Display waypoints as markers on map
+  - _Requirements: 2.1_
+
+- [ ] 24.2 Implement route calculations
+  - Calculate distance and bearing between waypoints
+  - Update route statistics in real-time
+  - Display route line on map
+  - _Requirements: 2.2, 2.4_
+
+- [ ] 24.3 Connect route service to UI
+  - Save routes to database when created
+  - Load routes from database on app start
+  - Update Redux when routes change
+  - _Requirements: 2.3_
+
+- [ ] 25. Implement track recording
+- [ ] 25.1 Connect TrackRecorder to position data
+  - Start recording when user clicks record button
+  - Capture position every 10 seconds
+  - Save track points to database
+  - _Requirements: 9.1, 9.2_
+
+- [ ] 25.2 Display recorded tracks on map
+  - Load tracks from database
+  - Render track lines on ChartView
+  - Show track statistics
+  - _Requirements: 9.3_
+
+- [ ] 25.3 Implement track controls
+  - Add start/stop recording buttons
+  - Show recording status indicator
+  - Display current track statistics
+  - _Requirements: 9.1_
+
+- [ ] 26. Implement AIS target display
+- [ ] 26.1 Connect AIS service to data sources
+  - Parse AIS messages from instrument data
+  - Update AIS targets in Redux
+  - Calculate CPA for nearby targets
+  - _Requirements: 4.1, 4.2, 4.3_
+
+- [ ] 26.2 Display AIS targets on map
+  - Render AIS vessel icons with heading
+  - Show vessel information on click
+  - Highlight targets within 2nm
+  - _Requirements: 4.2, 4.4_
+
+- [ ] 27. Implement logbook functionality
+- [ ] 27.1 Auto-detect voyage start/end
+  - Start voyage when vessel speed > 1 knot
+  - End voyage when stopped for > 30 minutes
+  - Calculate voyage statistics
+  - _Requirements: 13.1, 13.2_
+
+- [ ] 27.2 Create logbook UI
+  - Display voyage list
+  - Show voyage details and statistics
+  - Allow manual notes
+  - _Requirements: 13.3_
+
+- [ ] 28. Implement safety features
+- [ ] 28.1 Add MOB (Man Overboard) function
+  - Add MOB button to UI
+  - Capture position immediately
+  - Display MOB marker on map
+  - Show bearing and distance to MOB
+  - _Requirements: 12.1, 12.2, 12.3, 12.4_
+
+- [ ] 28.2 Implement anchor watch
+  - Add anchor watch activation UI
+  - Monitor position against radius
+  - Trigger alarm when dragging
+  - Display anchor watch circle
+  - _Requirements: 8.1, 8.2, 8.3, 8.4_
+
+- [ ] 29. Add missing UI state management
+- [ ] 29.1 Create UI slice for view controls
+  - Add toggles for routes, tracks, AIS visibility
+  - Store map viewport state
+  - Manage panel open/close states
+  - _Requirements: All UI requirements_
+
+- [ ] 29.2 Implement settings persistence
+  - Load settings on app start
+  - Save settings changes to database
+  - Apply settings to all components
+  - _Requirements: 14.4, 6.3_
+
+- [ ] 30. Add development tools and debugging
+- [ ] 30.1 Create debug panel
+  - Show current GPS position
+  - Display instrument data values
+  - Show Redux state
+  - Add simulator controls
+  - _Requirements: Development needs_
+
+- [ ] 30.2 Add data visualization
+  - Show connection status indicators
+  - Display data flow indicators
+  - Add performance metrics
+  - _Requirements: Development needs_
+
 ## CRITICAL TASKS (Must Complete First)
 
 These tasks are blocking other work and must be completed before the application can function:

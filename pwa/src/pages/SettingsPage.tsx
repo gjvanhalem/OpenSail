@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { updateSetting, resetSettings } from '@/store/slices/settingsSlice';
 import type { AppSettings } from '@/database/repositories/SettingsRepository';
 import { CompatibilityInfo } from '@/components/CompatibilityInfo';
+import { GPSControl } from '@/components/GPSControl';
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -286,6 +287,9 @@ export const SettingsPage: React.FC = () => {
             </label>
           </div>
         </section>
+
+        {/* GPS Control Section */}
+        <GPSControl />
 
         {/* Alarms Section */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-6">

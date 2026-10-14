@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import {
   ChartView,
@@ -21,6 +21,7 @@ export const ChartPage: React.FC = () => {
   const tracks = useSelector((state: RootState) => state.tracks.tracks);
   const aisTargetsRecord = useSelector((state: RootState) => state.ais.targets);
   const { showRoutes, showTracks, showAIS } = useSelector((state: RootState) => state.ui);
+  const settings = useSelector((state: RootState) => state.settings.settings);
 
   // Convert AIS targets from Record to Array
   const aisTargets = useMemo(() => Object.values(aisTargetsRecord), [aisTargetsRecord]);
@@ -28,10 +29,14 @@ export const ChartPage: React.FC = () => {
   const [viewport, setViewport] = useState<Viewport>({
     latitude: navigation.position?.latitude || 51.5074,
     longitude: navigation.position?.longitude || -0.1278,
-    zoom: 10,
+    zoom: settings.defaultZoom || 10,
     bearing: 0,
     pitch: 0,
   });
+
+  const [autoCenterEnabled, setAutoCenterEnabled] = useState(true);
+  const userInteractedRef = useRef(false);
+  const lastPositionRef = useRef(navigation.position);
 
   // Debounce viewport updates to reduce rendering frequency
   const debouncedViewport = useDebounce(viewport, 100);
@@ -40,9 +45,54 @@ export const ChartPage: React.FC = () => {
   const [showRegionSelector, setShowRegionSelector] = useState(false);
   const [selectedBounds, setSelectedBounds] = useState<Bounds | null>(null);
 
+  // Auto-center on vessel position when GPS is active
+  useEffect(() => {
+    if (
+      autoCenterEnabled &&
+      navigation.position &&
+      navigation.isGPSActive &&
+      navigation.position !== lastPositionRef.current
+    ) {
+      lastPositionRef.current = navigation.position;
+      
+      setViewport((prev) => ({
+        ...prev,
+        latitude: navigation.position!.latitude,
+        longitude: navigation.position!.longitude,
+        // Update bearing based on chart rotation setting
+        bearing: settings.chartRotation === 'heading-up' && navigation.heading !== null
+          ? -navigation.heading // Negative because map bearing is clockwise from north
+          : 0,
+      }));
+
+      // Reset user interaction flag after auto-centering
+      userInteractedRef.current = false;
+    }
+  }, [navigation.position, navigation.heading, navigation.isGPSActive, autoCenterEnabled, settings.chartRotation]);
+
   const handleMove = useCallback((newViewport: Viewport) => {
     setViewport(newViewport);
+    // Disable auto-center when user manually moves the map
+    if (!userInteractedRef.current) {
+      userInteractedRef.current = true;
+      setAutoCenterEnabled(false);
+    }
   }, []);
+
+  const handleRecenter = useCallback(() => {
+    if (navigation.position) {
+      setViewport((prev) => ({
+        ...prev,
+        latitude: navigation.position!.latitude,
+        longitude: navigation.position!.longitude,
+        bearing: settings.chartRotation === 'heading-up' && navigation.heading !== null
+          ? -navigation.heading
+          : 0,
+      }));
+      setAutoCenterEnabled(true);
+      userInteractedRef.current = false;
+    }
+  }, [navigation.position, navigation.heading, settings.chartRotation]);
 
   const handleTargetSelect = useCallback((target: AISTarget) => {
     console.log('Selected AIS target:', target);
@@ -62,18 +112,38 @@ export const ChartPage: React.FC = () => {
 
   return (
     <div className="h-full relative">
-      {/* Download button */}
-      {!showRegionSelector && (
-        <button
-          onClick={() => setShowDownloadPanel(!showDownloadPanel)}
-          className="absolute top-4 right-4 z-10 bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Offline Charts
-        </button>
-      )}
+      {/* Control buttons */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {/* Recenter button */}
+        {navigation.position && (
+          <button
+            onClick={handleRecenter}
+            className={`bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 flex items-center gap-2 ${
+              autoCenterEnabled ? 'ring-2 ring-blue-500' : ''
+            }`}
+            title={autoCenterEnabled ? 'Auto-center enabled' : 'Click to recenter on vessel'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {autoCenterEnabled ? 'Centered' : 'Recenter'}
+          </button>
+        )}
+
+        {/* Download button */}
+        {!showRegionSelector && (
+          <button
+            onClick={() => setShowDownloadPanel(!showDownloadPanel)}
+            className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Offline Charts
+          </button>
+        )}
+      </div>
 
       <ChartView
         center={[debouncedViewport.longitude, debouncedViewport.latitude]}

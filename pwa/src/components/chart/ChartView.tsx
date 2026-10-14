@@ -115,7 +115,31 @@ export const ChartView: React.FC<ChartViewProps> = ({
   );
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {!MAPBOX_TOKEN && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Mapbox Token Missing</h2>
+            <p className="text-gray-700 mb-4">
+              The Mapbox API token is not configured. Please add your token to the .env file:
+            </p>
+            <code className="block bg-gray-100 p-3 rounded text-sm mb-4">
+              VITE_MAPBOX_TOKEN=your_token_here
+            </code>
+            <p className="text-sm text-gray-600">
+              Get a free token at{' '}
+              <a
+                href="https://account.mapbox.com/access-tokens/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                mapbox.com
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
