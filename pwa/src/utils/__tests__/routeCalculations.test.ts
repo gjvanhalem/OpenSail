@@ -108,7 +108,8 @@ describe('routeCalculations', () => {
 
   describe('findClosestWaypoint', () => {
     it('should find closest waypoint to position', () => {
-      const position: Position = { latitude: 50.5, longitude: -5.0, accuracy: 0, timestamp: Date.now() };
+      // 50.5 would be equidistant from A and B; 50.6 is unambiguously closer to B
+      const position: Position = { latitude: 50.6, longitude: -5.0, accuracy: 0, timestamp: Date.now() };
       const waypoints = [
         createWaypoint(50.0, -5.0, 'A'),
         createWaypoint(51.0, -5.0, 'B'),

@@ -1,11 +1,22 @@
 import type { NMEA2000Message, InstrumentData, Position } from '../models';
 import { InstrumentDataType } from '../models';
 
+/**
+ * NMEA 2000 parser.
+ *
+ * Input is a single CAN frame as produced by CAN gateways (e.g. Yacht Devices RAW,
+ * SocketCAN candump): a 4-byte big-endian 29-bit CAN identifier followed by up to
+ * 8 data bytes. Payload fields are little-endian, as defined by NMEA 2000.
+ *
+ * Fast-packet (multi-frame) PGNs such as 129029 are decoded only when the caller
+ * passes an already reassembled payload.
+ */
 export class NMEA2000Parser {
-  // Reserved for future use when implementing full PGN parsing
-  // private static readonly PGN_SIZE = 8;
-  // private static readonly PRIORITY_MASK = 0x1c0;
-  // private static readonly PGN_MASK = 0x3ff;
+  private static readonly CAN_ID_SIZE = 4;
+  private static readonly GLOBAL_ADDRESS = 255;
+  // PDU format values below 240 are PDU1 (addressed); PS holds the destination
+  private static readonly PDU2_THRESHOLD = 240;
+  private static readonly RAD_TO_DEG = 180 / Math.PI;
 
   private static readonly SUPPORTED_PGNS: Record<
     number,
@@ -24,27 +35,29 @@ export class NMEA2000Parser {
   };
 
   parse(message: Uint8Array): NMEA2000Message | null {
-    if (message.length < 3) return null;
+    if (message.length < NMEA2000Parser.CAN_ID_SIZE) return null;
 
-    const priority = (message[0] >> 2) & 0x07;
-    const pgn = ((message[0] & 0x03) << 8) | message[1];
-    const source = message[2];
-    const destination = message.length > 3 ? message[3] : 255;
-    const data = message.length > 4 ? message.slice(4) : new Uint8Array(0);
+    const id = NMEA2000Parser.readCanId(message);
+    const priority = (id >>> 26) & 0x07;
+    const pduFormat = (id >>> 16) & 0xff;
+    const pduSpecific = (id >>> 8) & 0xff;
+    const source = id & 0xff;
+    const destination =
+      pduFormat < NMEA2000Parser.PDU2_THRESHOLD ? pduSpecific : NMEA2000Parser.GLOBAL_ADDRESS;
 
     return {
-      pgn,
+      pgn: NMEA2000Parser.pgnFromCanId(id),
       priority,
       source,
       destination,
-      data,
+      data: message.slice(NMEA2000Parser.CAN_ID_SIZE),
       timestamp: Date.now()
     };
   }
 
   getPGN(message: Uint8Array): number {
-    if (message.length < 2) return 0;
-    return ((message[0] & 0x03) << 8) | message[1];
+    if (message.length < NMEA2000Parser.CAN_ID_SIZE) return 0;
+    return NMEA2000Parser.pgnFromCanId(NMEA2000Parser.readCanId(message));
   }
 
   extractFields(message: NMEA2000Message): Record<string, unknown> {
@@ -69,25 +82,61 @@ export class NMEA2000Parser {
     return parser(message.data, message.timestamp);
   }
 
+  private static readCanId(message: Uint8Array): number {
+    return new DataView(message.buffer, message.byteOffset, 4).getUint32(0, false) & 0x1fffffff;
+  }
+
+  private static pgnFromCanId(id: number): number {
+    const dataPage = (id >>> 24) & 0x03; // EDP + DP
+    const pduFormat = (id >>> 16) & 0xff;
+    const pduSpecific = pduFormat < NMEA2000Parser.PDU2_THRESHOLD ? 0 : (id >>> 8) & 0xff;
+    return (dataPage << 16) | (pduFormat << 8) | pduSpecific;
+  }
+
+  private static view(data: Uint8Array): DataView {
+    return new DataView(data.buffer, data.byteOffset, data.byteLength);
+  }
+
+  // NMEA 2000 marks missing values with the all-ones (unsigned) or max positive (signed) value
+  private static uint16(view: DataView, offset: number, resolution: number): number | null {
+    const raw = view.getUint16(offset, true);
+    return raw >= 0xfffd ? null : raw * resolution;
+  }
+
+  private static int16(view: DataView, offset: number, resolution: number): number | null {
+    const raw = view.getInt16(offset, true);
+    return raw >= 0x7ffd ? null : raw * resolution;
+  }
+
+  private static uint32(view: DataView, offset: number, resolution: number): number | null {
+    const raw = view.getUint32(offset, true);
+    return raw >= 0xfffffffd ? null : raw * resolution;
+  }
+
+  private static int32(view: DataView, offset: number, resolution: number): number | null {
+    const raw = view.getInt32(offset, true);
+    return raw >= 0x7ffffffd ? null : raw * resolution;
+  }
+
+  private static int64(view: DataView, offset: number, resolution: number): number | null {
+    const raw = view.getBigInt64(offset, true);
+    return raw >= 0x7ffffffffffffffdn ? null : Number(raw) * resolution;
+  }
+
+  private static toDegrees(radians: number | null): number | null {
+    return radians === null ? null : radians * NMEA2000Parser.RAD_TO_DEG;
+  }
+
+  // PGN 126992: SID, source, date (days since 1970), time (0.0001 s since midnight)
   private static parseSystemTime(data: Uint8Array, timestamp: number): InstrumentData | null {
     if (data.length < 8) return null;
 
-    const date = ((data[0] & 0xff) << 8) | (data[1] & 0xff);
-    const time =
-      (((data[2] & 0xff) << 24) >>> 0) |
-      (((data[3] & 0xff) << 16) >>> 0) |
-      (((data[4] & 0xff) << 8) >>> 0) |
-      (data[5] & 0xff);
+    const view = NMEA2000Parser.view(data);
+    const days = view.getUint16(2, true);
+    const time = view.getUint32(4, true);
+    if (days >= 0xfffd || time >= 0xfffffffd) return null;
 
-    const year = ((date >> 9) & 0x7f) + 2000;
-    const month = ((date >> 5) & 0x0f) - 1;
-    const day = date & 0x1f;
-    const hours = (time >> 22) & 0x1f;
-    const minutes = (time >> 16) & 0x3f;
-    const seconds = (time >> 8) & 0x3f;
-    const ms = ((time & 0xff) * 1000) / 256;
-
-    const systemTime = new Date(year, month, day, hours, minutes, seconds, ms);
+    const systemTime = new Date(days * 86400000 + time / 10);
 
     return {
       type: InstrumentDataType.GPS,
@@ -98,20 +147,24 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 127250: SID, heading (u16 1e-4 rad), deviation (i16), variation (i16), reference
   private static parseHeading(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 4) return null;
+    if (data.length < 8) return null;
 
-    const heading = (((data[0] & 0xff) << 8) | (data[1] & 0xff)) / 10000;
-    const deviation = (((data[2] & 0xff) << 8) | (data[3] & 0xff)) / 10000;
-    const variation = (((data[4] & 0xff) << 8) | (data[5] & 0xff)) / 10000;
-    const ref = data[6] & 0x0f;
+    const view = NMEA2000Parser.view(data);
+    const heading = NMEA2000Parser.toDegrees(NMEA2000Parser.uint16(view, 1, 0.0001));
+    if (heading === null) return null;
+
+    const deviation = NMEA2000Parser.toDegrees(NMEA2000Parser.int16(view, 3, 0.0001));
+    const variation = NMEA2000Parser.toDegrees(NMEA2000Parser.int16(view, 5, 0.0001));
+    const ref = data[7] & 0x03;
 
     return {
       type: InstrumentDataType.Heading,
       value: {
         heading,
-        deviation,
-        variation,
+        deviation: deviation ?? 0,
+        variation: variation ?? 0,
         reference: ref === 1 ? 'magnetic' : 'true'
       },
       unit: 'deg',
@@ -120,15 +173,13 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 127251: SID, rate of turn (i32 3.125e-8 rad/s)
   private static parseRateOfTurn(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 4) return null;
+    if (data.length < 5) return null;
 
-    const rateOfTurn =
-      ((((data[0] & 0xff) << 24) >>> 0) |
-        (((data[1] & 0xff) << 16) >>> 0) |
-        (((data[2] & 0xff) << 8) >>> 0) |
-        (data[3] & 0xff)) /
-      1000000;
+    const view = NMEA2000Parser.view(data);
+    const rateOfTurn = NMEA2000Parser.toDegrees(NMEA2000Parser.int32(view, 1, 3.125e-8));
+    if (rateOfTurn === null) return null;
 
     return {
       type: InstrumentDataType.Heading,
@@ -139,33 +190,34 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 128259: SID, speed water referenced (u16 0.01 m/s), speed ground referenced, type
   private static parseSpeed(data: Uint8Array, timestamp: number): InstrumentData | null {
     if (data.length < 6) return null;
 
-    const speedWaterReferenced = (((data[0] & 0xff) << 8) | (data[1] & 0xff)) / 100;
-    const speedGroundReferenced = (((data[2] & 0xff) << 8) | (data[3] & 0xff)) / 100;
-    const speedWater = (((data[4] & 0xff) << 8) | (data[5] & 0xff)) / 100;
+    const view = NMEA2000Parser.view(data);
+    const speedWaterReferenced = NMEA2000Parser.uint16(view, 1, 0.01);
+    const speedGroundReferenced = NMEA2000Parser.uint16(view, 3, 0.01);
+    if (speedWaterReferenced === null && speedGroundReferenced === null) return null;
 
     return {
       type: InstrumentDataType.Speed,
-      value: { speedWaterReferenced, speedGroundReferenced, speedWater },
+      value: { speedWaterReferenced, speedGroundReferenced },
       unit: 'm/s',
       timestamp,
       source: 'nmea2000'
     };
   }
 
+  // PGN 128267: SID, depth below transducer (u32 0.01 m), offset (i16 0.001 m), range (u8 10 m)
   private static parseDepth(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 6) return null;
+    if (data.length < 7) return null;
 
-    const depth =
-      ((((data[0] & 0xff) << 24) >>> 0) |
-        (((data[1] & 0xff) << 16) >>> 0) |
-        (((data[2] & 0xff) << 8) >>> 0) |
-        (data[3] & 0xff)) /
-      100;
-    const offset = (((data[4] & 0xff) << 8) | (data[5] & 0xff)) / 100;
-    const range = data[6] & 0x0f;
+    const view = NMEA2000Parser.view(data);
+    const depth = NMEA2000Parser.uint32(view, 1, 0.01);
+    if (depth === null) return null;
+
+    const offset = NMEA2000Parser.int16(view, 5, 0.001) ?? 0;
+    const range = data.length > 7 && data[7] < 0xfd ? data[7] * 10 : null;
 
     return {
       type: InstrumentDataType.Depth,
@@ -176,11 +228,13 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 129025: latitude (i32 1e-7 deg), longitude (i32 1e-7 deg)
   private static parsePosition(data: Uint8Array, timestamp: number): InstrumentData | null {
     if (data.length < 8) return null;
 
-    const latitude = NMEA2000Parser.parseIEEEFloat(data.slice(0, 4));
-    const longitude = NMEA2000Parser.parseIEEEFloat(data.slice(4, 8));
+    const view = NMEA2000Parser.view(data);
+    const latitude = NMEA2000Parser.int32(view, 0, 1e-7);
+    const longitude = NMEA2000Parser.int32(view, 4, 1e-7);
 
     if (latitude === null || longitude === null) return null;
 
@@ -200,18 +254,21 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 129026: SID, COG reference, COG (u16 1e-4 rad), SOG (u16 0.01 m/s)
   private static parseCOGSOG(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 8) return null;
+    if (data.length < 6) return null;
 
-    const cog = (((data[0] & 0xff) << 8) | (data[1] & 0xff)) / 10000;
-    const cogRef = data[2] & 0x0f;
-    const sog = (((data[3] & 0xff) << 8) | (data[4] & 0xff)) / 100;
+    const view = NMEA2000Parser.view(data);
+    const cogRef = data[1] & 0x03;
+    const course = NMEA2000Parser.toDegrees(NMEA2000Parser.uint16(view, 2, 0.0001));
+    const speed = NMEA2000Parser.uint16(view, 4, 0.01);
+    if (course === null && speed === null) return null;
 
     return {
       type: InstrumentDataType.GPS,
       value: {
-        course: cog,
-        speed: sog,
+        course,
+        speed,
         reference: cogRef === 1 ? 'magnetic' : 'true'
       },
       unit: 'deg, m/s',
@@ -220,13 +277,16 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 129029 (fast-packet): SID, date, time, lat/lon (i64 1e-16 deg), altitude (i64 1e-6 m),
+  // GNSS type/method
   private static parseGNSSPosition(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 18) return null;
+    if (data.length < 32) return null;
 
-    const latitude = NMEA2000Parser.parseIEEEFloat(data.slice(0, 4));
-    const longitude = NMEA2000Parser.parseIEEEFloat(data.slice(4, 8));
-    const altitude = NMEA2000Parser.parseIEEEFloat(data.slice(8, 12));
-    const type = data[17] & 0x0f;
+    const view = NMEA2000Parser.view(data);
+    const latitude = NMEA2000Parser.int64(view, 7, 1e-16);
+    const longitude = NMEA2000Parser.int64(view, 15, 1e-16);
+    const altitude = NMEA2000Parser.int64(view, 23, 1e-6);
+    const type = data[31] & 0x0f;
 
     if (latitude === null || longitude === null) return null;
 
@@ -247,19 +307,24 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 130306: SID, wind speed (u16 0.01 m/s), wind angle (u16 1e-4 rad), reference
   private static parseWind(data: Uint8Array, timestamp: number): InstrumentData | null {
     if (data.length < 6) return null;
 
-    const windAngle = (((data[0] & 0xff) << 8) | (data[1] & 0xff)) / 10000;
-    const windSpeed = (((data[2] & 0xff) << 8) | (data[3] & 0xff)) / 100;
-    const windRef = data[4] & 0x0f;
+    const view = NMEA2000Parser.view(data);
+    const speed = NMEA2000Parser.uint16(view, 1, 0.01);
+    const angle = NMEA2000Parser.toDegrees(NMEA2000Parser.uint16(view, 3, 0.0001));
+    if (speed === null || angle === null) return null;
+
+    const windRef = data[5] & 0x07;
 
     return {
       type: InstrumentDataType.Wind,
       value: {
-        angle: windAngle * (180 / Math.PI),
-        speed: windSpeed,
-        reference: windRef === 1 ? 'apparent' : windRef === 2 ? 'true' : 'ground'
+        angle,
+        speed,
+        reference:
+          windRef === 2 ? 'apparent' : windRef === 3 || windRef === 4 ? 'true' : 'ground'
       },
       unit: 'deg, m/s',
       timestamp,
@@ -267,33 +332,20 @@ export class NMEA2000Parser {
     };
   }
 
+  // PGN 130310: SID, water temperature (u16 0.01 K), outside temperature, pressure
   private static parseWaterTemperature(data: Uint8Array, timestamp: number): InstrumentData | null {
-    if (data.length < 4) return null;
+    if (data.length < 3) return null;
 
-    const temp = (((data[0] & 0xff) << 8) | (data[1] & 0xff)) / 100;
-    const tempSource = data[3] & 0x0f;
+    const view = NMEA2000Parser.view(data);
+    const temperature = NMEA2000Parser.uint16(view, 1, 0.01);
+    if (temperature === null) return null;
 
     return {
       type: InstrumentDataType.Temperature,
-      value: { temperature: temp, source: tempSource },
+      value: { temperature },
       unit: 'K',
       timestamp,
       source: 'nmea2000'
     };
-  }
-
-  private static parseIEEEFloat(buffer: Uint8Array): number | null {
-    if (buffer.length < 4) return null;
-
-    const bytes = buffer.slice(0, 4);
-    const sign = (bytes[3] >> 7) & 1;
-    const exponent = ((bytes[3] & 0x7f) << 1) | ((bytes[2] >> 7) & 1);
-    const mantissa = ((bytes[2] & 0x7f) << 16) | (bytes[1] << 8) | bytes[0];
-
-    if (exponent === 0 && mantissa === 0) return 0;
-    if (exponent === 255) return NaN;
-
-    const value = (1 + mantissa / 8388608) * Math.pow(2, exponent - 127);
-    return sign ? -value : value;
   }
 }
