@@ -4,6 +4,7 @@ import { updateSetting, resetSettings } from '@/store/slices/settingsSlice';
 import type { AppSettings } from '@/database/repositories/SettingsRepository';
 import { CompatibilityInfo } from '@/components/CompatibilityInfo';
 import { GPSControl } from '@/components/GPSControl';
+import { APP_NAME, APP_VERSION } from '@/utils/constants';
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -466,7 +467,10 @@ export const SettingsPage: React.FC = () => {
         <CompatibilityInfo />
 
         {/* Reset Button */}
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            {APP_NAME} version {APP_VERSION}
+          </p>
           <button
             onClick={handleResetSettings}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"

@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { useTrackRecorder } from '@/hooks/useTrackRecorder';
+import type { Track } from '@/database/db';
 
-export const TrackRecordingControls: React.FC = () => {
+export interface TrackRecordingControlsProps {
+  /** Called with the saved track after recording is stopped */
+  onTrackSaved?: (track: Track) => void;
+}
+
+export const TrackRecordingControls: React.FC<TrackRecordingControlsProps> = ({ onTrackSaved }) => {
   const { isRecording, isPaused, start, stop, pause, resume, cancel, getStatus } =
     useTrackRecorder();
   const [showNameDialog, setShowNameDialog] = useState(false);
@@ -30,7 +36,10 @@ export const TrackRecordingControls: React.FC = () => {
 
   const handleStop = async () => {
     try {
-      await stop();
+      const savedTrack = await stop();
+      if (savedTrack) {
+        onTrackSaved?.(savedTrack);
+      }
     } catch (error) {
       console.error('Failed to stop recording:', error);
       alert('Failed to stop recording');
@@ -138,14 +147,15 @@ export const TrackRecordingControls: React.FC = () => {
 
       {/* Name Dialog */}
       {showNameDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Start Track Recording</h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="track-name" className="block text-sm font-medium text-gray-700 mb-2">
                 Track Name
               </label>
               <input
+                id="track-name"
                 type="text"
                 value={trackName}
                 onChange={(e) => setTrackName(e.target.value)}

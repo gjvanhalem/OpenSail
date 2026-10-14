@@ -48,14 +48,17 @@ export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps):
   const estimatedDuration = estimateRouteTime(waypoints, averageSpeed);
 
   const handleAddWaypoint = useCallback((position: Position, name?: string) => {
-    const newWaypoint: Waypoint = {
-      id: `waypoint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      position,
-      name: name || `Waypoint ${waypoints.length + 1}`,
-      arrivalRadius: 0.1, // Default 0.1 nm
-    };
-    setWaypoints([...waypoints, newWaypoint]);
-  }, [waypoints]);
+    // Functional update: map click handlers may hold an older closure
+    setWaypoints((prev) => [
+      ...prev,
+      {
+        id: `waypoint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        position,
+        name: name || `Waypoint ${prev.length + 1}`,
+        arrivalRadius: 0.1, // Default 0.1 nm
+      },
+    ]);
+  }, []);
 
   const handleRemoveWaypoint = useCallback((waypointId: string) => {
     setWaypoints(waypoints.filter(w => w.id !== waypointId));

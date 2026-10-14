@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useMemo } from 'react';
-import Map, { type MapRef, type ViewStateChangeEvent } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, type MapMouseEvent, type MapRef, type ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 export interface Viewport {
@@ -15,6 +15,10 @@ export interface ChartViewProps {
   zoom?: number;
   bearing?: number;
   onMove?: (viewport: Viewport) => void;
+  /** Called with the clicked map coordinate */
+  onClick?: (coordinate: { latitude: number; longitude: number }) => void;
+  /** CSS cursor for the map canvas */
+  cursor?: string;
   children?: React.ReactNode;
 }
 
@@ -37,6 +41,8 @@ export const ChartView: React.FC<ChartViewProps> = ({
   zoom = 10,
   bearing = 0,
   onMove,
+  onClick,
+  cursor,
   children,
 }) => {
   const mapRef = useRef<MapRef>(null);
@@ -61,6 +67,13 @@ export const ChartView: React.FC<ChartViewProps> = ({
       }
     },
     [debouncedOnMove]
+  );
+
+  const handleClick = useCallback(
+    (evt: MapMouseEvent) => {
+      onClick?.({ latitude: evt.lngLat.lat, longitude: evt.lngLat.lng });
+    },
+    [onClick]
   );
 
   // Optimized map style for performance
@@ -153,9 +166,12 @@ export const ChartView: React.FC<ChartViewProps> = ({
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
         onMove={handleMove}
+        onClick={onClick ? handleClick : undefined}
+        cursor={cursor}
         maxPitch={0}
         renderWorldCopies={false}
       >
+        <NavigationControl position="bottom-right" showCompass={false} />
         {children}
       </Map>
     </div>

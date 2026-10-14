@@ -59,14 +59,8 @@ test.describe('Chart Display', () => {
   });
 
   test('should have zoom controls', async ({ page }) => {
-    // Look for zoom buttons
-    const zoomIn = page.locator('button[aria-label*="Zoom in"], .mapboxgl-ctrl-zoom-in');
-    const zoomOut = page.locator('button[aria-label*="Zoom out"], .mapboxgl-ctrl-zoom-out');
-    
-    // At least one zoom control should be visible
-    const hasZoomControls = await zoomIn.isVisible().catch(() => false) || 
-                           await zoomOut.isVisible().catch(() => false);
-    expect(hasZoomControls).toBeTruthy();
+    await expect(page.locator('.mapboxgl-ctrl-zoom-in')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.mapboxgl-ctrl-zoom-out')).toBeVisible();
   });
 
   test('should display vessel position marker when available', async ({ page }) => {
@@ -89,23 +83,16 @@ test.describe('Chart Display', () => {
   });
 
   test('should toggle fullscreen mode', async ({ page }) => {
-    // Look for fullscreen button
-    const fullscreenButton = page.getByRole('button', { name: /fullscreen|full screen/i });
-    
-    if (await fullscreenButton.isVisible()) {
-      await fullscreenButton.click();
-      
-      // Wait for transition
-      await page.waitForTimeout(500);
-      
-      // Check if fullscreen class is applied or map expanded
-      const isFullscreen = await page.evaluate(() => {
-        return document.fullscreenElement !== null ||
-               document.body.classList.contains('fullscreen') ||
-               document.documentElement.classList.contains('fullscreen');
-      });
-      
-      expect(isFullscreen).toBeTruthy();
-    }
+    // Fullscreen mode is an in-app layout mode: it hides the navigation bar
+    // and sidebar so the chart fills the window (not the browser Fullscreen API)
+    const nav = page.getByRole('navigation');
+    await expect(nav).toBeVisible();
+
+    await page.getByRole('button', { name: 'Toggle fullscreen' }).click();
+    await expect(nav).toBeHidden();
+    await expect(page.getByRole('region', { name: 'Map' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Exit fullscreen' }).click();
+    await expect(nav).toBeVisible();
   });
 });

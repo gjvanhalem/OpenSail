@@ -153,7 +153,7 @@ export const CompatibilityWarning: React.FC<CompatibilityWarningProps> = ({ onDi
               </div>
             )}
 
-            <div className="bg-white bg-opacity-50 rounded p-3 mt-3">
+            <div className="bg-white/50 rounded p-3 mt-3">
               <p className="text-sm font-semibold text-gray-900 mb-1">Recommendation:</p>
               <p className="text-sm text-gray-800">{getRecommendedBrowser(missingFeatures)}</p>
             </div>

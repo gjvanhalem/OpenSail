@@ -113,6 +113,7 @@ Requirements R1.1, R1.3, R1.4, R2.5, R5.1–5.2, R15.
 - [ ] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online.
 - [ ] Use depth contours and hazards for route hazard warnings (R2.5).
 - [ ] End-to-end test: download a region, go offline, reload, and pan and zoom within that region.
+- [ ] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists).
 
 **Done when:** in aeroplane mode, a downloaded region shows the full nautical chart and every navigation feature still works.
 
@@ -169,6 +170,7 @@ Requirements R5.4–5.5, R7, R11.
 - [ ] Tides and currents: nearby tide stations on the chart, predictions to 0.1 m precision, and current arrows (R11).
 - [ ] Cache weather and tides for at least 48 hours offline (R5.4, R7.4, R11.4).
 - [ ] Refresh everything when the connection comes back (R5.5).
+- [ ] Queue changes made offline and show their sync status (the e2e test in `offline.spec.ts` is `test.fixme` until this exists).
 
 ---
 

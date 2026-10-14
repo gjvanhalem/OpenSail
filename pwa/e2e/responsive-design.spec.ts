@@ -29,16 +29,13 @@ test.describe('Responsive Design', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto('/');
       
-      // For mobile, may need to open menu first
+      // Below the md breakpoint the links live in the mobile menu
       if (viewport.width < 768) {
-        const menuButton = page.getByRole('button', { name: /menu|navigation/i });
-        if (await menuButton.isVisible()) {
-          await menuButton.click();
-        }
+        await page.getByRole('button', { name: 'Toggle mobile menu' }).click();
       }
       
-      // Navigate to routes
-      await page.click('a[href="/routes"]');
+      // Navigate to routes (desktop and mobile menus both render a link; use the visible one)
+      await page.locator('nav a[href="/routes"]:visible').click();
       await expect(page).toHaveURL('/routes');
     });
   }
@@ -66,30 +63,26 @@ test.describe('Responsive Design', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
     
-    // Look for hamburger menu
-    const menuButton = page.getByRole('button', { name: /menu|navigation|hamburger/i });
-    
-    if (await menuButton.isVisible()) {
-      await menuButton.click();
-      
-      // Menu should open
-      const menu = page.locator('[role="menu"], nav[class*="mobile"]');
-      await expect(menu).toBeVisible();
-    }
+    // Desktop links are hidden below the md breakpoint
+    await expect(page.locator('nav a[href="/routes"]:visible')).toHaveCount(0);
+
+    const menuButton = page.getByRole('button', { name: 'Toggle mobile menu' });
+    await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    await menuButton.click();
+
+    // Menu should open
+    await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    const menu = page.locator('#mobile-menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('link', { name: /Routes/ })).toBeVisible();
   });
 
   test('should hide mobile menu on large screens', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');
     
-    // Hamburger menu should not be visible
-    const menuButton = page.getByRole('button', { name: /menu|navigation|hamburger/i });
-    const isVisible = await menuButton.isVisible().catch(() => false);
-    
-    // On desktop, either no menu button or navigation is always visible
-    if (!isVisible) {
-      const nav = page.locator('nav a[href="/routes"]');
-      await expect(nav).toBeVisible();
-    }
+    // Mobile menu toggle should be hidden; desktop links always visible
+    await expect(page.getByRole('button', { name: 'Toggle mobile menu' })).toBeHidden();
+    await expect(page.locator('nav a[href="/routes"]:visible')).toHaveCount(1);
   });
 });

@@ -1,4 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function startRecording(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Start Recording' }).click();
+  await page.getByLabel('Track Name').fill(name);
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+}
 
 test.describe('Track Recording', () => {
   test.beforeEach(async ({ page }) => {
@@ -6,70 +12,42 @@ test.describe('Track Recording', () => {
   });
 
   test('should start track recording', async ({ page }) => {
-    // Look for start/record button
-    const startButton = page.getByRole('button', { name: /start|record|new track/i });
-    
-    if (await startButton.isVisible()) {
-      await startButton.click();
-      
-      // Should show recording indicator
-      const recordingIndicator = page.getByText(/recording|active/i);
-      await expect(recordingIndicator).toBeVisible({ timeout: 5000 });
-    }
+    await startRecording(page, 'E2E Start Track');
+
+    await expect(page.getByText('Recording', { exact: true })).toBeVisible();
+    await expect(page.getByText('E2E Start Track')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Stop & Save' })).toBeVisible();
   });
 
   test('should stop track recording', async ({ page }) => {
-    // Start recording first
-    const startButton = page.getByRole('button', { name: /start|record|new track/i });
-    
-    if (await startButton.isVisible()) {
-      await startButton.click();
-      await page.waitForTimeout(1000);
-      
-      // Stop recording
-      const stopButton = page.getByRole('button', { name: /stop|end/i });
-      await stopButton.click();
-      
-      // Should show stopped state
-      const stoppedIndicator = page.getByText(/stopped|completed/i);
-      await expect(stoppedIndicator).toBeVisible({ timeout: 5000 });
-    }
+    await startRecording(page, 'E2E Stop Track');
+    await page.getByRole('button', { name: 'Stop & Save' }).click();
+
+    // Back to idle, and the saved track appears in the list without a reload
+    await expect(page.getByRole('button', { name: 'Start Recording' })).toBeVisible();
+    await expect(page.getByText('Recording', { exact: true })).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'E2E Stop Track' })).toBeVisible();
   });
 
   test('should display recorded tracks', async ({ page }) => {
-    // Should show tracks list or empty state
-    const tracksList = page.locator('[class*="track"], [data-testid="tracks-list"]');
-    const emptyState = page.getByText(/no tracks|empty/i);
-    
-    const hasContent = await tracksList.isVisible().catch(() => false) ||
-                      await emptyState.isVisible().catch(() => false);
-    
-    expect(hasContent).toBeTruthy();
+    // Fresh browser context: empty state
+    await expect(page.getByText('No tracks recorded')).toBeVisible();
+
+    await startRecording(page, 'E2E Listed Track');
+    await page.getByRole('button', { name: 'Stop & Save' }).click();
+
+    await expect(page.getByText('No tracks recorded')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'E2E Listed Track' })).toBeVisible();
   });
 
   test('should persist tracks after page reload', async ({ page }) => {
-    // Start and stop a track
-    const startButton = page.getByRole('button', { name: /start|record|new track/i });
-    
-    if (await startButton.isVisible()) {
-      await startButton.click();
-      await page.waitForTimeout(1000);
-      
-      const stopButton = page.getByRole('button', { name: /stop|end/i });
-      await stopButton.click();
-      await page.waitForTimeout(1000);
-      
-      // Get track count
-      const trackItems = page.locator('[class*="track-item"], [data-testid*="track"]');
-      const initialCount = await trackItems.count();
-      
-      // Reload page
-      await page.reload();
-      
-      // Verify tracks still exist
-      const newCount = await trackItems.count();
-      expect(newCount).toBeGreaterThanOrEqual(initialCount);
-    }
+    await startRecording(page, 'E2E Persistent Track');
+    await page.getByRole('button', { name: 'Stop & Save' }).click();
+    await expect(page.getByRole('heading', { name: 'E2E Persistent Track' })).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole('heading', { name: 'E2E Persistent Track' })).toBeVisible();
   });
 
   test('should delete a track', async ({ page }) => {

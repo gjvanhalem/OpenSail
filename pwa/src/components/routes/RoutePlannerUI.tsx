@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRoutePlanner } from './RoutePlanner';
+import type { RoutePlannerHook } from './RoutePlanner';
 import type { Waypoint } from '@/models';
 
 // Inline WaypointEditor to avoid import issues
@@ -87,7 +87,7 @@ const WaypointEditor: React.FC<WaypointEditorProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={onClose}
     >
       <div 
@@ -200,13 +200,112 @@ const WaypointEditor: React.FC<WaypointEditorProps> = ({
   );
 };
 
+// Inline form for entering a waypoint by coordinates
+interface NewWaypointFormProps {
+  onAdd: (latitude: number, longitude: number, name?: string) => void;
+  onCancel: () => void;
+}
+
+const NewWaypointForm: React.FC<NewWaypointFormProps> = ({ onAdd, onCancel }) => {
+  const [name, setName] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lat = parseFloat(latitude);
+    const lon = parseFloat(longitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      setError('Invalid latitude (must be between -90 and 90)');
+      return;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      setError('Invalid longitude (must be between -180 and 180)');
+      return;
+    }
+    onAdd(lat, lon, name.trim() || undefined);
+  };
+
+  const inputClass =
+    'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-3 p-3 border border-blue-200 bg-blue-50 rounded-md space-y-2">
+      <div>
+        <label htmlFor="new-waypoint-name" className="block text-xs font-medium text-gray-700 mb-1">
+          Waypoint name
+        </label>
+        <input
+          id="new-waypoint-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={inputClass}
+          placeholder="Optional"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label htmlFor="new-waypoint-latitude" className="block text-xs font-medium text-gray-700 mb-1">
+            Latitude
+          </label>
+          <input
+            id="new-waypoint-latitude"
+            type="text"
+            inputMode="decimal"
+            value={latitude}
+            onChange={(e) => setLatitude(e.target.value)}
+            className={inputClass}
+            placeholder="51.5074"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label htmlFor="new-waypoint-longitude" className="block text-xs font-medium text-gray-700 mb-1">
+            Longitude
+          </label>
+          <input
+            id="new-waypoint-longitude"
+            type="text"
+            inputMode="decimal"
+            value={longitude}
+            onChange={(e) => setLongitude(e.target.value)}
+            className={inputClass}
+            placeholder="-0.1278"
+          />
+        </div>
+      </div>
+      {error && <div className="text-xs text-red-700">{error}</div>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="flex-1 px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Save waypoint
+        </button>
+      </div>
+    </form>
+  );
+};
+
 export interface RoutePlannerUIProps {
+  /** Planner state, owned by the parent so map clicks can add waypoints */
+  planner: RoutePlannerHook;
   onClose?: () => void;
   editingRouteId?: string | null;
   onWaypointClick?: (waypoint: Waypoint) => void;
 }
 
 export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({ 
+  planner,
   onClose, 
   editingRouteId,
   onWaypointClick 
@@ -221,12 +320,14 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
     estimatedDuration,
     isSaving,
     error,
+    handleAddWaypoint,
     handleRemoveWaypoint,
     handleUpdateWaypoint,
     handleSave,
-  } = useRoutePlanner({ onClose, editingRouteId });
+  } = planner;
 
   const [editingWaypointId, setEditingWaypointId] = useState<string | null>(null);
+  const [showWaypointForm, setShowWaypointForm] = useState(false);
 
   const formatDistance = (nm: number) => {
     return `${nm.toFixed(2)} nm`;
@@ -239,7 +340,7 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <section className="flex flex-col h-full bg-white" aria-label="Route planner">
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
@@ -259,10 +360,11 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
 
         {/* Route Name Input */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="route-name" className="block text-sm font-medium text-gray-700 mb-1">
             Route Name
           </label>
           <input
+            id="route-name"
             type="text"
             value={routeName}
             onChange={(e) => setRouteName(e.target.value)}
@@ -273,10 +375,11 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
 
         {/* Average Speed Input */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="route-average-speed" className="block text-sm font-medium text-gray-700 mb-1">
             Average Speed (knots)
           </label>
           <input
+            id="route-average-speed"
             type="number"
             value={averageSpeed}
             onChange={(e) => setAverageSpeed(Number(e.target.value))}
@@ -312,20 +415,27 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
             Waypoints ({waypoints.length})
           </h3>
           <button
-            onClick={() => {
-              // This will be triggered by map click in the parent component
-              alert('Click on the map to add a waypoint');
-            }}
+            onClick={() => setShowWaypointForm(true)}
             className="text-sm text-blue-600 hover:text-blue-700"
           >
-            + Add from map
+            + Add waypoint
           </button>
         </div>
+
+        {showWaypointForm && (
+          <NewWaypointForm
+            onAdd={(latitude, longitude, name) => {
+              handleAddWaypoint({ latitude, longitude, accuracy: 0, timestamp: Date.now() }, name);
+              setShowWaypointForm(false);
+            }}
+            onCancel={() => setShowWaypointForm(false)}
+          />
+        )}
 
         {waypoints.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p className="mb-2">No waypoints yet</p>
-            <p className="text-sm">Click on the map to add waypoints</p>
+            <p className="text-sm">Click on the map or use “Add waypoint” to add waypoints</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -415,6 +525,6 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
           onClose={() => setEditingWaypointId(null)}
         />
       )}
-    </div>
+    </section>
   );
 };

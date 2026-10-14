@@ -6,7 +6,8 @@ test.describe('Navigation', () => {
     
     // Should redirect to chart page
     await expect(page).toHaveURL('/chart');
-    await expect(page.locator('h1, h2').filter({ hasText: /chart/i }).first()).toBeVisible();
+    // The chart page is a full-screen map without a heading
+    await expect(page.getByRole('region', { name: 'Map' })).toBeVisible();
     
     // Navigate to routes page
     await page.click('a[href="/routes"]');

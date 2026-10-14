@@ -83,7 +83,6 @@ test.describe('Settings', () => {
 
   test('should display app version', async ({ page }) => {
     // Look for version information
-    const versionText = page.getByText(/version|v\d+\.\d+\.\d+/i);
-    await expect(versionText).toBeVisible();
+    await expect(page.getByText(/version \d+\.\d+\.\d+/i)).toBeVisible();
   });
 });
