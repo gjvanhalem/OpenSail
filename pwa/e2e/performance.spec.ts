@@ -78,18 +78,20 @@ test.describe('Performance Testing', () => {
       await page.goto('/');
       
       // Find an interactive element
-      const button = page.locator('button, a').first();
+      const button = page.getByRole('button', { name: 'Toggle sidebar' });
       await button.waitFor({ state: 'visible' });
       
-      const startTime = Date.now();
-      
-      // Click and measure response
-      await button.click();
-      
-      // Wait for any visual feedback (state change, navigation, etc.)
-      await page.waitForTimeout(50);
-      
-      const responseTime = Date.now() - startTime;
+      // Measure inside the page, from the click to the next painted frame,
+      // so Playwright's own actionability checks and IPC are not counted
+      const responseTime = await button.evaluate((el: HTMLElement) => {
+        return new Promise<number>((resolve) => {
+          const start = performance.now();
+          el.click();
+          requestAnimationFrame(() => {
+            setTimeout(() => resolve(performance.now() - start), 0);
+          });
+        });
+      });
       
       console.log(`UI response time: ${responseTime}ms`);
       
