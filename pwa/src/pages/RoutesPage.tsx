@@ -3,9 +3,70 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
 import { setRoutes, deleteRoute, setActiveRoute } from '@/store/slices/routesSlice';
 import { ChartView, RouteLayer } from '@/components/chart';
-import { RoutePlannerUI } from '@/components/routes';
+import { RoutePlannerUI, useRoutePlanner } from '@/components/routes';
 import { routeRepository } from '@/database/repositories/RouteRepository';
 import type { Route, Waypoint } from '@/models';
+
+const MAP_CENTER: [number, number] = [0, 51.5];
+const MAP_ZOOM = 8;
+
+interface RoutePlanningWorkspaceProps {
+  routes: Route[];
+  editingRouteId: string | null;
+  onClose: () => void;
+  onWaypointClick: (waypoint: Waypoint) => void;
+}
+
+/**
+ * Map plus planner panel while a route is being created or edited.
+ * Owns the planner state so that clicking the map adds a waypoint;
+ * keyed by the parent so each planning session starts fresh.
+ */
+const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
+  routes,
+  editingRouteId,
+  onClose,
+  onWaypointClick,
+}) => {
+  const planner = useRoutePlanner({ onClose, editingRouteId });
+  const { handleAddWaypoint, waypoints, routeName } = planner;
+
+  const handleMapClick = useCallback(
+    ({ latitude, longitude }: { latitude: number; longitude: number }) => {
+      handleAddWaypoint({ latitude, longitude, accuracy: 0, timestamp: Date.now() });
+    },
+    [handleAddWaypoint]
+  );
+
+  // Show the draft in place of the route being edited
+  const draftRoute: Route = {
+    id: editingRouteId ?? 'draft',
+    name: routeName,
+    waypoints,
+    totalDistance: planner.totalDistance,
+    estimatedDuration: planner.estimatedDuration,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  };
+  const displayedRoutes = [...routes.filter((r) => r.id !== editingRouteId), draftRoute];
+
+  return (
+    <>
+      <ChartView center={MAP_CENTER} zoom={MAP_ZOOM} onClick={handleMapClick} cursor="crosshair">
+        <RouteLayer routes={displayedRoutes} visible={true} />
+      </ChartView>
+
+      <div className="absolute top-0 right-0 w-96 h-full shadow-lg">
+        <RoutePlannerUI
+          planner={planner}
+          editingRouteId={editingRouteId}
+          onClose={onClose}
+          onWaypointClick={onWaypointClick}
+        />
+      </div>
+    </>
+  );
+};
 
 export const RoutesPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -14,6 +75,7 @@ export const RoutesPage: React.FC = () => {
   
   const [showPlanner, setShowPlanner] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [plannerSession, setPlannerSession] = useState(0);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
 
   // Load routes from database on mount
@@ -31,11 +93,13 @@ export const RoutesPage: React.FC = () => {
 
   const handleNewRoute = useCallback(() => {
     setEditingRouteId(null);
+    setPlannerSession((n) => n + 1);
     setShowPlanner(true);
   }, []);
 
   const handleEditRoute = useCallback((routeId: string) => {
     setEditingRouteId(routeId);
+    setPlannerSession((n) => n + 1);
     setShowPlanner(true);
   }, []);
 
@@ -140,27 +204,21 @@ export const RoutesPage: React.FC = () => {
 
       {/* Main Content - Map */}
       <div className="flex-1 relative">
-        <ChartView
-          center={[0, 51.5]}
-          zoom={8}
-        >
-          <RouteLayer 
-            routes={selectedRoute ? [selectedRoute] : routes} 
-            visible={true} 
+        {showPlanner ? (
+          <RoutePlanningWorkspace
+            key={plannerSession}
+            routes={routes}
+            editingRouteId={editingRouteId}
+            onClose={() => setShowPlanner(false)}
+            onWaypointClick={handleWaypointClick}
           />
-        </ChartView>
-
-        {/* Route Planner Overlay */}
-        {showPlanner && (
-          <div className="absolute top-0 right-0 w-96 h-full shadow-lg">
-            <RoutePlannerUI
-              editingRouteId={editingRouteId}
-              onClose={() => {
-                setShowPlanner(false);
-              }}
-              onWaypointClick={handleWaypointClick}
+        ) : (
+          <ChartView center={MAP_CENTER} zoom={MAP_ZOOM}>
+            <RouteLayer
+              routes={selectedRoute ? [selectedRoute] : routes}
+              visible={true}
             />
-          </div>
+          </ChartView>
         )}
       </div>
     </div>

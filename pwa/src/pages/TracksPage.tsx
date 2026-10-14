@@ -105,7 +105,9 @@ export const TracksPage: React.FC = () => {
 
       {/* Right Panel - Recording Controls & Track Details */}
       <div className="lg:w-96 space-y-6">
-        <TrackRecordingControls />
+        <TrackRecordingControls
+          onTrackSaved={(track) => setDbTracks((prev) => [track, ...prev])}
+        />
 
         {/* Selected Track Details */}
         {selectedTrack && (

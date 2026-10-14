@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { setSidebarOpen } from '@/store/slices/uiSlice';
+import { setSidebarOpen, toggleFullscreen } from '@/store/slices/uiSlice';
 import { Navigation } from './Navigation';
 import { Sidebar } from './Sidebar';
 
@@ -35,6 +35,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Navigation - hidden in fullscreen mode */}
       {!fullscreenMode && <Navigation />}
 
+      {/* The navigation bar (with its fullscreen toggle) is hidden in fullscreen mode, so offer a way back */}
+      {fullscreenMode && (
+        <button
+          onClick={() => dispatch(toggleFullscreen())}
+          className="fixed top-3 right-3 z-50 p-2 rounded bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+          aria-label="Exit fullscreen"
+          title="Exit fullscreen"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - hidden in fullscreen mode */}
         {!fullscreenMode && <Sidebar />}
@@ -52,7 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Sidebar overlay for mobile */}
         {sidebarOpen && !sidebarCollapsed && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
             onClick={() => dispatch(setSidebarOpen(false))}
           />
         )}

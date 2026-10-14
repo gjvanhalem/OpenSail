@@ -110,6 +110,8 @@ export const Navigation: React.FC = () => {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded hover:bg-blue-700 transition-colors"
               aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               <svg
                 className="w-6 h-6"
@@ -139,7 +141,7 @@ export const Navigation: React.FC = () => {
 
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-blue-500">
+          <div id="mobile-menu" className="md:hidden mt-3 pt-3 border-t border-blue-500">
             <div className="flex flex-col space-y-1">
               {navItems.map((item) => (
                 <Link
