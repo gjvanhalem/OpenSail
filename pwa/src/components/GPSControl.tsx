@@ -10,13 +10,20 @@ type GPSMode = 'real' | 'simulator' | 'off';
 export const GPSControl: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isGPSActive, position, accuracy } = useAppSelector((state) => state.navigation);
-  const [gpsMode, setGpsMode] = useState<GPSMode>('off');
-  const [selectedTrack, setSelectedTrack] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
   const geolocationService = getGeolocationService();
   const gpsSimulator = getGPSSimulator();
   const predefinedTracks = GPSSimulator.getPredefinedTracks();
+
+  // The services are app-wide singletons that keep running when this page
+  // closes, so start from whatever is already running
+  const [gpsMode, setGpsMode] = useState<GPSMode>(() =>
+    gpsSimulator.getIsActive() ? 'simulator' : geolocationService.getIsActive() ? 'real' : 'off'
+  );
+  const [selectedTrack, setSelectedTrack] = useState(() => {
+    const index = predefinedTracks.findIndex((t) => t.name === gpsSimulator.getTrackName());
+    return index >= 0 ? index : 0;
+  });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Initialize services
@@ -30,11 +37,11 @@ export const GPSControl: React.FC = () => {
     });
 
     return () => {
-      // Cleanup on unmount
-      geolocationService.stop();
-      gpsSimulator.stop();
+      // Keep GPS running when leaving the settings page: the chart and the
+      // track recorder still need it. Only drop this component's error callback.
+      geolocationService.onError(() => {});
     };
-  }, [dispatch]);
+  }, [dispatch, geolocationService, gpsSimulator]);
 
   const handleModeChange = async (mode: GPSMode) => {
     setError(null);

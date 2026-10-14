@@ -15,6 +15,7 @@ export const VesselMarker: React.FC<VesselMarkerProps> = React.memo(
 
       return (
         <svg
+          data-testid="vessel-marker"
           width={size}
           height={size}
           viewBox="0 0 24 24"

@@ -1,5 +1,12 @@
-import React, { useRef, useCallback, useMemo } from 'react';
-import Map, { NavigationControl, type MapMouseEvent, type MapRef, type ViewStateChangeEvent } from 'react-map-gl/mapbox';
+import React, { useRef, useCallback, useEffect, useMemo } from 'react';
+import Map, {
+  NavigationControl,
+  type MapEvent,
+  type MapMouseEvent,
+  type MapRef,
+  type ViewStateChangeEvent,
+} from 'react-map-gl/mapbox';
+import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 export interface Viewport {
@@ -11,10 +18,21 @@ export interface Viewport {
 }
 
 export interface ChartViewProps {
+  /** Initial center for an uncontrolled map; ignored when viewState is set */
   center?: [number, number];
+  /** Initial zoom for an uncontrolled map; ignored when viewState is set */
   zoom?: number;
+  /** Initial bearing for an uncontrolled map; ignored when viewState is set */
   bearing?: number;
+  /**
+   * Controlled view. When set, the map always shows this view and every
+   * camera change goes through onMove, so the parent decides what the map shows.
+   */
+  viewState?: Viewport;
+  /** Called on every camera change (each animation frame while moving) */
   onMove?: (viewport: Viewport) => void;
+  /** Called when the user starts dragging or rotating the map */
+  onUserPan?: () => void;
   /** Called with the clicked map coordinate */
   onClick?: (coordinate: { latitude: number; longitude: number }) => void;
   /** CSS cursor for the map canvas */
@@ -24,49 +42,58 @@ export interface ChartViewProps {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
-// Debounce helper
-function debounce<T extends (...args: never[]) => void>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
+declare global {
+  interface Window {
+    /** The chart's mapbox-gl map, exposed for end-to-end tests */
+    __OPENSAIL_MAP__?: MapboxMap;
+  }
 }
 
 export const ChartView: React.FC<ChartViewProps> = ({
   center = [0, 0],
   zoom = 10,
   bearing = 0,
+  viewState,
   onMove,
+  onUserPan,
   onClick,
   cursor,
   children,
 }) => {
   const mapRef = useRef<MapRef>(null);
 
-  // Debounce move events to reduce update frequency
-  const debouncedOnMove = useMemo(
-    () => (onMove ? debounce(onMove, 100) : undefined),
+  const handleMove = useCallback(
+    (evt: ViewStateChangeEvent) => {
+      // Not debounced: a controlled map must get its new view every frame,
+      // or it snaps back to the previous one while the user drags
+      const { longitude, latitude, zoom, bearing, pitch } = evt.viewState;
+      onMove?.({ latitude, longitude, zoom, bearing, pitch });
+    },
     [onMove]
   );
 
-  const handleMove = useCallback(
+  const handleUserPan = useCallback(
     (evt: ViewStateChangeEvent) => {
-      if (debouncedOnMove) {
-        const { longitude, latitude, zoom, bearing, pitch } = evt.viewState;
-        debouncedOnMove({
-          latitude,
-          longitude,
-          zoom,
-          bearing,
-          pitch,
-        });
+      // Only events with an originalEvent come from the user; jumpTo from a
+      // changed viewState fires rotatestart too
+      if ('originalEvent' in evt && evt.originalEvent) onUserPan?.();
+    },
+    [onUserPan]
+  );
+
+  // On render rather than load: load waits for the style's tiles, which never
+  // arrive without a valid Mapbox token
+  const handleRender = useCallback((evt: MapEvent) => {
+    if (window.__OPENSAIL_MAP__ !== evt.target) window.__OPENSAIL_MAP__ = evt.target;
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (window.__OPENSAIL_MAP__ === mapRef.current?.getMap()) {
+        delete window.__OPENSAIL_MAP__;
       }
     },
-    [debouncedOnMove]
+    []
   );
 
   const handleClick = useCallback(
@@ -156,16 +183,23 @@ export const ChartView: React.FC<ChartViewProps> = ({
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
-        initialViewState={{
-          longitude: center[0],
-          latitude: center[1],
-          zoom,
-          bearing,
-          pitch: 0,
-        }}
+        {...(viewState
+          ? { ...viewState }
+          : {
+              initialViewState: {
+                longitude: center[0],
+                latitude: center[1],
+                zoom,
+                bearing,
+                pitch: 0,
+              },
+            })}
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
-        onMove={handleMove}
+        onMove={viewState || onMove ? handleMove : undefined}
+        onDragStart={onUserPan ? handleUserPan : undefined}
+        onRotateStart={onUserPan ? handleUserPan : undefined}
+        onRender={handleRender}
         onClick={onClick ? handleClick : undefined}
         cursor={cursor}
         maxPitch={0}
