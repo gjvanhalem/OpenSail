@@ -13,6 +13,8 @@ async function startSimulator(page: Page) {
   // Client-side navigation, so the simulator keeps running
   await page.click('a[href="/chart"]');
   await expect(page).toHaveURL('/chart');
+  // The map is exposed once it has rendered
+  await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
 }
 
 /** Distance in pixels between the vessel marker and the center of the map */
