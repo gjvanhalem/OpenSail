@@ -2,6 +2,8 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useUnits } from '@/hooks/useUnits';
+import { useGaugeAlert, GAUGE_ALERT_CLASSES } from '@/hooks/useGaugeAlert';
+import { GaugeAlert } from '@/components/alerts/GaugeAlert';
 import { formatQuantity } from '@/utils/units';
 
 interface DepthGaugeProps {
@@ -15,6 +17,7 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
 }) => {
   const depth = useSelector((state: RootState) => state.instruments.depth);
   const units = useUnits();
+  const alert = useGaugeAlert('depth');
 
   const depthMeters = depth ?? 0;
   // Also show the other unit, for charts in feet or metres
@@ -32,7 +35,9 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
+    >
       <div className="text-sm text-gray-400 mb-2">DEPTH</div>
       
       {/* Bar gauge */}
@@ -74,9 +79,7 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
       {depth === null && (
         <div className="mt-2 text-xs text-gray-500">No data</div>
       )}
-      {depth !== null && depth < 2 && (
-        <div className="mt-2 text-xs text-red-400 font-semibold">SHALLOW!</div>
-      )}
+      <GaugeAlert alert={alert} />
     </div>
   );
 });

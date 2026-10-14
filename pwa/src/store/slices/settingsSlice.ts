@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { settingsRepository, type AppSettings } from '@/database/repositories/SettingsRepository';
+import { DEFAULT_ALERT_THRESHOLDS } from './alertsSlice';
 
 export interface SettingsState {
   settings: AppSettings;
@@ -31,8 +32,7 @@ const initialState: SettingsState = {
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,
     collisionWarningDistance: 2,
-    enableShallowWaterAlarm: true,
-    shallowWaterDepth: 5,
+    alertThresholds: DEFAULT_ALERT_THRESHOLDS,
     enableWeatherAlerts: true,
     offlineMode: false,
     autoSync: false,

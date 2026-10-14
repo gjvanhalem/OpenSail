@@ -137,8 +137,6 @@ async function setDefaultSettings(): Promise<void> {
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,
     collisionWarningDistance: 2,
-    enableShallowWaterAlarm: true,
-    shallowWaterDepth: 5,
     enableWeatherAlerts: true,
     autoSync: false,
     instrumentProtocol: 'nmea0183',

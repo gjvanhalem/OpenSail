@@ -214,8 +214,6 @@ export interface AppSettings {
   enableAnchorAlarm: boolean;
   enableCollisionAlarm: boolean;
   collisionWarningDistance: number;
-  enableShallowWaterAlarm: boolean;
-  shallowWaterDepth: number;
   enableWeatherAlerts: boolean;
   
   // Connection settings

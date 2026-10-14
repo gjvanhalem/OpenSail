@@ -2,6 +2,8 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useUnits } from '@/hooks/useUnits';
+import { useGaugeAlert, GAUGE_ALERT_CLASSES } from '@/hooks/useGaugeAlert';
+import { GaugeAlert } from '@/components/alerts/GaugeAlert';
 
 interface WindGaugeProps {
   className?: string;
@@ -12,6 +14,7 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
   const windDirection = useSelector((state: RootState) => state.instruments.windDirection);
   const heading = useSelector((state: RootState) => state.navigation.heading);
   const units = useUnits();
+  const alert = useGaugeAlert('windSpeed');
 
   const displaySpeed = windSpeed ?? 0;
   const displayDirection = windDirection ?? 0;
@@ -45,7 +48,9 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
+    >
       <div className="text-sm text-gray-400 mb-2">WIND</div>
       
       {/* Compass rose with wind arrow */}
@@ -116,6 +121,7 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
       <div className="mt-1 text-xs text-gray-400">
         {windSpeed !== null ? getWindStrength(displaySpeed) : 'No data'}
       </div>
+      <GaugeAlert alert={alert} />
     </div>
   );
 });

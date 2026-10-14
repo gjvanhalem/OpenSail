@@ -2,6 +2,8 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useUnits } from '@/hooks/useUnits';
+import { useGaugeAlert, GAUGE_ALERT_CLASSES } from '@/hooks/useGaugeAlert';
+import { GaugeAlert } from '@/components/alerts/GaugeAlert';
 
 interface SpeedGaugeProps {
   className?: string;
@@ -10,6 +12,7 @@ interface SpeedGaugeProps {
 export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '' }) => {
   const speed = useSelector((state: RootState) => state.navigation.speed);
   const units = useUnits();
+  const alert = useGaugeAlert('speed');
   const waterSpeed = useSelector((state: RootState) => state.instruments.waterSpeed);
 
   // Use water speed if available, otherwise GPS speed
@@ -21,7 +24,9 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '
   const rotation = Math.min((speedKnots / maxSpeed) * 180 - 90, 90);
 
   return (
-    <div className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
+    >
       <div className="text-sm text-gray-400 mb-2">SPEED</div>
       
       {/* Gauge */}
@@ -88,6 +93,7 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '
       <div className="mt-1 text-xs text-gray-500">
         {waterSpeed !== null ? 'Log' : speed !== null ? 'SOG' : 'No data'}
       </div>
+      <GaugeAlert alert={alert} />
     </div>
   );
 });
