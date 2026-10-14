@@ -6,10 +6,12 @@ import { CompatibilityInfo } from '@/components/CompatibilityInfo';
 import { GPSControl } from '@/components/GPSControl';
 import { NavigationSourceSettings } from '@/components/NavigationSourceSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
+import { useUnits } from '@/hooks/useUnits';
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { settings, isLoading } = useAppSelector((state) => state.settings);
+  const units = useUnits();
   const [hasChanges, setHasChanges] = useState(false);
 
   const handleSettingChange = <K extends keyof AppSettings>(
@@ -63,19 +65,20 @@ export const SettingsPage: React.FC = () => {
           <div className="space-y-4">
             {/* Units */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="settings-units" className="block text-sm font-medium text-gray-700 mb-2">
                 Units
               </label>
               <select
+                id="settings-units"
                 value={settings.units}
                 onChange={(e) =>
                   handleSettingChange('units', e.target.value as AppSettings['units'])
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="nautical">Nautical (nm, knots)</option>
-                <option value="metric">Metric (km, km/h)</option>
-                <option value="imperial">Imperial (mi, mph)</option>
+                <option value="nautical">Nautical (nm, knots, m)</option>
+                <option value="metric">Metric (km, km/h, m)</option>
+                <option value="imperial">Imperial (mi, mph, ft)</option>
               </select>
             </div>
 
@@ -319,7 +322,7 @@ export const SettingsPage: React.FC = () => {
               {settings.enableAnchorAlarm && (
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">
-                    Anchor Watch Radius: {settings.anchorWatchRadius}m
+                    Anchor Watch Radius: {units.format('length', settings.anchorWatchRadius, 0)}
                   </label>
                   <input
                     type="range"
@@ -355,7 +358,7 @@ export const SettingsPage: React.FC = () => {
               {settings.enableCollisionAlarm && (
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">
-                    Warning Distance: {settings.collisionWarningDistance} nm
+                    Warning Distance: {units.format('distance', settings.collisionWarningDistance, 1)}
                   </label>
                   <input
                     type="range"
@@ -394,7 +397,7 @@ export const SettingsPage: React.FC = () => {
               {settings.enableShallowWaterAlarm && (
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">
-                    Shallow Water Depth: {settings.shallowWaterDepth}m
+                    Shallow Water Depth: {units.format('depth', settings.shallowWaterDepth)}
                   </label>
                   <input
                     type="range"

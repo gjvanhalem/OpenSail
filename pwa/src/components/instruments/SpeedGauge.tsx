@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
+import { useUnits } from '@/hooks/useUnits';
 
 interface SpeedGaugeProps {
   className?: string;
@@ -8,6 +9,7 @@ interface SpeedGaugeProps {
 
 export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '' }) => {
   const speed = useSelector((state: RootState) => state.navigation.speed);
+  const units = useUnits();
   const waterSpeed = useSelector((state: RootState) => state.instruments.waterSpeed);
 
   // Use water speed if available, otherwise GPS speed
@@ -62,23 +64,23 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '
         {/* Scale markers */}
         <div className="absolute inset-0 flex items-end justify-between px-2 pb-2 text-xs text-gray-500">
           <span>0</span>
-          <span>15</span>
-          <span>30</span>
+          <span>{units.value('speed', maxSpeed / 2, 0)}</span>
+          <span>{units.value('speed', maxSpeed, 0)}</span>
         </div>
       </div>
       
       {/* Digital readout */}
       <div className="mt-2 text-center">
         <div className="text-3xl font-bold text-white" data-testid="speed-readout">
-          {speedKnots.toFixed(1)}
+          {units.value('speed', speedKnots)}
         </div>
-        <div className="text-xs text-gray-400">knots</div>
+        <div className="text-xs text-gray-400">{units.label('speed')}</div>
       </div>
 
       {/* Speed over ground next to the log's speed through water */}
       {waterSpeed !== null && speed !== null && (
         <div className="text-xs text-gray-400" data-testid="sog-readout">
-          SOG {speed.toFixed(1)}
+          SOG {units.value('speed', speed)}
         </div>
       )}
       

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 import type { AISTarget } from '@/models';
+import { useUnits } from '@/hooks/useUnits';
 
 export interface AISLayerProps {
   targets: AISTarget[];
@@ -11,6 +12,7 @@ export interface AISLayerProps {
 export const AISLayer: React.FC<AISLayerProps> = React.memo(
   ({ targets, visible = true, onTargetSelect }) => {
     const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
+    const units = useUnits();
 
     const handleTargetClick = useCallback(
       (target: AISTarget) => {
@@ -76,11 +78,11 @@ export const AISLayer: React.FC<AISLayerProps> = React.memo(
                 {isSelected && (
                   <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap z-10">
                     <div className="font-bold">{target.name || `MMSI: ${target.mmsi}`}</div>
-                    <div className="text-gray-600">Speed: {target.speed.toFixed(1)} kts</div>
+                    <div className="text-gray-600">Speed: {units.format('speed', target.speed)}</div>
                     <div className="text-gray-600">Heading: {target.heading.toFixed(0)}°</div>
                     {target.cpa && (
                       <div className="text-red-600 font-semibold mt-1">
-                        CPA: {target.cpa.distance.toFixed(2)} nm in{' '}
+                        CPA: {units.format('distance', target.cpa.distance)} in{' '}
                         {(target.cpa.time / 60).toFixed(0)} min
                       </div>
                     )}

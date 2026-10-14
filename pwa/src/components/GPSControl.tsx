@@ -3,12 +3,14 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getGeolocationService } from '@/services/GeolocationService';
 import { getGPSSimulator, GPSSimulator } from '@/services/GPSSimulator';
 import { errorHandler } from '@/services/ErrorHandler';
+import { useUnits } from '@/hooks/useUnits';
 import type { NavigationError } from '@/models';
 
 type GPSMode = 'real' | 'simulator' | 'off';
 
 export const GPSControl: React.FC = () => {
   const dispatch = useAppDispatch();
+  const units = useUnits();
   const { isGPSActive, position, accuracy } = useAppSelector((state) => state.navigation);
   const geolocationService = getGeolocationService();
   const gpsSimulator = getGPSSimulator();
@@ -122,7 +124,7 @@ export const GPSControl: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-600">Accuracy:</span>
               <span className="text-xs font-mono text-gray-900">
-                {accuracy?.toFixed(1) ?? 'N/A'} m
+                {accuracy !== null ? units.format('length', accuracy) : 'N/A'}
               </span>
             </div>
           </>
@@ -205,7 +207,7 @@ export const GPSControl: React.FC = () => {
           >
             {predefinedTracks.map((track, index) => (
               <option key={index} value={index}>
-                {track.name} - {track.speed} knots
+                {track.name} - {units.format('speed', track.speed)}
               </option>
             ))}
           </select>

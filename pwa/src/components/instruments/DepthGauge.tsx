@@ -1,6 +1,8 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
+import { useUnits } from '@/hooks/useUnits';
+import { formatQuantity } from '@/utils/units';
 
 interface DepthGaugeProps {
   className?: string;
@@ -12,10 +14,11 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
   maxDepth = 50 
 }) => {
   const depth = useSelector((state: RootState) => state.instruments.depth);
-  
-  const displayDepth = depth ?? 0;
-  const depthMeters = displayDepth;
-  const depthFeet = depthMeters * 3.28084;
+  const units = useUnits();
+
+  const depthMeters = depth ?? 0;
+  // Also show the other unit, for charts in feet or metres
+  const secondary = units.label('depth') === 'ft' ? 'metric' : 'imperial';
 
   // Calculate bar height (0-maxDepth range)
   const barHeight = Math.min((depthMeters / maxDepth) * 100, 100);
@@ -48,7 +51,7 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
           {[maxDepth, maxDepth * 0.75, maxDepth * 0.5, maxDepth * 0.25, 0].map((mark, i) => (
             <div key={i} className="flex items-center">
               <div className="w-2 h-px bg-gray-500" />
-              <span className="ml-1 text-xs text-gray-400">{mark.toFixed(0)}</span>
+              <span className="ml-1 text-xs text-gray-400">{units.value('depth', mark, 0)}</span>
             </div>
           ))}
         </div>
@@ -57,11 +60,13 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
       {/* Digital readout */}
       <div className="mt-3 text-center">
         <div className="text-3xl font-bold text-white" data-testid="depth-readout">
-          {depthMeters.toFixed(1)}
+          {units.value('depth', depthMeters)}
         </div>
-        <div className="text-xs text-gray-400">meters</div>
+        <div className="text-xs text-gray-400">
+          {units.label('depth') === 'ft' ? 'feet' : 'meters'}
+        </div>
         <div className="text-sm text-gray-500 mt-1">
-          {depthFeet.toFixed(1)} ft
+          {formatQuantity('depth', depthMeters, secondary)}
         </div>
       </div>
       

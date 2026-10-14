@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { RoutePlannerHook } from './RoutePlanner';
 import type { Waypoint } from '@/models';
+import { useUnits } from '@/hooks/useUnits';
 
 // Inline WaypointEditor to avoid import issues
 interface WaypointEditorProps {
@@ -329,9 +330,8 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
   const [editingWaypointId, setEditingWaypointId] = useState<string | null>(null);
   const [showWaypointForm, setShowWaypointForm] = useState(false);
 
-  const formatDistance = (nm: number) => {
-    return `${nm.toFixed(2)} nm`;
-  };
+  const units = useUnits();
+  const formatDistance = (nm: number) => units.format('distance', nm);
 
   const formatDuration = (hours: number) => {
     const h = Math.floor(hours);
@@ -376,13 +376,13 @@ export const RoutePlannerUI: React.FC<RoutePlannerUIProps> = ({
         {/* Average Speed Input */}
         <div className="mb-4">
           <label htmlFor="route-average-speed" className="block text-sm font-medium text-gray-700 mb-1">
-            Average Speed (knots)
+            Average Speed ({units.label('speed')})
           </label>
           <input
             id="route-average-speed"
             type="number"
-            value={averageSpeed}
-            onChange={(e) => setAverageSpeed(Number(e.target.value))}
+            value={Number(units.toDisplay('speed', averageSpeed).toFixed(3))}
+            onChange={(e) => setAverageSpeed(units.fromDisplay('speed', Number(e.target.value)))}
             min="0.1"
             step="0.1"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
+import { useUnits } from '@/hooks/useUnits';
 
 interface WindGaugeProps {
   className?: string;
@@ -10,6 +11,7 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
   const windSpeed = useSelector((state: RootState) => state.instruments.windSpeed);
   const windDirection = useSelector((state: RootState) => state.instruments.windDirection);
   const heading = useSelector((state: RootState) => state.navigation.heading);
+  const units = useUnits();
 
   const displaySpeed = windSpeed ?? 0;
   const displayDirection = windDirection ?? 0;
@@ -97,9 +99,9 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
       {/* Digital readout */}
       <div className="mt-2 text-center">
         <div className="text-3xl font-bold text-white" data-testid="wind-speed-readout">
-          {displaySpeed.toFixed(1)}
+          {units.value('windSpeed', displaySpeed)}
         </div>
-        <div className="text-xs text-gray-400">knots</div>
+        <div className="text-xs text-gray-400">{units.label('windSpeed')}</div>
         <div className="text-sm text-gray-500 mt-1" data-testid="wind-angle-readout">
           {apparentWindAngle.toFixed(0)}° {apparentWindAngle < 180 ? 'Stbd' : 'Port'}
         </div>
