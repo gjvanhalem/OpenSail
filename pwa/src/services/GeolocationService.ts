@@ -1,11 +1,7 @@
 import type { Position } from '@/models';
 import { NavigationError, ErrorCode, ErrorSeverity } from '@/models';
-import {
-  updatePosition,
-  updateCourse,
-  updateSpeed,
-  setGPSActive,
-} from '@/store/slices/navigationSlice';
+import { reportNavigation, setGPSActive } from '@/store/slices/navigationSlice';
+import type { NavigationReading } from '@/store/slices/navigationNormalization';
 import { MS_TO_KNOTS } from '@/utils/constants';
 import type { AppDispatch } from '@/store';
 
@@ -201,15 +197,12 @@ export class GeolocationService {
 
     // Dispatch to Redux
     if (this.dispatch) {
-      this.dispatch(updatePosition(position));
+      const reading: NavigationReading = { position };
       // coords.heading is the direction of travel (COG), NaN or null when stationary
       const { heading, speed } = geoPosition.coords;
-      if (heading !== null && Number.isFinite(heading)) {
-        this.dispatch(updateCourse(heading));
-      }
-      if (speed !== null && Number.isFinite(speed)) {
-        this.dispatch(updateSpeed(speed * MS_TO_KNOTS));
-      }
+      if (heading !== null && Number.isFinite(heading)) reading.course = heading;
+      if (speed !== null && Number.isFinite(speed)) reading.speedOverGround = speed * MS_TO_KNOTS;
+      this.dispatch(reportNavigation('gps', reading));
     }
 
     console.log('Position updated:', {

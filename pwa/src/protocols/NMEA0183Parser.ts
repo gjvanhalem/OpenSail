@@ -23,6 +23,7 @@ export class NMEA0183Parser {
     MWV: NMEA0183Parser.parseMWV,
     VHW: NMEA0183Parser.parseVHW,
     HDG: NMEA0183Parser.parseHDG,
+    HDT: NMEA0183Parser.parseHDT,
     VDM: NMEA0183Parser.parseVDM,
     VDO: NMEA0183Parser.parseVDO
   };
@@ -114,6 +115,8 @@ export class NMEA0183Parser {
 
   private static parseGGA(fields: string[]): InstrumentData | null {
     if (fields.length < 9) return null;
+    // Fix quality 0: no fix, the position fields are stale or empty
+    if (fields[5] === '0') return null;
 
     const latitude = NMEA0183Parser.parseLatitude(fields[1], fields[2]);
     const longitude = NMEA0183Parser.parseLongitude(fields[3], fields[4]);
@@ -124,7 +127,8 @@ export class NMEA0183Parser {
       latitude,
       longitude,
       accuracy: parseFloat(fields[7]) || 0, // HDOP
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(Number.isFinite(parseFloat(fields[8])) ? { altitude: parseFloat(fields[8]) } : {})
     };
 
     return {
@@ -151,8 +155,9 @@ export class NMEA0183Parser {
       timestamp: Date.now()
     };
 
-    const speedKnots = parseFloat(fields[6]) || 0;
-    const course = parseFloat(fields[7]) || 0;
+    // Course is empty when the vessel is not moving
+    const speedKnots = NMEA0183Parser.optionalNumber(fields[6]);
+    const course = NMEA0183Parser.optionalNumber(fields[7]);
 
     return {
       type: InstrumentDataType.GPS,
@@ -264,6 +269,28 @@ export class NMEA0183Parser {
       timestamp: Date.now(),
       source: 'nmea0183'
     };
+  }
+
+  private static parseHDT(fields: string[]): InstrumentData | null {
+    if (fields.length < 1) return null;
+
+    // $--HDT,heading,T
+    const heading = parseFloat(fields[0]);
+    if (!Number.isFinite(heading)) return null;
+
+    return {
+      type: InstrumentDataType.Heading,
+      value: { heading, reference: 'true' },
+      unit: 'deg',
+      timestamp: Date.now(),
+      source: 'nmea0183'
+    };
+  }
+
+  /** A numeric field, or undefined when it is empty */
+  private static optionalNumber(field: string | undefined): number | undefined {
+    const value = parseFloat(field ?? '');
+    return Number.isFinite(value) ? value : undefined;
   }
 
   private static parseHDG(fields: string[]): InstrumentData | null {

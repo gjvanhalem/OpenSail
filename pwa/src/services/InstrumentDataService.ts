@@ -8,6 +8,11 @@
 import { NMEA0183Parser, NMEA2000Parser, SeaTalkParser } from '@/protocols';
 import { SerialConnection, BluetoothConnection } from '@/services/connections';
 import { addInstrumentData } from '@/store/slices/instrumentsSlice';
+import { reportNavigation } from '@/store/slices/navigationSlice';
+import {
+  hasNavigationValues,
+  normalizeNavigationData,
+} from '@/store/slices/navigationNormalization';
 import type { ProtocolType } from '@/store/slices/instrumentsSlice';
 import type { InstrumentData } from '@/models';
 import type { AppDispatch } from '@/store';
@@ -140,6 +145,13 @@ export class InstrumentDataService {
    */
   private dispatchInstrumentData(data: InstrumentData): void {
     this.dispatch(addInstrumentData(data));
+
+    // Position, COG/SOG and heading also go to navigation, where the source
+    // settings decide whether they win over GPS
+    const navigation = normalizeNavigationData(data);
+    if (hasNavigationValues(navigation)) {
+      this.dispatch(reportNavigation('instrument', navigation));
+    }
   }
 
   /**

@@ -4,6 +4,7 @@ import { updateSetting, resetSettings } from '@/store/slices/settingsSlice';
 import type { AppSettings } from '@/database/repositories/SettingsRepository';
 import { CompatibilityInfo } from '@/components/CompatibilityInfo';
 import { GPSControl } from '@/components/GPSControl';
+import { NavigationSourceSettings } from '@/components/NavigationSourceSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
 
 export const SettingsPage: React.FC = () => {
@@ -291,6 +292,8 @@ export const SettingsPage: React.FC = () => {
 
         {/* GPS Control Section */}
         <GPSControl />
+
+        <NavigationSourceSettings />
 
         {/* Alarms Section */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
