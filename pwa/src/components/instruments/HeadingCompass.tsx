@@ -101,7 +101,7 @@ export const HeadingCompass: React.FC<HeadingCompassProps> = React.memo(({ class
       
       {/* Digital readout */}
       <div className="mt-2 text-center">
-        <div className="text-3xl font-bold text-white">
+        <div className="text-3xl font-bold text-white" data-testid="heading-readout">
           {displayHeading.toFixed(0).padStart(3, '0')}°
         </div>
         <div className="text-sm text-gray-400">

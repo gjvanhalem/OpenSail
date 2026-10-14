@@ -69,15 +69,22 @@ export const SpeedGauge: React.FC<SpeedGaugeProps> = React.memo(({ className = '
       
       {/* Digital readout */}
       <div className="mt-2 text-center">
-        <div className="text-3xl font-bold text-white">
+        <div className="text-3xl font-bold text-white" data-testid="speed-readout">
           {speedKnots.toFixed(1)}
         </div>
         <div className="text-xs text-gray-400">knots</div>
       </div>
+
+      {/* Speed over ground next to the log's speed through water */}
+      {waterSpeed !== null && speed !== null && (
+        <div className="text-xs text-gray-400" data-testid="sog-readout">
+          SOG {speed.toFixed(1)}
+        </div>
+      )}
       
       {/* Data source indicator */}
       <div className="mt-1 text-xs text-gray-500">
-        {waterSpeed !== null ? 'Log' : speed !== null ? 'GPS' : 'No data'}
+        {waterSpeed !== null ? 'Log' : speed !== null ? 'SOG' : 'No data'}
       </div>
     </div>
   );

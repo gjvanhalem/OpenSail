@@ -6,7 +6,7 @@
  */
 
 import { NMEA0183Parser, NMEA2000Parser, SeaTalkParser } from '@/protocols';
-import { SerialConnection, BluetoothConnection } from '@/services/connections';
+import type { BluetoothConnection, InstrumentDataConnection } from '@/services/connections';
 import { addInstrumentData } from '@/store/slices/instrumentsSlice';
 import { reportNavigation } from '@/store/slices/navigationSlice';
 import {
@@ -31,9 +31,9 @@ export class InstrumentDataService {
   }
 
   /**
-   * Wire a serial connection to the appropriate protocol parser
+   * Wire a connection (serial, Bluetooth or stub) to the appropriate protocol parser
    */
-  wireConnection(connection: SerialConnection, protocol: ProtocolType): void {
+  wireConnection(connection: Pick<InstrumentDataConnection, 'onData'>, protocol: ProtocolType): void {
     connection.onData((data: string) => {
       this.handleData(data, protocol);
     });
@@ -121,8 +121,14 @@ export class InstrumentDataService {
    * Parse and dispatch SeaTalk data
    */
   private handleSeaTalk(data: string): void {
-    // SeaTalk data comes as hex strings, convert to Uint8Array
-    const bytes = this.hexStringToBytes(data);
+    // SeaTalk data comes as hex bytes, either plain ("84 86 26 ...") or wrapped
+    // by a SeaTalk-to-NMEA gateway as $STALK,84,86,26,...*hh
+    const stalk = /^\$(STALK,([0-9A-Fa-f,]+))(?:\*([0-9A-Fa-f]{2}))?$/.exec(data.trim());
+    if (stalk?.[3] && this.nmea0183Parser.calculateChecksum(stalk[1]) !== stalk[3].toUpperCase()) {
+      console.debug('Invalid $STALK checksum:', data);
+      return;
+    }
+    const bytes = this.hexStringToBytes(stalk ? stalk[2] : data);
     if (!bytes || bytes.length === 0) {
       return;
     }

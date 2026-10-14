@@ -37,7 +37,7 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Update vessel heading indicator
   - _Requirements: 1.2, 1.5_
 
-- [ ] 23. Wire up instrument services to Redux
+- [x] 23. Wire up instrument services to Redux
 - [x] 23.1 Connect InstrumentService to Redux store
   - Dispatch instrument data to Redux slices
   - Update instrumentsSlice with real-time data
@@ -52,8 +52,9 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Update HeadingCompass to read from Redux
   - _Requirements: 14.1, 14.2, 14.3_
 
-- [ ] 23.3 Add instrument data simulator
-  - Enable protocol stub by default in development
+- [x] 23.3 Add instrument data simulator
+  - StubConnection generates real NMEA 0183, NMEA 2000 and SeaTalk data through the same connection interface as hardware ("Simulator" on the Instruments page)
+  - Enable protocol stub by default in development (not done: it would override GPS in auto source mode; start it from the Instruments page instead)
   - Add UI controls to adjust simulated values
   - Create realistic data variation
   - _Requirements: 10.4, 10.5_
