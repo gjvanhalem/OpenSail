@@ -6,6 +6,26 @@ import {
   isSecureContext,
 } from '../utils/featureDetection';
 
+// Remembers that the user dismissed the (non-critical) warnings, so the
+// banner does not cover the navigation bar on every visit
+export const COMPATIBILITY_WARNING_DISMISSED_KEY = 'opensail.compatibilityWarningDismissed';
+
+function readDismissed(): boolean {
+  try {
+    return localStorage.getItem(COMPATIBILITY_WARNING_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function storeDismissed(): void {
+  try {
+    localStorage.setItem(COMPATIBILITY_WARNING_DISMISSED_KEY, '1');
+  } catch {
+    // Storage unavailable (private mode): dismissal lasts for this session only
+  }
+}
+
 interface CompatibilityWarningProps {
   onDismiss?: () => void;
 }
@@ -75,13 +95,19 @@ function computeCompatibilityIssues(): CompatibilityIssues {
 export const CompatibilityWarning: React.FC<CompatibilityWarningProps> = ({ onDismiss }) => {
   // Compatibility issues are computed once on mount
   const [{ warnings, criticalIssues }] = useState(computeCompatibilityIssues);
-  // Auto-dismiss if no issues
+  // Auto-dismiss if no issues; warnings stay dismissed once dismissed,
+  // critical issues are shown on every load
   const [dismissed, setDismissed] = useState(
-    () => warnings.length === 0 && criticalIssues.length === 0
+    () =>
+      (warnings.length === 0 && criticalIssues.length === 0) ||
+      (criticalIssues.length === 0 && readDismissed())
   );
 
   const handleDismiss = () => {
     setDismissed(true);
+    if (criticalIssues.length === 0) {
+      storeDismissed();
+    }
     onDismiss?.();
   };
 
@@ -103,7 +129,7 @@ export const CompatibilityWarning: React.FC<CompatibilityWarningProps> = ({ onDi
   if (!features.webBluetooth.supported) missingFeatures.push('webBluetooth');
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 p-4">
+    <div className="fixed top-0 left-0 right-0 z-50 p-4" data-testid="compatibility-warning">
       <div
         className={`max-w-4xl mx-auto rounded-lg shadow-lg p-6 ${
           criticalIssues.length > 0

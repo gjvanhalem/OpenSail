@@ -10,11 +10,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  // Fail fast instead of letting a broken run time out test by test
+  globalTimeout: process.env.CI ? 15 * 60 * 1000 : undefined,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Start with the browser-compatibility banner dismissed: on browsers without
+    // Web Bluetooth/Serial (Linux CI Chromium) it overlays the navigation bar
+    storageState: 'e2e/fixtures/storage-state.json',
   },
 
   projects: [

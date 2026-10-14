@@ -23,18 +23,29 @@ test.describe('Browser Compatibility', () => {
     console.log('Browser features:', features);
   });
 
-  test('should show compatibility warnings for unsupported features', async ({ page, browserName }) => {
-    await page.goto('/');
-    
-    // Check if compatibility warning is shown
-    const compatibilityWarning = page.locator('[class*="compatibility"], [data-testid="compatibility-warning"]');
-    
-    // Firefox and WebKit don't support Web Serial/Bluetooth
-    if (browserName === 'firefox' || browserName === 'webkit') {
-      // May show warning about limited features
-      const warningVisible = await compatibilityWarning.isVisible().catch(() => false);
-      console.log(`${browserName} compatibility warning visible:`, warningVisible);
-    }
+  test.describe('compatibility warning', () => {
+    // The config pre-dismisses the warning for all other tests; start clean here
+    test.use({ storageState: { cookies: [], origins: [] } });
+
+    test('should show compatibility warnings for unsupported features and remember dismissal', async ({ page }) => {
+      // Simulate a browser without Web Bluetooth (e.g. Chromium on Linux, Firefox)
+      await page.addInitScript(() => {
+        delete (Navigator.prototype as Navigator & { bluetooth?: unknown }).bluetooth;
+      });
+      await page.goto('/');
+
+      const compatibilityWarning = page.getByTestId('compatibility-warning');
+      await expect(compatibilityWarning).toBeVisible();
+      await expect(compatibilityWarning).toContainText('Bluetooth');
+
+      await page.getByRole('button', { name: 'Dismiss warning' }).click();
+      await expect(compatibilityWarning).toBeHidden();
+
+      // Dismissal is remembered, so the banner no longer covers the navigation
+      await page.reload();
+      await expect(page.getByRole('navigation')).toBeVisible();
+      await expect(compatibilityWarning).toBeHidden();
+    });
   });
 
   test('should work without Web Serial API', async ({ page }) => {
