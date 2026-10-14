@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { settingsRepository, type AppSettings } from '@/database/repositories/SettingsRepository';
 import { DEFAULT_ALERT_THRESHOLDS } from './alertsSlice';
+import { DEFAULT_PANEL_LAYOUT } from '@/components/instruments/panelLayout';
 
 export interface SettingsState {
   settings: AppSettings;
@@ -33,6 +34,7 @@ const initialState: SettingsState = {
     enableCollisionAlarm: true,
     collisionWarningDistance: 2,
     alertThresholds: DEFAULT_ALERT_THRESHOLDS,
+    instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
     enableWeatherAlerts: true,
     offlineMode: false,
     autoSync: false,

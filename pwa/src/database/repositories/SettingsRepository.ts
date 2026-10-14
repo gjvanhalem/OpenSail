@@ -1,6 +1,7 @@
 import { db, type Setting } from '../db';
 import type { NavigationSourceChoice } from '@/store/slices/navigationSlice';
 import { DEFAULT_ALERT_THRESHOLDS, type AlertThresholds } from '@/store/slices/alertsSlice';
+import { DEFAULT_PANEL_LAYOUT, type PanelLayout } from '@/components/instruments/panelLayout';
 
 // Settings type definitions
 export interface AppSettings {
@@ -33,6 +34,9 @@ export interface AppSettings {
   collisionWarningDistance: number;
   /** Min / max alerts per instrument value (depth in m, speeds in knots) */
   alertThresholds: AlertThresholds;
+
+  /** Which instrument gauges show, in what order and size */
+  instrumentPanelLayout: PanelLayout;
   enableWeatherAlerts: boolean;
   
   // Offline mode
@@ -69,6 +73,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableCollisionAlarm: true,
   collisionWarningDistance: 2,
   alertThresholds: DEFAULT_ALERT_THRESHOLDS,
+  instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
   enableWeatherAlerts: true,
   
   // Offline mode

@@ -1,67 +1,64 @@
 import React, { useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setSettingOptimistic, updateSetting } from '@/store/slices/settingsSlice';
 import { SpeedGauge } from './SpeedGauge';
 import { DepthGauge } from './DepthGauge';
 import { WindGauge } from './WindGauge';
 import { HeadingCompass } from './HeadingCompass';
 import { PositionDisplay } from './PositionDisplay';
-
-export type GaugeType = 'speed' | 'depth' | 'wind' | 'heading' | 'position';
-
-export interface GaugeConfig {
-  id: string;
-  type: GaugeType;
-  enabled: boolean;
-}
+import {
+  GAUGE_NAMES,
+  GAUGE_SIZES,
+  moveGauge,
+  normalizePanelLayout,
+  updateGauge,
+  type GaugeSize,
+  type GaugeType,
+  type PanelLayout,
+} from './panelLayout';
 
 interface InstrumentPanelProps {
   className?: string;
   layout?: 'grid' | 'horizontal' | 'vertical';
-  initialGauges?: GaugeConfig[];
   showConfig?: boolean;
 }
 
-const defaultGauges: GaugeConfig[] = [
-  { id: 'speed', type: 'speed', enabled: true },
-  { id: 'depth', type: 'depth', enabled: true },
-  { id: 'wind', type: 'wind', enabled: true },
-  { id: 'heading', type: 'heading', enabled: true },
-  { id: 'position', type: 'position', enabled: true },
-];
+const GAUGES: Record<GaugeType, React.FC> = {
+  speed: SpeedGauge,
+  depth: DepthGauge,
+  wind: WindGauge,
+  heading: HeadingCompass,
+  position: PositionDisplay,
+};
 
+// Grid columns a gauge takes, and how much its content is enlarged
+const SIZE_STYLES: Record<GaugeSize, { span: string; zoom: number }> = {
+  small: { span: '', zoom: 1 },
+  medium: { span: 'sm:col-span-2', zoom: 1.4 },
+  large: { span: 'sm:col-span-2 lg:col-span-4', zoom: 1.8 },
+};
+
+const SIZE_NAMES: Record<GaugeSize, string> = { small: 'Small', medium: 'Medium', large: 'Large' };
+
+/**
+ * Instrument gauges in the layout saved in settings (R14.2). Configure lets
+ * the user choose which gauges show, their order and their size.
+ */
 export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
   className = '',
   layout = 'grid',
-  initialGauges = defaultGauges,
   showConfig = false,
 }) => {
-  const [gauges, setGauges] = useState<GaugeConfig[]>(initialGauges);
+  const dispatch = useAppDispatch();
+  const stored = useAppSelector((state) => state.settings.settings.instrumentPanelLayout);
+  const gauges = normalizePanelLayout(stored);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
-  const toggleGauge = (id: string) => {
-    setGauges(prev =>
-      prev.map(gauge =>
-        gauge.id === id ? { ...gauge, enabled: !gauge.enabled } : gauge
-      )
-    );
-  };
-
-  const renderGauge = (gauge: GaugeConfig) => {
-    if (!gauge.enabled) return null;
-
-    switch (gauge.type) {
-      case 'speed':
-        return <SpeedGauge key={gauge.id} />;
-      case 'depth':
-        return <DepthGauge key={gauge.id} />;
-      case 'wind':
-        return <WindGauge key={gauge.id} />;
-      case 'heading':
-        return <HeadingCompass key={gauge.id} />;
-      case 'position':
-        return <PositionDisplay key={gauge.id} />;
-      default:
-        return null;
-    }
+  const save = (next: PanelLayout) => {
+    const update = { key: 'instrumentPanelLayout' as const, value: next };
+    // Update the store at once so quick successive changes build on each other
+    dispatch(setSettingOptimistic(update));
+    dispatch(updateSetting(update));
   };
 
   const getLayoutClasses = () => {
@@ -76,7 +73,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
     }
   };
 
-  const enabledGauges = gauges.filter(g => g.enabled);
+  const enabledGauges = gauges.filter((g) => g.enabled);
 
   return (
     <div className={`relative ${className}`}>
@@ -85,26 +82,17 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
         <div className="mb-4 flex justify-end">
           <button
             onClick={() => setIsConfigOpen(!isConfigOpen)}
+            aria-expanded={isConfigOpen}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
               />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Configure
           </button>
@@ -115,29 +103,81 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
       {isConfigOpen && (
         <div className="mb-4 p-4 bg-gray-800 rounded-lg">
           <h3 className="text-lg font-semibold text-white mb-3">Gauge Configuration</h3>
-          <div className="space-y-2">
-            {gauges.map(gauge => (
-              <label
-                key={gauge.id}
-                className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={gauge.enabled}
-                  onChange={() => toggleGauge(gauge.id)}
-                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                />
-                <span className="text-white capitalize">{gauge.type}</span>
-              </label>
-            ))}
-          </div>
+          <ol className="space-y-2">
+            {gauges.map((gauge, index) => {
+              const name = GAUGE_NAMES[gauge.type];
+              return (
+                <li
+                  key={gauge.type}
+                  className="flex flex-wrap items-center gap-3 p-2 hover:bg-gray-700 rounded"
+                  data-testid={`gauge-config-${gauge.type}`}
+                >
+                  <label className="flex items-center gap-3 flex-1 min-w-32 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gauge.enabled}
+                      onChange={() => save(updateGauge(gauges, gauge.type, { enabled: !gauge.enabled }))}
+                      aria-label={`Show ${name}`}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-white">{name}</span>
+                  </label>
+                  <select
+                    value={gauge.size}
+                    onChange={(e) =>
+                      save(updateGauge(gauges, gauge.type, { size: e.target.value as GaugeSize }))
+                    }
+                    aria-label={`${name} size`}
+                    className="px-2 py-1 bg-gray-700 text-white border border-gray-600 rounded"
+                  >
+                    {GAUGE_SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {SIZE_NAMES[size]}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => save(moveGauge(gauges, gauge.type, -1))}
+                    disabled={index === 0}
+                    aria-label={`Move ${name} up`}
+                    className="px-2 py-1 text-white bg-gray-700 rounded disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => save(moveGauge(gauges, gauge.type, 1))}
+                    disabled={index === gauges.length - 1}
+                    aria-label={`Move ${name} down`}
+                    className="px-2 py-1 text-white bg-gray-700 rounded disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       )}
 
       {/* Instrument gauges */}
       {enabledGauges.length > 0 ? (
         <div className={getLayoutClasses()}>
-          {gauges.map(renderGauge)}
+          {enabledGauges.map((gauge) => {
+            const Gauge = GAUGES[gauge.type];
+            const { span, zoom } = SIZE_STYLES[gauge.size];
+            return (
+              <div
+                key={gauge.type}
+                className={layout === 'grid' ? span : ''}
+                data-testid={`gauge-${gauge.type}`}
+                data-size={gauge.size}
+              >
+                <div style={{ zoom }} className="h-full [&>div]:h-full">
+                  <Gauge />
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12 text-gray-400">
