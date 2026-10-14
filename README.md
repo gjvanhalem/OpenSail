@@ -22,8 +22,8 @@ As a Progressive Web App (PWA), OpenSail works on any device with a modern brows
 
 ## Technology Stack
 
-- **React 18** with TypeScript for type-safe UI development
-- **Vite 5** for fast development and optimized builds
+- **React 19** with TypeScript for type-safe UI development
+- **Vite 7** for fast development and optimized builds
 - **Redux Toolkit** for centralized state management
 - **Mapbox GL JS** for WebGL-based vector map rendering
 - **Dexie.js** for IndexedDB storage (routes, tracks, charts)
