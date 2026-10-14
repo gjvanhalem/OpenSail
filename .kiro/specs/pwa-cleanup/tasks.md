@@ -470,7 +470,9 @@ This implementation plan provides a step-by-step guide for cleaning up the OpenS
   - Keep src/ if it has shared code used by PWA
   - _Requirements: 9.5_
 
-- [ ] 10. Commit and merge cleanup
+- [x] 10. Commit and merge cleanup
+
+
 
 
   - Commit all cleanup changes
@@ -502,14 +504,17 @@ This implementation plan provides a step-by-step guide for cleaning up the OpenS
   - Verify documentation is updated
   - _Requirements: All requirements_
 
-- [-] 10.4 Merge cleanup branch
+- [x] 10.4 Merge cleanup branch
+
 
   - Merge PR to main branch
   - Delete cleanup branch
   - Verify main branch builds successfully
   - _Requirements: All requirements_
 
-- [ ] 10.5 Tag the cleaned version
+- [x] 10.5 Tag the cleaned version
+
+
   - Create git tag `v2.0.0-pwa-only`
   - Push tag to remote
   - Update release notes
