@@ -73,7 +73,7 @@ describe('NMEA0183Parser', () => {
 
   describe('DBT parsing', () => {
     it('should parse depth in meters', () => {
-      const sentence = '$SDDBT,10.5,f,3.2,M,1.7,F*3C';
+      const sentence = '$SDDBT,10.5,f,3.2,M,1.7,F*35';
       const message = parser.parse(sentence);
       const data = parser.parseToInstrumentData(message!);
       
@@ -86,7 +86,7 @@ describe('NMEA0183Parser', () => {
 
   describe('MWV parsing', () => {
     it('should parse wind data', () => {
-      const sentence = '$WIMWV,045,R,12.5,N,A*2E';
+      const sentence = '$WIMWV,045,R,12.5,N,A*0A';
       const message = parser.parse(sentence);
       const data = parser.parseToInstrumentData(message!);
       
@@ -99,7 +99,7 @@ describe('NMEA0183Parser', () => {
 
   describe('HDG parsing', () => {
     it('should parse heading data', () => {
-      const sentence = '$HCHDG,270.5,2.5,E,1.5,W*5C';
+      const sentence = '$HCHDG,270.5,2.5,E,1.5,W*53';
       const message = parser.parse(sentence);
       const data = parser.parseToInstrumentData(message!);
       

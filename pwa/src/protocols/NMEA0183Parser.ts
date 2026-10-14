@@ -3,6 +3,10 @@ import { InstrumentDataType } from '../models';
 
 export class NMEA0183Parser {
   private static readonly SENTENCE_START = '$';
+  // Encapsulated sentences (e.g. AIS !AIVDM) start with '!'
+  private static readonly ENCAPSULATED_START = '!';
+  // Sentence IDs are a 2-char talker ID (GP, SD, AI, ...) followed by the 3-char type
+  private static readonly TALKER_ID_LENGTH = 2;
   private static readonly CHECKSUM_DELIMITER = '*';
   private static readonly FIELD_DELIMITER = ',';
 
@@ -49,7 +53,10 @@ export class NMEA0183Parser {
   validate(sentence: string): boolean {
     const trimmed = sentence.trim();
 
-    if (!trimmed.startsWith(NMEA0183Parser.SENTENCE_START)) {
+    if (
+      !trimmed.startsWith(NMEA0183Parser.SENTENCE_START) &&
+      !trimmed.startsWith(NMEA0183Parser.ENCAPSULATED_START)
+    ) {
       return false;
     }
 
@@ -65,20 +72,24 @@ export class NMEA0183Parser {
       }
     }
 
-    const content = trimmed.startsWith(NMEA0183Parser.CHECKSUM_DELIMITER)
-      ? trimmed.substring(2)
-      : trimmed.substring(1);
-
+    const content = trimmed.substring(1);
     const firstComma = content.indexOf(NMEA0183Parser.FIELD_DELIMITER);
     const sentenceId = firstComma > 0 ? content.substring(0, firstComma) : content;
 
-    return sentenceId in NMEA0183Parser.SUPPORTED_SENTENCES;
+    return NMEA0183Parser.getSentenceType(sentenceId) in NMEA0183Parser.SUPPORTED_SENTENCES;
+  }
+
+  /** Strip the talker ID, e.g. "GPGGA" -> "GGA", "AIVDM" -> "VDM". */
+  static getSentenceType(sentenceId: string): string {
+    return sentenceId.substring(NMEA0183Parser.TALKER_ID_LENGTH);
   }
 
   calculateChecksum(sentence: string): string {
     let checksum = 0;
-    const data = sentence.startsWith(NMEA0183Parser.SENTENCE_START)
-      ? sentence.substring(1)
+    const data =
+      sentence.startsWith(NMEA0183Parser.SENTENCE_START) ||
+      sentence.startsWith(NMEA0183Parser.ENCAPSULATED_START)
+        ? sentence.substring(1)
       : sentence;
 
     const checksumIndex = data.indexOf(NMEA0183Parser.CHECKSUM_DELIMITER);
@@ -92,7 +103,9 @@ export class NMEA0183Parser {
   }
 
   parseToInstrumentData(message: NMEA0183Message): InstrumentData | null {
-    const parser = NMEA0183Parser.SUPPORTED_SENTENCES[message.sentenceId];
+    const parser = NMEA0183Parser.SUPPORTED_SENTENCES[
+      NMEA0183Parser.getSentenceType(message.sentenceId)
+    ];
     if (!parser) {
       return null;
     }
@@ -110,7 +123,7 @@ export class NMEA0183Parser {
     const position: Position = {
       latitude,
       longitude,
-      accuracy: parseFloat(fields[8]) || 0,
+      accuracy: parseFloat(fields[7]) || 0, // HDOP
       timestamp: Date.now()
     };
 
@@ -185,12 +198,13 @@ export class NMEA0183Parser {
   private static parseDBT(fields: string[]): InstrumentData | null {
     if (fields.length < 3) return null;
 
+    // $--DBT,feet,f,meters,M,fathoms,F
     const depthFeet = parseFloat(fields[0]);
-    const depthMeters = parseFloat(fields[3]);
+    const depthMeters = parseFloat(fields[2]);
 
     return {
       type: InstrumentDataType.Depth,
-      value: depthMeters !== undefined && !isNaN(depthMeters) ? depthMeters : depthFeet * 0.3048,
+      value: !isNaN(depthMeters) ? depthMeters : depthFeet * 0.3048,
       unit: 'm',
       timestamp: Date.now(),
       source: 'nmea0183'
@@ -215,14 +229,18 @@ export class NMEA0183Parser {
   private static parseMWV(fields: string[]): InstrumentData | null {
     if (fields.length < 4) return null;
 
+    // $--MWV,angle,R|T,speed,unit,status
     const angle = parseFloat(fields[0]);
+    const reference = fields[1];
     const speed = parseFloat(fields[2]);
     const unit = fields[3];
 
-    if (fields[1] === 'R') {
+    if (fields[4] === 'V') return null;
+
+    if (reference === 'R' || reference === 'T') {
       return {
         type: InstrumentDataType.Wind,
-        value: { angle, speed, unit },
+        value: { angle, speed, unit, reference },
         unit: unit === 'K' ? 'km/h' : unit === 'M' ? 'm/s' : 'kn',
         timestamp: Date.now(),
         source: 'nmea0183'
@@ -235,7 +253,8 @@ export class NMEA0183Parser {
   private static parseVHW(fields: string[]): InstrumentData | null {
     if (fields.length < 6) return null;
 
-    const speedKnots = parseFloat(fields[3]);
+    // $--VHW,headingTrue,T,headingMag,M,knots,N,kmh,K
+    const speedKnots = parseFloat(fields[4]);
     const heading = parseFloat(fields[0]);
 
     return {
@@ -250,9 +269,10 @@ export class NMEA0183Parser {
   private static parseHDG(fields: string[]): InstrumentData | null {
     if (fields.length < 3) return null;
 
+    // $--HDG,heading,deviation,E|W,variation,E|W (west is negative)
     const heading = parseFloat(fields[0]);
-    const deviation = parseFloat(fields[1]) || 0;
-    const variation = parseFloat(fields[2]) || 0;
+    const deviation = (parseFloat(fields[1]) || 0) * (fields[2] === 'W' ? -1 : 1);
+    const variation = (parseFloat(fields[3]) || 0) * (fields[4] === 'W' ? -1 : 1);
 
     return {
       type: InstrumentDataType.Heading,
