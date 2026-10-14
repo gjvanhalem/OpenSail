@@ -1,5 +1,7 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { useAppDispatch } from '@/store/hooks';
+import { updateSetting } from '@/store/slices/settingsSlice';
 import {
   ChartView,
   type Viewport,
@@ -10,13 +12,15 @@ import {
   ChartDownloadPanel,
   ViewportRegionSelector,
   resolveChartViewState,
+  vesselDirection,
 } from '@/components/chart';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { RootState } from '@/store';
-import type { AISTarget } from '@/models';
+import type { AISTarget, ChartRotation } from '@/models';
 import type { Bounds } from '@/database/services/TileCache';
 
 export const ChartPage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const navigation = useSelector((state: RootState) => state.navigation);
   const routes = useSelector((state: RootState) => state.routes.routes);
   const tracks = useSelector((state: RootState) => state.tracks.tracks);
@@ -43,8 +47,25 @@ export const ChartPage: React.FC = () => {
       resolveChartViewState(viewport, {
         followVessel: autoCenterEnabled,
         position: navigation.position,
+        orientation: settings.chartRotation,
+        heading: navigation.heading,
+        course: navigation.course,
       }),
-    [viewport, autoCenterEnabled, navigation.position]
+    [
+      viewport,
+      autoCenterEnabled,
+      navigation.position,
+      settings.chartRotation,
+      navigation.heading,
+      navigation.course,
+    ]
+  );
+
+  const handleOrientationChange = useCallback(
+    (orientation: ChartRotation) => {
+      dispatch(updateSetting({ key: 'chartRotation', value: orientation }));
+    },
+    [dispatch]
   );
 
   // Debounced copy for the region selector, which doesn't need every frame
@@ -103,6 +124,33 @@ export const ChartPage: React.FC = () => {
           </button>
         )}
 
+        {/* Chart orientation */}
+        <div
+          role="group"
+          aria-label="Chart orientation"
+          className="bg-white rounded-lg shadow-lg flex overflow-hidden text-sm"
+        >
+          {(
+            [
+              ['north-up', 'North up'],
+              ['heading-up', 'Heading up'],
+            ] as const
+          ).map(([orientation, label]) => (
+            <button
+              key={orientation}
+              onClick={() => handleOrientationChange(orientation)}
+              aria-pressed={settings.chartRotation === orientation}
+              className={`flex-1 px-3 py-2 ${
+                settings.chartRotation === orientation
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Download button */}
         {!showRegionSelector && (
           <button
@@ -117,7 +165,12 @@ export const ChartPage: React.FC = () => {
         )}
       </div>
 
-      <ChartView viewState={viewState} onMove={handleMove} onUserPan={handleUserPan}>
+      <ChartView
+        viewState={viewState}
+        onMove={handleMove}
+        onUserPan={handleUserPan}
+        rotatable={false}
+      >
         <RouteLayer routes={routes} visible={showRoutes} />
         <TrackLayer tracks={tracks} visible={showTracks} />
         <AISLayer
@@ -126,7 +179,10 @@ export const ChartPage: React.FC = () => {
           onTargetSelect={handleTargetSelect}
         />
         {navigation.position && (
-          <VesselMarker position={navigation.position} heading={navigation.heading} />
+          <VesselMarker
+            position={navigation.position}
+            heading={vesselDirection(navigation.heading, navigation.course)}
+          />
         )}
       </ChartView>
 

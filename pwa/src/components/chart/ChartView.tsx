@@ -33,6 +33,8 @@ export interface ChartViewProps {
   onMove?: (viewport: Viewport) => void;
   /** Called when the user starts dragging or rotating the map */
   onUserPan?: () => void;
+  /** Let the user rotate the map. Off when the chart orientation sets the bearing. */
+  rotatable?: boolean;
   /** Called with the clicked map coordinate */
   onClick?: (coordinate: { latitude: number; longitude: number }) => void;
   /** CSS cursor for the map canvas */
@@ -56,6 +58,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
   viewState,
   onMove,
   onUserPan,
+  rotatable = true,
   onClick,
   cursor,
   children,
@@ -199,6 +202,8 @@ export const ChartView: React.FC<ChartViewProps> = ({
         onMove={viewState || onMove ? handleMove : undefined}
         onDragStart={onUserPan ? handleUserPan : undefined}
         onRotateStart={onUserPan ? handleUserPan : undefined}
+        dragRotate={rotatable}
+        touchPitch={false}
         onRender={handleRender}
         onClick={onClick ? handleClick : undefined}
         cursor={cursor}

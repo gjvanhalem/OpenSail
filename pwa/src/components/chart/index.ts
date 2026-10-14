@@ -12,5 +12,5 @@ export { ChartDownloadPanel } from './ChartDownloadPanel';
 export type { ChartDownloadPanelProps } from './ChartDownloadPanel';
 export { ViewportRegionSelector } from './ViewportRegionSelector';
 export type { ViewportRegionSelectorProps } from './ViewportRegionSelector';
-export { resolveChartViewState } from './chartViewState';
-export type { FollowVesselOptions } from './chartViewState';
+export { resolveChartViewState, chartBearing, vesselDirection } from './chartViewState';
+export type { ChartViewOptions } from './chartViewState';

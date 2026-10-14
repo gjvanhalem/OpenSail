@@ -64,3 +64,43 @@ test.describe('Chart follows the vessel', () => {
     await expect.poll(() => markerOffsetFromCenter(page)).toBeLessThan(5);
   });
 });
+
+test.describe('Chart orientation', () => {
+  const bearing = (page: Page) => page.evaluate(() => window.__OPENSAIL_MAP__!.getBearing());
+
+  test('heading-up turns the chart to the course, north-up turns it back', async ({ page }) => {
+    await startSimulator(page);
+    const orientation = page.getByRole('group', { name: 'Chart orientation' });
+    await expect(orientation.getByRole('button', { name: 'North up' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await expect.poll(() => bearing(page)).toBe(0);
+
+    await orientation.getByRole('button', { name: 'Heading up' }).click();
+    await expect(orientation.getByRole('button', { name: 'Heading up' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    // The harbor track's first leg runs north-east; the simulator has no
+    // heading sensor, so heading-up uses course over ground
+    await expect.poll(async () => Math.abs(await bearing(page))).toBeGreaterThan(10);
+    // The vessel still sits in the center, with the bow pointing up the screen
+    expect(await markerOffsetFromCenter(page)).toBeLessThan(5);
+
+    await orientation.getByRole('button', { name: 'North up' }).click();
+    await expect.poll(() => bearing(page)).toBe(0);
+  });
+
+  test('the orientation is saved in settings', async ({ page }) => {
+    await page.goto('/chart');
+    const headingUp = page
+      .getByRole('group', { name: 'Chart orientation' })
+      .getByRole('button', { name: 'Heading up' });
+    await headingUp.click();
+    // The button updates once the setting is stored
+    await expect(headingUp).toHaveAttribute('aria-pressed', 'true');
+    await page.reload();
+    await expect(headingUp).toHaveAttribute('aria-pressed', 'true');
+  });
+});
