@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { InstrumentData } from '@/models';
+import { normalizeInstrumentData } from './instrumentNormalization';
 
 export type ConnectionType = 'serial' | 'bluetooth' | 'network' | 'stub';
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -89,25 +90,13 @@ const instrumentsSlice = createSlice({
         state.dataStreams[data.type] = state.dataStreams[data.type].slice(-100);
       }
       
-      // Update specific instrument values
-      switch (data.type) {
-        case 'depth':
-          state.depth = data.value as number;
-          break;
-        case 'wind':
-          if (typeof data.value === 'object' && data.value !== null) {
-            const windData = data.value as { speed: number; direction: number };
-            state.windSpeed = windData.speed;
-            state.windDirection = windData.direction;
-          }
-          break;
-        case 'speed':
-          state.waterSpeed = data.value as number;
-          break;
-        case 'temperature':
-          state.waterTemperature = data.value as number;
-          break;
-      }
+      // Update specific instrument values, in metres / knots / degrees / °C
+      const reading = normalizeInstrumentData(data);
+      if (reading.depth !== undefined) state.depth = reading.depth;
+      if (reading.waterSpeed !== undefined) state.waterSpeed = reading.waterSpeed;
+      if (reading.windSpeed !== undefined) state.windSpeed = reading.windSpeed;
+      if (reading.windDirection !== undefined) state.windDirection = reading.windDirection;
+      if (reading.waterTemperature !== undefined) state.waterTemperature = reading.waterTemperature;
       
       state.isReceivingData = true;
       
