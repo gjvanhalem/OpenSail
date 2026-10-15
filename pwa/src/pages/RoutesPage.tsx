@@ -6,6 +6,7 @@ import { ChartView, RouteLayer } from '@/components/chart';
 import { RoutePlannerUI, useRoutePlanner } from '@/components/routes';
 import { routeRepository } from '@/database/repositories/RouteRepository';
 import type { Route, Waypoint } from '@/models';
+import { useUnits } from '@/hooks/useUnits';
 
 const MAP_CENTER: [number, number] = [0, 51.5];
 const MAP_ZOOM = 8;
@@ -72,6 +73,7 @@ export const RoutesPage: React.FC = () => {
   const dispatch = useDispatch();
   const routes = useSelector((state: RootState) => state.routes.routes);
   const activeRouteId = useSelector((state: RootState) => state.routes.activeRouteId) as string | null;
+  const units = useUnits();
   
   const [showPlanner, setShowPlanner] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
@@ -171,7 +173,7 @@ export const RoutesPage: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                    <span>{route.totalDistance.toFixed(1)} nm</span>
+                    <span>{units.format('distance', route.totalDistance, 1)}</span>
                     <span>{Math.floor(route.estimatedDuration)}h {Math.round((route.estimatedDuration % 1) * 60)}m</span>
                   </div>
 

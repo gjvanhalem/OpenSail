@@ -6,9 +6,11 @@ import { TrackList } from '@/components/tracks/TrackList';
 import { TrackRecordingControls } from '@/components/tracks/TrackRecordingControls';
 import { downloadGPX } from '@/utils/gpxExport';
 import type { Track as DBTrack } from '@/database/db';
+import { useUnits } from '@/hooks/useUnits';
 
 export const TracksPage: React.FC = () => {
   const dispatch = useDispatch();
+  const units = useUnits();
   const [selectedTrack, setSelectedTrack] = useState<DBTrack | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dbTracks, setDbTracks] = useState<DBTrack[]>([]);
@@ -124,19 +126,19 @@ export const TracksPage: React.FC = () => {
                 <div>
                   <p className="text-xs text-gray-500">Distance</p>
                   <p className="text-sm font-medium">
-                    {selectedTrack.distance.toFixed(2)} nm
+                    {units.format('distance', selectedTrack.distance)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Avg Speed</p>
                   <p className="text-sm font-medium">
-                    {selectedTrack.avgSpeed.toFixed(1)} kts
+                    {units.format('speed', selectedTrack.avgSpeed)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Max Speed</p>
                   <p className="text-sm font-medium">
-                    {selectedTrack.maxSpeed.toFixed(1)} kts
+                    {units.format('speed', selectedTrack.maxSpeed)}
                   </p>
                 </div>
                 <div>

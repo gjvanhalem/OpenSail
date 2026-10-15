@@ -1,4 +1,5 @@
 import { useAppSelector } from '@/store/hooks';
+import { useUnits } from '@/hooks/useUnits';
 
 /**
  * Example component demonstrating Redux state usage
@@ -9,6 +10,7 @@ export function NavigationStatus() {
   const speed = useAppSelector((state) => state.navigation.speed);
   const heading = useAppSelector((state) => state.navigation.heading);
   const isGPSActive = useAppSelector((state) => state.navigation.isGPSActive);
+  const units = useUnits();
 
   return (
     <div className="p-4 bg-gray-100 rounded-lg">
@@ -29,14 +31,14 @@ export function NavigationStatus() {
               {position.latitude.toFixed(6)}°, {position.longitude.toFixed(6)}°
             </div>
             <div>
-              <span className="font-medium">Accuracy:</span> {position.accuracy.toFixed(1)}m
+              <span className="font-medium">Accuracy:</span> {units.format('length', position.accuracy)}
             </div>
           </>
         )}
         
         {speed !== null && (
           <div>
-            <span className="font-medium">Speed:</span> {speed.toFixed(1)} kts
+            <span className="font-medium">Speed:</span> {units.format('speed', speed)}
           </div>
         )}
         

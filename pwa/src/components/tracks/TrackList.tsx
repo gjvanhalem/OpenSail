@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { Track } from '@/database/db';
+import { useUnits } from '@/hooks/useUnits';
 
 interface TrackListProps {
   tracks: Track[];
@@ -19,6 +20,7 @@ const TrackItem = React.memo<{
   onDelete: () => void;
   onExport: () => void;
 }>(({ track, isSelected, isExpanded, onSelect, onToggleExpand, onDelete, onExport }) => {
+  const units = useUnits();
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -37,11 +39,11 @@ const TrackItem = React.memo<{
   };
 
   const formatDistance = (distance: number) => {
-    return `${distance.toFixed(2)} nm`;
+    return units.format('distance', distance);
   };
 
   const formatSpeed = (speed: number) => {
-    return `${speed.toFixed(1)} kts`;
+    return units.format('speed', speed);
   };
 
   return (

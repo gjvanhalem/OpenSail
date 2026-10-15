@@ -148,7 +148,7 @@ The protocol parsers, services, database, and UI components exist but are not co
 - [ ] 29.2 Implement settings persistence
   - Load settings on app start
   - Save settings changes to database
-  - Apply settings to all components
+  - Apply settings to all components (units and chart rotation done in Phase 1)
   - _Requirements: 14.4, 6.3_
 
 - [ ] 30. Add development tools and debugging
