@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
 
 /** Instrument values that can have a min / max alert (R14.5) */
 export type AlertValue = 'depth' | 'speed' | 'windSpeed';
@@ -71,11 +71,34 @@ export function nextAlert(
   return check('below', threshold.min) ?? check('above', threshold.max);
 }
 
-export interface AlertsState {
-  active: Partial<Record<AlertValue, ActiveAlert>>;
+/**
+ * Safety alarms: louder than instrument alerts (a siren and a full-screen
+ * alert instead of a beep and a banner). Raised by the safety features and,
+ * from Phase 5, the AIS collision check.
+ */
+export type SafetyAlarmKind = 'mob' | 'anchorDrag' | 'anchorGpsLost' | 'collision' | 'test';
+
+export interface SafetyAlarm {
+  kind: SafetyAlarmKind;
+  message: string;
+  /** When the alarm was raised, ms since epoch */
+  since: number;
+  /** Silenced by the user; the alarm stays listed until its cause clears */
+  acknowledged: boolean;
 }
 
-const initialState: AlertsState = { active: {} };
+export interface AlertsState {
+  active: Partial<Record<AlertValue, ActiveAlert>>;
+  alarms: Partial<Record<SafetyAlarmKind, SafetyAlarm>>;
+}
+
+const initialState: AlertsState = { active: {}, alarms: {} };
+
+export interface RaiseAlarmPayload {
+  kind: SafetyAlarmKind;
+  message: string;
+  now: number;
+}
 
 export interface EvaluateAlertsPayload {
   readings: Record<AlertValue, number | null>;
@@ -100,8 +123,62 @@ const alertsSlice = createSlice({
         if (alert) alert.acknowledged = true;
       }
     },
+    /** Raise an alarm; raising one that is already active only updates its message */
+    raiseAlarm: (state, action: PayloadAction<RaiseAlarmPayload>) => {
+      const { kind, message, now } = action.payload;
+      const existing = state.alarms[kind];
+      if (existing) existing.message = message;
+      else state.alarms[kind] = { kind, message, since: now, acknowledged: false };
+    },
+    /** The cause is gone (or the watch was stopped) */
+    clearAlarm: (state, action: PayloadAction<SafetyAlarmKind>) => {
+      delete state.alarms[action.payload];
+    },
+    /** Silence every alarm. A test alarm has no cause to wait for, so it goes away. */
+    silenceAlarms: (state) => {
+      delete state.alarms.test;
+      for (const alarm of Object.values(state.alarms)) {
+        if (alarm) alarm.acknowledged = true;
+      }
+    },
   },
 });
 
-export const { evaluateAlerts, acknowledgeAlerts } = alertsSlice.actions;
+export const { evaluateAlerts, acknowledgeAlerts, raiseAlarm, clearAlarm, silenceAlarms } =
+  alertsSlice.actions;
+
+interface StateWithAlerts {
+  alerts: AlertsState;
+  settings?: { settings: { enableCollisionAlarm?: boolean } };
+}
+
+/**
+ * Raise a safety alarm unless the user turned that kind off in settings
+ * (only the collision alarm can be turned off).
+ */
+export const raiseSafetyAlarm =
+  (kind: SafetyAlarmKind, message: string) =>
+  (dispatch: Dispatch, getState: () => StateWithAlerts) => {
+    if (kind === 'collision' && getState().settings?.settings.enableCollisionAlarm === false) {
+      return;
+    }
+    dispatch(raiseAlarm({ kind, message, now: Date.now() }));
+  };
+
+/** Alarms the user has not silenced yet, oldest first */
+export function unacknowledgedAlarms(state: AlertsState): SafetyAlarm[] {
+  return Object.values(state.alarms)
+    .filter((alarm): alarm is SafetyAlarm => alarm !== undefined && !alarm.acknowledged)
+    .sort((a, b) => a.since - b.since);
+}
+
+/**
+ * What should sound: the siren while a safety alarm is not silenced, the beep
+ * while an instrument alert is not acknowledged, otherwise nothing.
+ */
+export function alarmSoundFor(state: AlertsState): 'alarm' | 'warning' | null {
+  if (unacknowledgedAlarms(state).length > 0) return 'alarm';
+  if (Object.values(state.active).some((alert) => alert && !alert.acknowledged)) return 'warning';
+  return null;
+}
 export default alertsSlice.reducer;
