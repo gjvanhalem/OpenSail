@@ -124,6 +124,29 @@ describe('man overboard', () => {
     expect(reloaded.getState().safety.mob).toBeNull();
   });
 
+  it('events in the same millisecond keep the order they were logged in', async () => {
+    // A fast device can activate and clear within one millisecond
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_760_000_000_000);
+    try {
+      const store = makeStore();
+      store.dispatch(updatePosition(fix(52.5, 4.5, Date.now())));
+      store.dispatch(activateMob());
+      const id = store.getState().safety.mob!.id;
+      store.dispatch(clearMob());
+      await settle();
+
+      const events = await safetyEventRepository.getBySession(id);
+      expect(events.map((e) => e.type)).toEqual(['mob_activated', 'mob_cleared']);
+      expect(events[0].timestamp.getTime()).toBe(events[1].timestamp.getTime());
+
+      const reloaded = makeStore();
+      await reloaded.dispatch(restoreSafety());
+      expect(reloaded.getState().safety.mob).toBeNull();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it('a failed write does not stop the alarm', async () => {
     const spy = vi.spyOn(safetyEventRepository, 'create').mockRejectedValue(new Error('quota'));
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);

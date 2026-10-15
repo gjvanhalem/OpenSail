@@ -111,7 +111,7 @@ export const fixMobPosition =
     if (!mob || mob.position) return;
     dispatch(mobPositionFixed(position));
     void logSafetyEvent({
-      timestamp: new Date(),
+      timestamp: new Date(Date.now()),
       type: 'mob_position',
       sessionId: mob.id,
       ...vesselAt(position),
@@ -129,7 +129,7 @@ export const clearMob = () => (dispatch: Dispatch, getState: () => StateWithSafe
   dispatch(clearAlarm('mob'));
   const position = state.navigation.position;
   void logSafetyEvent({
-    timestamp: new Date(),
+    timestamp: new Date(Date.now()),
     type: 'mob_cleared',
     sessionId: mob.id,
     ...vesselAt(position),

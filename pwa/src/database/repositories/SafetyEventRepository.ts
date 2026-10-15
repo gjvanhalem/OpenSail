@@ -5,23 +5,41 @@ import { BaseRepository } from './Repository';
 const MOB_LIFECYCLE: SafetyEventType[] = ['mob_activated', 'mob_cleared'];
 const ANCHOR_LIFECYCLE: SafetyEventType[] = ['anchor_dropped', 'anchor_raised'];
 
+/** Counts ids handed out, so events in the same millisecond keep their order */
+let sequence = 0;
+
+/**
+ * Oldest first. Events logged in the same millisecond (dropping the anchor
+ * and changing its radius, say) have equal time stamps, so the id, which
+ * follows the order the events were logged in, breaks the tie.
+ */
+export function compareSafetyEvents(a: SafetyEvent, b: SafetyEvent): number {
+  const byTime = a.timestamp.getTime() - b.timestamp.getTime();
+  if (byTime !== 0) return byTime;
+  return (a.id ?? '') < (b.id ?? '') ? -1 : (a.id ?? '') > (b.id ?? '') ? 1 : 0;
+}
+
 export class SafetyEventRepository extends BaseRepository<SafetyEvent> {
   protected getTable() {
     return db.safetyEvents;
   }
 
+  /** Sorts in the order of logging: the time, then a zero-padded sequence number */
   protected generateId(): string {
-    return `safety_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    sequence += 1;
+    return `safety_${String(Date.now()).padStart(15, '0')}_${String(sequence).padStart(9, '0')}`;
   }
 
   /** Events of one MOB or anchor watch, oldest first */
   async getBySession(sessionId: string): Promise<SafetyEvent[]> {
-    return db.safetyEvents.where('sessionId').equals(sessionId).sortBy('timestamp');
+    const events = await db.safetyEvents.where('sessionId').equals(sessionId).toArray();
+    return events.sort(compareSafetyEvents);
   }
 
   /** The newest events first, for the logbook */
   async getRecent(limit = 100): Promise<SafetyEvent[]> {
-    return db.safetyEvents.orderBy('timestamp').reverse().limit(limit).toArray();
+    const events = await db.safetyEvents.orderBy('timestamp').reverse().limit(limit).toArray();
+    return events.sort((a, b) => compareSafetyEvents(b, a));
   }
 
   /**
@@ -34,11 +52,8 @@ export class SafetyEventRepository extends BaseRepository<SafetyEvent> {
     anchor: SafetyEvent[] | null;
   }> {
     const latest = async (types: SafetyEventType[]) => {
-      const event = await db.safetyEvents
-        .orderBy('timestamp')
-        .reverse()
-        .filter((e) => types.includes(e.type))
-        .first();
+      const lifecycle = await db.safetyEvents.where('type').anyOf(types).toArray();
+      const event = lifecycle.sort(compareSafetyEvents).at(-1);
       if (!event || event.type === types[1]) return null;
       return this.getBySession(event.sessionId);
     };
