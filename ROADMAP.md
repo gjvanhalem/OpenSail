@@ -2,7 +2,7 @@
 
 This roadmap goes from where the code is today (October 2026) to an app that meets all 15 requirements in [`.kiro/specs/marine-navigation-system/requirements.md`](.kiro/specs/marine-navigation-system/requirements.md).
 
-Effort is in **developer-weeks for one developer**. These are rough estimates, not commitments. The total is **about 20–26 weeks**.
+Effort is in **developer-weeks for one developer**. These are rough estimates, not commitments. The total is **about 21–27 weeks**.
 
 ---
 
@@ -79,7 +79,7 @@ Spec tasks 23 and 29. Requirements R1.2, R1.5, R3, R10, R14.
 - [x] **Units (R14.4):** apply the `units` setting (nautical, metric or imperial) in every gauge and readout.
 - [x] **Threshold alerts (R14.5):** user-set minimum and maximum per value (for example a shallow-depth alarm), with visual alerts.
 - [x] **Configurable panels (R14.2):** let users choose, order and resize gauges. Save the layout in settings.
-- [x] **Spike, time-boxed to 3 days: chart source decision.** Feeds Phase 3; see [`docs/chart-source-decision.md`](docs/chart-source-decision.md) and the decision list at the end. The decision itself is still open.
+- [x] **Spike, time-boxed to 3 days: chart source decision.** Feeds Phase 3; see [`docs/chart-source-decision.md`](docs/chart-source-decision.md) and the decision list at the end. Decided on 2026-10-15 (see Phase 3).
 
 **Done when:** with the stub running, position, heading, SOG, depth and wind all update within 1 second (R1.2, R14.3), and the map tracks the vessel in both orientations.
 
@@ -101,17 +101,22 @@ Spec tasks 24 and 25. Requirements R2, R9.
 
 ---
 
-## Phase 3: Nautical charts & real offline mode (about 4–5 weeks) ⚠️ highest risk
+## Phase 3: Nautical charts & real offline mode (about 5–6 weeks) ⚠️ highest risk
 
-**Goal:** a real nautical chart that works with no internet connection.
+**Goal:** a real nautical chart for **Dutch inland waters and the Dutch coast** that works with no internet connection.
 Requirements R1.1, R1.3, R1.4, R2.5, R5.1–5.2, R15.
 
-- [ ] **Pick a nautical chart source** (from the Phase 1 spike) and add navigation aids: buoys, beacons and lights (R1.4).
-- [ ] **Serve downloaded tiles to the map:** a custom mapbox-gl protocol, or a service-worker handler that answers from `TileCache` in IndexedDB. Today the downloaded tiles are never read.
-- [ ] Fix the service-worker caching rules so they match the URLs the map really requests (`.vector.pbf`, URLs with `?access_token`).
+The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`](docs/chart-source-decision.md#decision). In short: MapLibre on a free base map, OpenSeaMap seamarks with a "not for navigation" disclaimer, and Rijkswaterstaat inland ENCs. No commercial charts.
+
+- [ ] **Switch from mapbox-gl to MapLibre GL JS** (`react-map-gl/maplibre`) on a free OpenStreetMap-based base map, so no Mapbox token is needed. This is the first PR.
+- [ ] **OpenSeaMap seamark overlay (R1.4):** buoys, beacons and lights, inland and coastal, with attribution and a visible "not for navigation" disclaimer. Agree bulk-download use with the OpenSeaMap team, or mirror the tiles.
+- [ ] **Rijkswaterstaat inland ENCs (CC-0) as vector tiles:** an S-57 → GDAL → tippecanoe → PMTiles pipeline, an S-52-like style (depth areas, contours, hazards) and per-region archives with their edition date.
+- [ ] **Spike: coastal depth data.** Official Dutch coastal ENCs are commercial, and there is no budget. Check free bathymetry (EMODnet Bathymetry, Rijkswaterstaat coastal surveys / "vaklodingen") for licence, resolution and update frequency, then turn the best one into depth contours. Coastal depths are advisory only.
+- [ ] **Serve downloaded tiles to the map** through MapLibre's `addProtocol` (PMTiles and `TileCache` in IndexedDB). Today the downloaded tiles are never read.
+- [ ] Fix the service-worker caching rules so they match the URLs the map really requests.
 - [ ] Download glyphs, sprites and the style document as well, so an offline map has labels and icons.
 - [ ] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online.
-- [ ] Use depth contours and hazards for route hazard warnings (R2.5).
+- [ ] Use depth contours and hazards for route hazard warnings (R2.5): official for inland waters, marked advisory on the coast.
 - [ ] End-to-end test: download a region, go offline, reload, and pan and zoom within that region.
 - [ ] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists).
 
@@ -214,11 +219,8 @@ Phase 4 (safety) is cheap and high value. It can start right after Phase 1, alon
 
 ## Decisions needed before or during the work
 
-1. **Chart source (blocks Phase 3).** The current Mapbox streets style isn't nautical. Options:
-   - OpenSeaMap seamark overlay on a base map (free, raster)
-   - Official ENC data such as NOAA or Dutch Rijkswaterstaat, converted to vector tiles (best quality; needs a conversion pipeline)
-   - A commercial nautical tile provider (fastest; costs money and has licensing limits)
-2. **Weather and tide providers.** Open-Meteo Marine is free and global for weather. Tide sources depend on the region: NOAA CO-OPS for the US, Rijkswaterstaat for NL, WorldTides as a paid global option.
+1. ~~**Chart source (blocks Phase 3).**~~ **Decided 2026-10-15:** Dutch inland waters and coast first, OpenSeaMap seamarks with a disclaimer, Rijkswaterstaat inland ENCs, MapLibre instead of mapbox-gl, no commercial licence. See [`docs/chart-source-decision.md`](docs/chart-source-decision.md#decision).
+2. **Weather and tide providers.** Open-Meteo Marine is free and global for weather. Since the focus is Dutch waters and there is no budget, Rijkswaterstaat's open water-level and tide data is the first candidate for tides.
 3. **Realistic spec changes.** Some requirements don't fit a browser app:
    - *S-57 ENC support and 50 GB storage (R15):* a browser can't read S-57 files directly, and storage quotas vary. Suggestion: convert S-57 on a server into vector tiles, and say the storage limit depends on the browser.
    - *NMEA 2000 over CAN bus (R3.2):* a browser can't talk to CAN directly. It needs a USB, Wi-Fi or WebSocket gateway (for example Actisense or Yacht Devices). Suggestion: also support a WebSocket connection, which covers SignalK servers too.
