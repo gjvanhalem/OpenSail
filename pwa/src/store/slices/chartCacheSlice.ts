@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { tileCache, type Bounds } from '@/database/services/TileCache';
+import { fetchChartCatalog } from '@/services/chartCatalog';
+import { findChartUpdates, type ChartUpdate } from '@/services/chartUpdates';
 
 export interface CachedRegion {
   id: string;
@@ -40,6 +42,12 @@ export interface ChartCacheState {
     available: number;
     percentUsed: number;
   } | null;
+  /** Whether the browser keeps our storage under pressure; null while unknown */
+  persistentStorage: boolean | null;
+  /** Newer ENC editions for downloaded regions, from the last update check (R15.2) */
+  updates: ChartUpdate[];
+  /** When the catalog was last checked for updates (ms since epoch), or null */
+  lastUpdateCheck: number | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -50,6 +58,9 @@ const initialState: ChartCacheState = {
   totalCacheSize: 0,
   totalTileCount: 0,
   storageQuota: null,
+  persistentStorage: null,
+  updates: [],
+  lastUpdateCheck: null,
   isLoading: false,
   error: null,
 };
@@ -60,9 +71,16 @@ export const loadCacheStats = createAsyncThunk(
   async () => {
     const stats = await tileCache.getStats();
     const quota = await tileCache.checkStorageQuota();
-    return { stats, quota };
+    const persistentStorage = await tileCache.isPersistentStorage();
+    return { stats, quota, persistentStorage };
   }
 );
+
+/** Compare downloaded ENC editions with the chart catalog; only works online */
+export const checkForChartUpdates = createAsyncThunk('chartCache/checkForUpdates', async () => {
+  const [regions, catalog] = await Promise.all([tileCache.getRegions(), fetchChartCatalog()]);
+  return { updates: findChartUpdates(regions, catalog), checked: catalog.length > 0 };
+});
 
 export const clearRegion = createAsyncThunk(
   'chartCache/clearRegion',
@@ -84,7 +102,11 @@ const chartCacheSlice = createSlice({
   initialState,
   reducers: {
     addCachedRegion: (state, action: PayloadAction<CachedRegion>) => {
-      state.cachedRegions.push(action.payload);
+      // Upsert: an updated region replaces its old entry
+      const index = state.cachedRegions.findIndex(r => r.id === action.payload.id);
+      if (index === -1) state.cachedRegions.push(action.payload);
+      else state.cachedRegions[index] = action.payload;
+      state.updates = state.updates.filter(update => update.regionId !== action.payload.id);
     },
     removeCachedRegion: (state, action: PayloadAction<string>) => {
       state.cachedRegions = state.cachedRegions.filter(r => r.id !== action.payload);
@@ -150,6 +172,14 @@ const chartCacheSlice = createSlice({
         state.totalCacheSize = action.payload.stats.totalSize;
         state.totalTileCount = action.payload.stats.totalTiles;
         state.storageQuota = action.payload.quota;
+        state.persistentStorage = action.payload.persistentStorage;
+      })
+      .addCase(checkForChartUpdates.fulfilled, (state, action) => {
+        // An empty catalog (offline) tells nothing: keep what the last check found
+        if (action.payload.checked) {
+          state.updates = action.payload.updates;
+          state.lastUpdateCheck = Date.now();
+        }
       })
       .addCase(loadCacheStats.rejected, (state, action) => {
         state.isLoading = false;
@@ -157,9 +187,11 @@ const chartCacheSlice = createSlice({
       })
       .addCase(clearRegion.fulfilled, (state, action) => {
         state.cachedRegions = state.cachedRegions.filter(r => r.id !== action.payload);
+        state.updates = state.updates.filter(update => update.regionId !== action.payload);
       })
       .addCase(clearAllCache.fulfilled, (state) => {
         state.cachedRegions = [];
+        state.updates = [];
         state.totalCacheSize = 0;
         state.totalTileCount = 0;
       });

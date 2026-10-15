@@ -14,6 +14,7 @@ import { EncLayers } from './EncLayers';
 import { useChartCatalog } from './useChartCatalog';
 import { registerTileProtocol } from './tileProtocol';
 import { ConnectionStatus } from './ConnectionStatus';
+import { ChartUpdateNotice } from './ChartUpdateNotice';
 
 // Before any map loads its style: every tile and glyph goes through opensail://
 registerTileProtocol();
@@ -167,6 +168,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
         {children}
       </Map>
       <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-1">
+        <ChartUpdateNotice />
         <ConnectionStatus />
         <ChartDisclaimer />
       </div>

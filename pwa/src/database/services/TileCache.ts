@@ -234,6 +234,18 @@ export class TileCacheService {
     return { usage, quota: 0, available: Infinity, percentUsed: 0 };
   }
 
+  /** Whether the browser has granted persistent storage */
+  async isPersistentStorage(): Promise<boolean | null> {
+    if ('storage' in navigator && 'persisted' in navigator.storage) {
+      try {
+        return await navigator.storage.persisted();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   /** Ask the browser not to evict our storage under pressure; true when granted */
   async requestPersistentStorage(): Promise<boolean> {
     if ('storage' in navigator && 'persist' in navigator.storage) {

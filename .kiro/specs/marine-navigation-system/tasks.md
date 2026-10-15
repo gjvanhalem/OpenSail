@@ -215,8 +215,11 @@ The protocol parsers, services, database, and UI components exist but are not co
   - `ConnectionStatus` indicator; e2e: download, offline, reload, pan, zoom
   - _Requirements: 5.1, 5.2_
 
-- [ ] 31.6 Chart management: downloaded regions, storage use and quota, deletion, edition dates, update check
-  - _Requirements: 15.2, 15.3, 15.4_
+- [x] 31.6 Chart management: downloaded regions, storage use and quota, deletion, edition dates, update check
+  - `ChartRegionList`: size, tiles, zoom levels, edition date and age, update and delete (inline confirmation)
+  - `findChartUpdates` compares downloaded ENC editions with the catalog on start and when the app comes online; `updateRegion` re-downloads the ENC tiles
+  - Storage use, quota and persistent-storage status; the 50 GB of R15.5 depends on the browser's quota (see docs/chart-sources.md)
+  - _Requirements: 15.2, 15.3, 15.4, 15.5_
 
 - [ ] 31.7 Route hazard warnings from inland depth data (official) and coastal depth data (advisory)
   - _Requirements: 2.5_
