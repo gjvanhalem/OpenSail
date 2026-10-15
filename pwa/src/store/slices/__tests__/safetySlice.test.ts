@@ -271,9 +271,12 @@ describe('anchor watch', () => {
   });
 
   it('the watch comes back after a reload with its radius and log', async () => {
+    // Drop and radius change in the same millisecond, as on a fast device or CI
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now());
     const store = anchored();
     store.dispatch(setAnchorRadius(75));
     await settle();
+    clock.mockRestore();
 
     const reloaded = makeStore();
     await reloaded.dispatch(restoreSafety());
