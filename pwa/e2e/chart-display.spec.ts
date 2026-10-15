@@ -12,50 +12,20 @@ test.describe('Chart Display', () => {
   });
 
   test('should allow map interaction', async ({ page }) => {
-    // Wait for map to load
-    await page.waitForTimeout(2000);
-    
-    // Get initial viewport state
-    const initialState = await page.evaluate(() => {
-      const map = (window as Window & { map?: { getZoom(): number; getCenter(): { lng: number; lat: number } } }).map;
-      if (map) {
-        return {
-          zoom: map.getZoom(),
-          center: map.getCenter()
-        };
-      }
-      return null;
-    });
-    
+    const center = () =>
+      page.evaluate(() => window.__OPENSAIL_MAP__?.getCenter().toArray() ?? null);
+    await expect.poll(center).not.toBeNull();
+    const initialCenter = await center();
+
     // Pan the map
-    const mapContainer = page.locator('.mapboxgl-canvas, canvas').first();
-    await mapContainer.hover();
+    const canvas = await page.locator('.mapboxgl-canvas').boundingBox();
+    if (!canvas) throw new Error('map not on screen');
+    await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
     await page.mouse.down();
-    await page.mouse.move(100, 100);
+    await page.mouse.move(canvas.x + 100, canvas.y + 100, { steps: 5 });
     await page.mouse.up();
-    
-    // Wait for map to update
-    await page.waitForTimeout(500);
-    
-    // Verify map state changed (if map is available)
-    const newState = await page.evaluate(() => {
-      const map = (window as Window & { map?: { getZoom(): number; getCenter(): { lng: number; lat: number } } }).map;
-      if (map) {
-        return {
-          zoom: map.getZoom(),
-          center: map.getCenter()
-        };
-      }
-      return null;
-    });
-    
-    // If map is available, verify interaction worked
-    if (initialState && newState) {
-      const centerChanged = 
-        initialState.center.lng !== newState.center.lng ||
-        initialState.center.lat !== newState.center.lat;
-      expect(centerChanged).toBeTruthy();
-    }
+
+    await expect.poll(center).not.toEqual(initialCenter);
   });
 
   test('should have zoom controls', async ({ page }) => {

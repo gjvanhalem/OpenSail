@@ -105,6 +105,13 @@ export class GPSSimulator {
   }
 
   /**
+   * Name of the track being simulated, if any
+   */
+  public getTrackName(): string | null {
+    return this.currentTrack?.name ?? null;
+  }
+
+  /**
    * Get current simulated position
    */
   public getCurrentPosition(): Position | null {

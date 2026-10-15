@@ -33,7 +33,7 @@ The protocol parsers, services, database, and UI components exist but are not co
 
 
   - Ensure VesselMarker receives position from Redux
-  - Auto-center map on vessel position
+  - Auto-center map on vessel position (only worked at mount until Phase 1 made ChartView's viewState controlled)
   - Update vessel heading indicator
   - _Requirements: 1.2, 1.5_
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   ChartView,
@@ -9,6 +9,7 @@ import {
   AISLayer,
   ChartDownloadPanel,
   ViewportRegionSelector,
+  resolveChartViewState,
 } from '@/components/chart';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { RootState } from '@/store';
@@ -26,74 +27,44 @@ export const ChartPage: React.FC = () => {
   // Convert AIS targets from Record to Array
   const aisTargets = useMemo(() => Object.values(aisTargetsRecord), [aisTargetsRecord]);
 
-  const [viewport, setViewport] = useState<Viewport>({
-    latitude: navigation.position?.latitude || 51.5074,
-    longitude: navigation.position?.longitude || -0.1278,
+  const [viewport, setViewport] = useState<Viewport>(() => ({
+    latitude: navigation.position?.latitude ?? 51.5074,
+    longitude: navigation.position?.longitude ?? -0.1278,
     zoom: settings.defaultZoom || 10,
     bearing: 0,
     pitch: 0,
-  });
+  }));
 
+  // Follow the vessel until the user pans away; Recenter turns it back on
   const [autoCenterEnabled, setAutoCenterEnabled] = useState(true);
-  const userInteractedRef = useRef(false);
-  const lastPositionRef = useRef(navigation.position);
 
-  // Debounce viewport updates to reduce rendering frequency
-  const debouncedViewport = useDebounce(viewport, 100);
+  const viewState = useMemo(
+    () =>
+      resolveChartViewState(viewport, {
+        followVessel: autoCenterEnabled,
+        position: navigation.position,
+      }),
+    [viewport, autoCenterEnabled, navigation.position]
+  );
+
+  // Debounced copy for the region selector, which doesn't need every frame
+  const debouncedViewport = useDebounce(viewState, 100);
 
   const [showDownloadPanel, setShowDownloadPanel] = useState(false);
   const [showRegionSelector, setShowRegionSelector] = useState(false);
   const [selectedBounds, setSelectedBounds] = useState<Bounds | null>(null);
 
-  // Auto-center on vessel position when GPS is active
-  useEffect(() => {
-    if (
-      autoCenterEnabled &&
-      navigation.position &&
-      navigation.isGPSActive &&
-      navigation.position !== lastPositionRef.current
-    ) {
-      lastPositionRef.current = navigation.position;
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs external GPS position (Redux) into the locally owned, user-editable viewport; cannot be derived during render because the user can pan away from it
-      setViewport((prev) => ({
-        ...prev,
-        latitude: navigation.position!.latitude,
-        longitude: navigation.position!.longitude,
-        // Update bearing based on chart rotation setting
-        bearing: settings.chartRotation === 'heading-up' && navigation.heading !== null
-          ? -navigation.heading // Negative because map bearing is clockwise from north
-          : 0,
-      }));
-
-      // Reset user interaction flag after auto-centering
-      userInteractedRef.current = false;
-    }
-  }, [navigation.position, navigation.heading, navigation.isGPSActive, autoCenterEnabled, settings.chartRotation]);
-
   const handleMove = useCallback((newViewport: Viewport) => {
     setViewport(newViewport);
-    // Disable auto-center when user manually moves the map
-    if (!userInteractedRef.current) {
-      userInteractedRef.current = true;
-      setAutoCenterEnabled(false);
-    }
+  }, []);
+
+  const handleUserPan = useCallback(() => {
+    setAutoCenterEnabled(false);
   }, []);
 
   const handleRecenter = useCallback(() => {
-    if (navigation.position) {
-      setViewport((prev) => ({
-        ...prev,
-        latitude: navigation.position!.latitude,
-        longitude: navigation.position!.longitude,
-        bearing: settings.chartRotation === 'heading-up' && navigation.heading !== null
-          ? -navigation.heading
-          : 0,
-      }));
-      setAutoCenterEnabled(true);
-      userInteractedRef.current = false;
-    }
-  }, [navigation.position, navigation.heading, settings.chartRotation]);
+    setAutoCenterEnabled(true);
+  }, []);
 
   const handleTargetSelect = useCallback((target: AISTarget) => {
     console.log('Selected AIS target:', target);
@@ -146,12 +117,7 @@ export const ChartPage: React.FC = () => {
         )}
       </div>
 
-      <ChartView
-        center={[debouncedViewport.longitude, debouncedViewport.latitude]}
-        zoom={debouncedViewport.zoom}
-        bearing={debouncedViewport.bearing}
-        onMove={handleMove}
-      >
+      <ChartView viewState={viewState} onMove={handleMove} onUserPan={handleUserPan}>
         <RouteLayer routes={routes} visible={showRoutes} />
         <TrackLayer tracks={tracks} visible={showTracks} />
         <AISLayer
