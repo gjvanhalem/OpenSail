@@ -129,11 +129,11 @@ The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`
 **Goal:** man overboard and anchor watch you can trust.
 Spec task 28. Requirements R8, R12.
 
-- [ ] **Shared alarm system:** a sound through Web Audio, a full-screen visual alert, and a Screen Wake Lock so the device doesn't sleep. Reused by Phases 1, 5 and 6.
-- [ ] **Man overboard (R12):** a large, always-visible button. Saves the position within 1 second, places a high-visibility marker, shows live bearing and distance, starts guidance back to the spot and sounds an alarm.
-- [ ] **Anchor watch (R8):** set the radius (10–500 m), draw the circle on the chart, check position every 10 s or more often, sound an alarm when the boat leaves the circle, and log events with timestamps.
-- [ ] Connect the existing alarm settings (`enableCollisionAlarm`, `anchorWatchRadius`).
-- [ ] Document what a browser can't guarantee: background tabs and a locked iPad limit GPS and alarms.
+- [x] **Shared alarm system:** a sound through Web Audio, a full-screen visual alert, and a Screen Wake Lock so the device doesn't sleep. Reused by Phases 1, 5 and 6. *(Done: the shallow-water alert beeps, safety alarms use a siren, and `raiseSafetyAlarm('collision', …)` is ready for Phase 5.)*
+- [ ] **Man overboard (R12):** a large, always-visible button. Saves the position within 1 second, places a high-visibility marker, shows live bearing and distance, starts guidance back to the spot and sounds an alarm. *(Done except the marker on the chart, which waits for MapLibre.)*
+- [ ] **Anchor watch (R8):** set the radius (10–500 m), draw the circle on the chart, check position every 10 s or more often, sound an alarm when the boat leaves the circle, and log events with timestamps. *(Done except the circle on the chart, which waits for MapLibre. Events are in the `safetyEvents` table.)*
+- [x] Connect the existing alarm settings (`enableCollisionAlarm`, `anchorWatchRadius`).
+- [x] Document what a browser can't guarantee: background tabs and a locked iPad limit GPS and alarms.
 
 **Done when:** the simulator triggers both alarms correctly, and the alarm still sounds after 30 minutes with the screen on.
 
