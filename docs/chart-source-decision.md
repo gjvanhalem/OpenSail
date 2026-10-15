@@ -1,6 +1,6 @@
 # Chart source decision (Phase 1 spike, input for Phase 3)
 
-**Status:** proposal. **The decision is the project owner's**; this document only lays out the options and recommends one.
+**Status:** decided by the project owner on 2026-10-15; see [Decision](#decision). The options and recommendation below are the input that decision was based on.
 **Date:** October 2026. **Time box:** about 1 day of research. Nothing here was prototyped, so the effort figures are estimates.
 
 ## The question
@@ -99,12 +99,38 @@ Keep **C (commercial)** as the fallback if the project needs official sea charts
 
 R15.1 (S-57 ENC support) and R15.5 (50 GB storage) don't fit a browser app as written. This recommendation meets R15.1 by converting S-57 to tiles on the server, not by reading S-57 files in the browser. The ROADMAP already suggests rewording R15 this way. The 50 GB limit depends on the browser's storage quota.
 
-## Open questions for the owner
+## Decision
 
-1. Which waters matter first: Dutch inland, Dutch coast and North Sea, US, or elsewhere? This decides how much B covers and whether C is needed.
-2. Is it acceptable to show crowd-sourced seamarks (A) with a "not for navigation" disclaimer?
-3. OK to switch from mapbox-gl to MapLibre GL JS?
-4. Budget for a commercial licence, if needed for sea charts outside the US?
+The owner answered the four open questions on 2026-10-15:
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Which waters matter first? | **Dutch inland waters and the Dutch coast** |
+| 2 | Crowd-sourced seamarks (A) with a "not for navigation" disclaimer? | **Yes** |
+| 3 | Switch from mapbox-gl to MapLibre GL JS? | **Yes** |
+| 4 | Budget for a commercial licence? | **No** |
+
+### What this means for Phase 3
+
+1. **MapLibre GL JS first.** Replace mapbox-gl with MapLibre through `react-map-gl/maplibre`, on a free base map (OpenStreetMap-based vector tiles, such as OpenFreeMap or self-hosted Protomaps PMTiles). This removes the Mapbox token from the app and from CI. It's the first Phase 3 PR.
+2. **OpenSeaMap seamarks (A) everywhere**, with attribution and a visible "not for navigation" disclaimer. This covers navigation aids (R1.4) on the Dutch coast as well as inland.
+3. **Rijkswaterstaat inland ENCs (B), CC-0**, converted to vector tiles (S-57 → GDAL → tippecanoe → PMTiles). These give official depth areas, contours and hazards for Dutch inland waters, which R2.5 needs, plus edition dates for R15.4.
+4. **Option C is ruled out (no budget).** The official Dutch coastal and sea ENCs (Dienst der Hydrografie) are commercial, so the app **won't have official depth data for the Dutch coast**.
+
+### Gap: depth data for the Dutch coast
+
+With no budget, coastal depth contours have to come from free bathymetry instead of ENCs. Candidates, **not yet researched**. Check each one's licence, resolution and how often it's updated before committing:
+
+- **EMODnet Bathymetry**: a free, open European digital terrain model of the seabed that covers the North Sea. It can be turned into depth contours with GDAL (`gdal_contour`) and then into vector tiles.
+- **Rijkswaterstaat open bathymetry data** for the coastal zone, Wadden Sea and Zeeland (for example the "vaklodingen" surveys). It's more detailed near the coast, but may be updated less often.
+
+Both are survey or model data, not official charts. The coastal hazard warnings (R2.5) built on them must carry the same "not for navigation" disclaimer and should be described as advisory. Spend a short spike on this at the start of the Phase 3 depth work.
+
+### Effects on the requirements
+
+- **R1.4 (navigation aids):** met by OpenSeaMap, inland and coastal.
+- **R2.5 (hazard warnings):** official data for inland waters; advisory only on the coast, from free bathymetry.
+- **R15.1 (S-57 ENC):** met for Rijkswaterstaat inland ENCs by converting them on the server, not in the browser.
 
 ## Sources
 
