@@ -8,6 +8,8 @@ import { NavigationSourceSettings } from '@/components/NavigationSourceSettings'
 import { InstrumentAlertSettings } from '@/components/InstrumentAlertSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
 import { useUnits } from '@/hooks/useUnits';
+import { raiseAlarm } from '@/store/slices/alertsSlice';
+import { ANCHOR_RADIUS_MAX_M, ANCHOR_RADIUS_MIN_M } from '@/utils/safety';
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -335,38 +337,25 @@ export const SettingsPage: React.FC = () => {
           <div className="space-y-4">
             {/* Anchor Watch */}
             <div>
-              <label className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={settings.enableAnchorAlarm}
-                  onChange={(e) =>
-                    handleSettingChange('enableAnchorAlarm', e.target.checked)
-                  }
-                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Enable Anchor Watch Alarm
-                </span>
+              <label htmlFor="anchor-watch-radius" className="block text-sm font-medium text-gray-700 mb-1">
+                Anchor watch radius: {units.format('length', settings.anchorWatchRadius, 0)}
               </label>
-              
-              {settings.enableAnchorAlarm && (
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Anchor Watch Radius: {units.format('length', settings.anchorWatchRadius, 0)}
-                  </label>
-                  <input
-                    type="range"
-                    min="10"
-                    max="200"
-                    step="10"
-                    value={settings.anchorWatchRadius}
-                    onChange={(e) =>
-                      handleSettingChange('anchorWatchRadius', parseInt(e.target.value))
-                    }
-                    className="w-full"
-                  />
-                </div>
-              )}
+              <input
+                id="anchor-watch-radius"
+                type="range"
+                min={ANCHOR_RADIUS_MIN_M}
+                max={ANCHOR_RADIUS_MAX_M}
+                step="5"
+                value={settings.anchorWatchRadius}
+                onChange={(e) =>
+                  handleSettingChange('anchorWatchRadius', parseInt(e.target.value))
+                }
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The radius a new anchor watch starts with; you can change it while the watch runs.
+                Take at least the length of the anchor rode plus the boat.
+              </p>
             </div>
 
             {/* Collision Alarm */}
@@ -384,6 +373,10 @@ export const SettingsPage: React.FC = () => {
                   Enable Collision Warning
                 </span>
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Sounds the alarm for AIS targets on a collision course (AIS arrives in a later
+                version).
+              </p>
               
               {settings.enableCollisionAlarm && (
                 <div>
@@ -420,6 +413,28 @@ export const SettingsPage: React.FC = () => {
               />
               <span className="text-sm text-gray-700">Enable Weather Alerts</span>
             </label>
+
+            {/* Alarm test: also unlocks audio, since it is a tap */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() =>
+                  dispatch(
+                    raiseAlarm({
+                      kind: 'test',
+                      message: 'Test alarm: this is how an alarm looks and sounds',
+                      now: Date.now(),
+                    })
+                  )
+                }
+                className="px-4 py-2 border border-red-300 text-red-700 rounded hover:bg-red-50"
+              >
+                Test alarm
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Check the volume before you rely on man overboard or anchor watch. Alarms sound
+                through the device speaker; a muted device or silent switch can silence them.
+              </p>
+            </div>
           </div>
         </section>
 

@@ -4,7 +4,9 @@ import { setSidebarOpen, toggleFullscreen } from '@/store/slices/uiSlice';
 import { Navigation } from './Navigation';
 import { Sidebar } from './Sidebar';
 import { AlertBanner } from '@/components/alerts/AlertBanner';
+import { AlarmOverlay } from '@/components/alerts/AlarmOverlay';
 import { useAlertMonitor } from '@/hooks/useAlertMonitor';
+import { useAlarmOutput } from '@/hooks/useAlarmOutput';
 import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 
 interface LayoutProps {
@@ -17,6 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
   const fullscreenMode = useAppSelector((state) => state.ui.fullscreenMode);
   useAlertMonitor();
+  useAlarmOutput();
   useRouteNavigation();
 
   // Handle responsive behavior - close sidebar on mobile by default
@@ -55,6 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       <AlertBanner />
+      <AlarmOverlay />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - hidden in fullscreen mode */}
