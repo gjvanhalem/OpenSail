@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { Track } from '@/database/db';
 import { useUnits } from '@/hooks/useUnits';
+import { trackColor } from '@/utils/trackColors';
 
 interface TrackListProps {
   tracks: Track[];
@@ -59,7 +60,15 @@ const TrackItem = React.memo<{
       >
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-semibold text-lg text-gray-900">{track.name}</h3>
+            <div className="flex items-center gap-2">
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: trackColor(track) }}
+                data-testid="track-color"
+                aria-hidden="true"
+              />
+              <h3 className="font-semibold text-lg text-gray-900">{track.name}</h3>
+            </div>
             <p className="text-sm text-gray-600 mt-1">
               {formatDate(track.startTime)}
             </p>

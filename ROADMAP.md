@@ -93,7 +93,7 @@ Spec tasks 24 and 25. Requirements R2, R9.
 - [x] **Activating a route:** calculate bearing and distance to the next waypoint, cross-track error, and ETA from current speed. Advance to the next waypoint automatically when within the arrival radius.
 - [x] Wire `NavigationStatus` into the chart page as the route-guidance panel.
 - [x] Route summary (R2.4): total distance, ETA and a list of course changes.
-- [ ] Track colours (R9.3) and converting a track into a route (R9.5).
+- [x] Track colours (R9.3) and converting a track into a route (R9.5).
 - [ ] Stress tests: a route with 50+ waypoints (R2.1), 100 hours of track data (R9.2), and 10+ routes stored offline (R5.3).
 - [ ] *Depends on Phase 3:* hazard and shallow-water warnings (R2.5) need depth data from the chart source. For now `routeValidation.ts` only has TODO placeholders.
 

@@ -3,13 +3,15 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { advanceToNextWaypoint, setRoutes } from '@/store/slices/routesSlice';
 import { showInfo } from '@/store/slices/notificationsSlice';
 import { routeRepository } from '@/database/repositories/RouteRepository';
+import { trackRepository } from '@/database/repositories/TrackRepository';
+import { fromStoredTrack, setTracks } from '@/store/slices/tracksSlice';
 import { DEFAULT_ARRIVAL_RADIUS_NM, nextWaypointIndex } from '@/utils/routeGuidance';
 
 /**
  * Follow the active route: whenever the position changes, advance past every
  * waypoint the boat is inside the arrival radius of. Also loads the saved
- * routes, so a route can be started from the chart. Mount once, in the app
- * layout.
+ * routes and tracks, so the chart can show them and start a route without a
+ * visit to their pages. Mount once, in the app layout.
  */
 export function useRouteNavigation(): void {
   const dispatch = useAppDispatch();
@@ -31,6 +33,12 @@ export function useRouteNavigation(): void {
         if (!cancelled) dispatch(setRoutes(routes));
       })
       .catch((error) => console.error('Failed to load routes:', error));
+    trackRepository
+      .getAllSorted('desc')
+      .then((tracks) => {
+        if (!cancelled) dispatch(setTracks(tracks.map(fromStoredTrack)));
+      })
+      .catch((error) => console.error('Failed to load tracks:', error));
     return () => {
       cancelled = true;
     };

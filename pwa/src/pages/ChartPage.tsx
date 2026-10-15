@@ -191,7 +191,7 @@ export const ChartPage: React.FC = () => {
         rotatable={false}
       >
         <RouteLayer routes={routes} visible={showRoutes} activeLeg={activeLeg} />
-        <TrackLayer tracks={tracks} visible={showTracks} />
+        <TrackLayer tracks={tracks} visible={showTracks} showAllTracks />
         <AISLayer
           targets={aisTargets}
           visible={showAIS}
