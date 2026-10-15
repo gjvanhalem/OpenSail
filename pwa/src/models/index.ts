@@ -122,10 +122,16 @@ export interface ChartTile {
 }
 
 export interface RouteWarning {
-  type: 'shallow_water' | 'hazard' | 'restricted_area';
+  type: 'shallow_water' | 'hazard' | 'restricted_area' | 'no_depth_data';
   position: Position;
   message: string;
   severity: 'low' | 'medium' | 'high';
+  /** From survey or model data, not an official chart (R2.5: coastal depths are advisory) */
+  advisory?: boolean;
+  /** Leg the warning is on: 0 is the leg from waypoint 1 to waypoint 2 */
+  legIndex?: number;
+  /** Chart region the warning comes from */
+  source?: string;
 }
 
 export interface RouteValidation {

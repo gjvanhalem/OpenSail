@@ -2,8 +2,14 @@ import React, { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
 import { deleteRoute, startNavigation, stopNavigation } from '@/store/slices/routesSlice';
-import { ChartView, RouteLayer } from '@/components/chart';
-import { RoutePlannerUI, RouteSummary, useRoutePlanner } from '@/components/routes';
+import { ChartView, RouteHazardLayer, RouteLayer } from '@/components/chart';
+import {
+  RouteHazardList,
+  RoutePlannerUI,
+  RouteSummary,
+  useRouteHazards,
+  useRoutePlanner,
+} from '@/components/routes';
 import { routeRepository } from '@/database/repositories/RouteRepository';
 import type { Route, Waypoint } from '@/models';
 import { useUnits } from '@/hooks/useUnits';
@@ -50,12 +56,20 @@ const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
     updatedAt: new Date(0),
   };
   const displayedRoutes = [...routes.filter((r) => r.id !== editingRouteId), draftRoute];
+  // Shallow water and hazards along the route being planned (R2.5)
+  const hazards = useRouteHazards(draftRoute);
 
   return (
     <>
       <ChartView center={MAP_CENTER} zoom={MAP_ZOOM} onClick={handleMapClick} cursor="crosshair">
         <RouteLayer routes={displayedRoutes} visible={true} />
+        <RouteHazardLayer warnings={hazards.warnings} />
       </ChartView>
+      {waypoints.length >= 2 && (
+        <div className="absolute top-4 left-4 z-10">
+          <RouteHazardList hazards={hazards} />
+        </div>
+      )}
 
       <div className="absolute top-0 right-0 w-96 h-full shadow-lg">
         <RoutePlannerUI
@@ -83,6 +97,7 @@ export const RoutesPage: React.FC = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   // Look the route up, so the summary follows edits
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? null;
+  const selectedRouteHazards = useRouteHazards(showPlanner ? null : selectedRoute);
 
   // The app layout loads the saved routes (useRouteNavigation)
 
@@ -245,10 +260,14 @@ export const RoutesPage: React.FC = () => {
                 routes={selectedRoute ? [selectedRoute] : routes}
                 visible={true}
               />
+              {selectedRoute && <RouteHazardLayer warnings={selectedRouteHazards.warnings} />}
             </ChartView>
             {selectedRoute && (
               <div className="absolute top-4 left-4 z-10">
                 <RouteSummary route={selectedRoute} />
+                <div className="mt-2">
+                  <RouteHazardList hazards={selectedRouteHazards} />
+                </div>
               </div>
             )}
           </>
