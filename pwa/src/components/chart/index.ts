@@ -3,7 +3,7 @@ export type { ChartViewProps, Viewport } from './ChartView';
 export { VesselMarker } from './VesselMarker';
 export type { VesselMarkerProps } from './VesselMarker';
 export { RouteLayer } from './RouteLayer';
-export type { RouteLayerProps } from './RouteLayer';
+export type { RouteLayerProps, ActiveLeg } from './RouteLayer';
 export { TrackLayer } from './TrackLayer';
 export type { TrackLayerProps } from './TrackLayer';
 export { AISLayer } from './AISLayer';
