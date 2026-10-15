@@ -44,7 +44,6 @@ This guide provides comprehensive information for developers who want to contrib
    
    Edit `.env` and add your configuration:
    ```
-   VITE_MAPBOX_TOKEN=your_mapbox_token_here
    VITE_API_ENDPOINT=http://localhost:3000
    VITE_ENVIRONMENT=development
    ```
@@ -222,7 +221,7 @@ OpenSail follows a modern React architecture with clear separation of concerns:
 │  └──────┬──────────────────┬──────────────────┬───────┘    │
 │         │                  │                  │              │
 │  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐     │
-│  │  IndexedDB   │  │  Mapbox GL   │  │  Protocol    │     │
+│  │  IndexedDB   │  │  MapLibre GL │  │  Protocol    │     │
 │  │  Storage     │  │  JS          │  │  Parsers     │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
 └─────────────────────────────────────────────────────────────┘
@@ -290,7 +289,7 @@ React components follow composition patterns:
 - TypeScript support
 - Transactions and queries
 
-### Mapbox GL JS 3.x
+### MapLibre GL JS 5.x
 - WebGL-based vector maps
 - Custom layers and markers
 - Smooth animations
@@ -550,7 +549,6 @@ export default defineConfig({
 
 2. **Configure Environment**:
    - Add environment variables in Netlify dashboard
-   - `VITE_MAPBOX_TOKEN`
    - `VITE_API_ENDPOINT`
 
 3. **Deploy**:
@@ -592,7 +590,6 @@ export default defineConfig({
 Required for production:
 
 ```
-VITE_MAPBOX_TOKEN=your_production_token
 VITE_API_ENDPOINT=https://api.yourdomain.com
 VITE_ENVIRONMENT=production
 ```
@@ -804,7 +801,7 @@ Content-Security-Policy:
   script-src 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https:;
-  connect-src 'self' https://api.mapbox.com;
+  connect-src 'self' https://tiles.openfreemap.org;
 ```
 
 ### Data Privacy
@@ -824,7 +821,7 @@ Content-Security-Policy:
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Vite Guide](https://vitejs.dev/guide/)
 - [Redux Toolkit](https://redux-toolkit.js.org/)
-- [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)
+- [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/)
 - [Dexie.js](https://dexie.org/)
 - [Workbox](https://developers.google.com/web/tools/workbox)
 

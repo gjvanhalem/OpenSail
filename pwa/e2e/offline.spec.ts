@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 // Wait until the service worker is active, so a reload is answered from the precache
 async function waitForServiceWorker(page: Page) {

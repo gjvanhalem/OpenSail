@@ -186,6 +186,31 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Add performance metrics
   - _Requirements: Development needs_
 
+- [ ] 31. Nautical charts and real offline mode (ROADMAP Phase 3)
+- [x] 31.1 Switch from mapbox-gl to MapLibre GL JS
+  - `react-map-gl/maplibre` on OpenFreeMap's OpenStreetMap vector tiles; no map token in the app or CI
+  - Base map style built in code (`baseMapStyle.ts`), coloured like a paper chart
+  - e2e tests stub every tile server (`e2e/fixtures/test.ts`)
+  - _Requirements: 1.1, 1.3_
+
+- [ ] 31.2 OpenSeaMap seamark overlay with attribution and a "not for navigation" disclaimer
+  - _Requirements: 1.4_
+
+- [ ] 31.3 Rijkswaterstaat inland ENC pipeline (S-57 → GDAL → tippecanoe → PMTiles) and an S-52-like style
+  - _Requirements: 1.1, 15.1, 15.4_
+
+- [ ] 31.4 Spike: free coastal depth data (EMODnet Bathymetry, Rijkswaterstaat vaklodingen)
+  - _Requirements: 2.5_
+
+- [ ] 31.5 Real offline mode: serve downloaded tiles through `addProtocol`, fix service-worker caching, download glyphs and style, online/offline indicator
+  - _Requirements: 5.1, 5.2_
+
+- [ ] 31.6 Chart management: downloaded regions, storage use and quota, deletion, edition dates, update check
+  - _Requirements: 15.2, 15.3, 15.4_
+
+- [ ] 31.7 Route hazard warnings from inland depth data (official) and coastal depth data (advisory)
+  - _Requirements: 2.5_
+
 ## CRITICAL TASKS (Must Complete First)
 
 These tasks are blocking other work and must be completed before the application can function:

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /** R14.5: visual alerts when instrument values pass user-set limits */
 

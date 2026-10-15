@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('Units (R14.4)', () => {
   test('gauges follow the units setting', async ({ page }) => {

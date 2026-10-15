@@ -170,7 +170,7 @@ npm run build
 **Expected Results:**
 - Initial bundle < 1MB
 - Additional chunks loaded on navigation
-- Vendor chunks separated (react, redux, mapbox)
+- Vendor chunks separated (react, redux, maplibre)
 
 ## Lighthouse Audits
 
@@ -382,7 +382,7 @@ Add to CI/CD pipeline:
 - [Web Vitals](https://web.dev/vitals/)
 - [Playwright Performance Testing](https://playwright.dev/docs/test-performance)
 - [React Performance](https://react.dev/learn/render-and-commit)
-- [Mapbox GL Performance](https://docs.mapbox.com/mapbox-gl-js/guides/performance/)
+- [MapLibre GL JS docs](https://maplibre.org/maplibre-gl-js/docs/)
 
 ## Next Steps
 

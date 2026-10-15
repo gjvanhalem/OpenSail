@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /**
  * The protocol stub generates real NMEA 0183, NMEA 2000 and SeaTalk data and

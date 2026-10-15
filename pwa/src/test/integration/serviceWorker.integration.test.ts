@@ -94,7 +94,7 @@ describe('Service Worker Integration Tests', () => {
         headers: { 'Content-Type': 'application/x-protobuf' },
       });
 
-      const tileUrl = 'https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/10/512/384.mvt';
+      const tileUrl = 'https://tiles.openfreemap.org/planet/20261011_080001_pt/10/512/384.pbf';
       await cache.put(tileUrl, response);
 
       const cached = await cache.match(tileUrl);

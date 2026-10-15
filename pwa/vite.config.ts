@@ -54,8 +54,8 @@ export default defineConfig({
             }
           },
           {
-            // Vector chart tiles (.mvt) - cache first with network fallback
-            urlPattern: /^https:\/\/api\.mapbox\.com\/v4\/.*\.mvt/,
+            // Base map vector tiles and label fonts (.pbf) - cache first with network fallback
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*\.pbf$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'chart-vector-tiles',
@@ -80,18 +80,13 @@ export default defineConfig({
             }
           },
           {
-            // Raster chart tiles - cache first with network fallback
-            urlPattern: /^https:\/\/api\.mapbox\.com\/.*\.(png|jpg|jpeg)$/,
-            handler: 'CacheFirst',
+            // Base map TileJSON - network first so a new weekly build is picked up
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/planet$/,
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'chart-raster-tiles',
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
+              cacheName: 'chart-tilejson',
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [200] }
             }
           },
           {
@@ -137,7 +132,7 @@ export default defineConfig({
           // Vendor chunks
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
-          'vendor-map': ['mapbox-gl'],
+          'vendor-map': ['maplibre-gl'],
           'vendor-db': ['dexie'],
           
           // Feature chunks

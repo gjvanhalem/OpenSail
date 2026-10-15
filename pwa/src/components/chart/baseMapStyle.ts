@@ -1,0 +1,178 @@
+import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl';
+import {
+  BASE_MAP_ATTRIBUTION,
+  BASE_MAP_MAX_ZOOM,
+  BASE_MAP_TILEJSON_URL,
+  GLYPHS_URL,
+} from './chartSources';
+
+/** Source id of the OpenStreetMap base map; overlays add their own sources */
+export const BASE_MAP_SOURCE = 'openmaptiles';
+
+/** Chart colours, loosely after the S-52 day palette */
+export const CHART_COLORS = {
+  land: '#f2e9c9',
+  landcover: '#e6dfb8',
+  built: '#e3d8b0',
+  water: '#c9e4f2',
+  waterway: '#a9d0e8',
+  coastline: '#6f8fa3',
+  road: '#b9ad86',
+  majorRoad: '#a39568',
+  building: '#d9cc9d',
+  label: '#3d3420',
+  waterLabel: '#2f5f80',
+  halo: '#ffffff',
+} as const;
+
+const NAME: ExpressionSpecification = ['coalesce', ['get', 'name:nl'], ['get', 'name']];
+
+/**
+ * The base map: OpenStreetMap land, water and places, styled to look like a
+ * paper chart so nautical overlays stand out. Built in code (not fetched) so
+ * the map keeps rendering its background and overlays without a network.
+ */
+export function createBaseMapStyle(): StyleSpecification {
+  return {
+    version: 8,
+    name: 'OpenSail chart',
+    glyphs: GLYPHS_URL,
+    sources: {
+      [BASE_MAP_SOURCE]: {
+        type: 'vector',
+        url: BASE_MAP_TILEJSON_URL,
+        maxzoom: BASE_MAP_MAX_ZOOM,
+        attribution: BASE_MAP_ATTRIBUTION,
+      },
+    },
+    layers: [
+      // Water is the background: oceans have no polygons below the coastline
+      { id: 'background', type: 'background', paint: { 'background-color': CHART_COLORS.land } },
+      {
+        id: 'landcover',
+        type: 'fill',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'landcover',
+        filter: ['in', ['get', 'class'], ['literal', ['wood', 'grass', 'farmland', 'wetland', 'sand']]],
+        paint: { 'fill-color': CHART_COLORS.landcover, 'fill-opacity': 0.6 },
+      },
+      {
+        id: 'landuse-built',
+        type: 'fill',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'landuse',
+        filter: ['in', ['get', 'class'], ['literal', ['residential', 'commercial', 'industrial']]],
+        paint: { 'fill-color': CHART_COLORS.built, 'fill-opacity': 0.7 },
+      },
+      {
+        id: 'water',
+        type: 'fill',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'water',
+        paint: { 'fill-color': CHART_COLORS.water },
+      },
+      {
+        id: 'water-outline',
+        type: 'line',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'water',
+        // Thin at low zoom, where every ditch is a water polygon
+        paint: {
+          'line-color': CHART_COLORS.coastline,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.2, 14, 0.8],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.3, 14, 0.8],
+        },
+      },
+      {
+        id: 'waterway',
+        type: 'line',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'waterway',
+        paint: {
+          'line-color': CHART_COLORS.waterway,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 14, 3],
+        },
+      },
+      {
+        id: 'building',
+        type: 'fill',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'building',
+        minzoom: 14,
+        paint: { 'fill-color': CHART_COLORS.building },
+      },
+      {
+        id: 'road-minor',
+        type: 'line',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'transportation',
+        minzoom: 12,
+        filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary']]],
+        paint: { 'line-color': CHART_COLORS.road, 'line-width': 0.6 },
+      },
+      {
+        id: 'road-major',
+        type: 'line',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'transportation',
+        filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],
+        paint: {
+          'line-color': CHART_COLORS.majorRoad,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.4, 14, 1.6],
+        },
+      },
+      {
+        id: 'water-name',
+        type: 'symbol',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'water_name',
+        layout: {
+          'text-field': NAME,
+          'text-font': ['Noto Sans Italic'],
+          'text-size': 12,
+          'symbol-placement': 'point',
+        },
+        paint: {
+          'text-color': CHART_COLORS.waterLabel,
+          'text-halo-color': CHART_COLORS.halo,
+          'text-halo-width': 1,
+        },
+      },
+      {
+        id: 'waterway-name',
+        type: 'symbol',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'waterway',
+        minzoom: 12,
+        layout: {
+          'text-field': NAME,
+          'text-font': ['Noto Sans Italic'],
+          'text-size': 11,
+          'symbol-placement': 'line',
+        },
+        paint: {
+          'text-color': CHART_COLORS.waterLabel,
+          'text-halo-color': CHART_COLORS.halo,
+          'text-halo-width': 1,
+        },
+      },
+      {
+        id: 'place',
+        type: 'symbol',
+        source: BASE_MAP_SOURCE,
+        'source-layer': 'place',
+        filter: ['in', ['get', 'class'], ['literal', ['city', 'town', 'village']]],
+        layout: {
+          'text-field': NAME,
+          'text-font': ['Noto Sans Regular'],
+          'text-size': ['match', ['get', 'class'], 'city', 14, 'town', 12, 11],
+        },
+        paint: {
+          'text-color': CHART_COLORS.label,
+          'text-halo-color': CHART_COLORS.halo,
+          'text-halo-width': 1.2,
+        },
+      },
+    ],
+  };
+}
