@@ -1,4 +1,4 @@
-import type { Waypoint, Position } from '@/models';
+import type { Waypoint, Position, Route } from '@/models';
 import { calculateDistance, calculateBearing, calculateRouteDuration } from './calculations';
 
 /**
@@ -340,4 +340,81 @@ export function formatBearing(degrees: number): string {
                      'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(degrees / 22.5) % 16;
   return `${degrees.toFixed(0)}° ${cardinals[index]}`;
+}
+
+export interface CourseChange {
+  /** Index of the waypoint where the course changes */
+  waypointIndex: number;
+  waypoint: Waypoint;
+  /** Course of the leg into the waypoint, degrees true */
+  fromCourse: number;
+  /** Course of the leg out of it, degrees true */
+  toCourse: number;
+  /** Signed turn in degrees, -180..180: positive to starboard, negative to port */
+  change: number;
+}
+
+export interface RouteSummary {
+  /** Nautical miles */
+  totalDistance: number;
+  /** Hours at the average speed */
+  totalTime: number;
+  /** Knots */
+  averageSpeed: number;
+  /** Arrival when leaving at `departure` */
+  eta: Date | null;
+  legs: LegInfo[];
+  /** Turns at each intermediate waypoint (R2.4) */
+  courseChanges: CourseChange[];
+}
+
+/** Turns smaller than this, in degrees, are not listed as course changes */
+const MIN_COURSE_CHANGE = 1;
+
+/** Signed turn from one course to another: positive to starboard */
+export function courseChange(fromCourse: number, toCourse: number): number {
+  const change = (((toCourse - fromCourse) % 360) + 540) % 360 - 180;
+  return change === -180 ? 180 : change;
+}
+
+/**
+ * Route summary (R2.4): total distance, time and ETA at the average speed,
+ * and the course change at each waypoint along the way.
+ */
+export function calculateRouteSummary(
+  waypoints: Waypoint[],
+  averageSpeed: number,
+  departure: Date = new Date()
+): RouteSummary {
+  const info = calculateRouteInfo(waypoints, averageSpeed);
+  const courseChanges: CourseChange[] = [];
+
+  for (let i = 1; i < info.legs.length; i++) {
+    const fromCourse = info.legs[i - 1].bearing;
+    const toCourse = info.legs[i].bearing;
+    const change = courseChange(fromCourse, toCourse);
+    if (Math.abs(change) >= MIN_COURSE_CHANGE) {
+      courseChanges.push({ waypointIndex: i, waypoint: waypoints[i], fromCourse, toCourse, change });
+    }
+  }
+
+  const canArrive = averageSpeed > 0 && info.legs.length > 0;
+  return {
+    totalDistance: info.totalDistance,
+    totalTime: info.totalTime,
+    averageSpeed,
+    eta: canArrive ? new Date(departure.getTime() + info.totalTime * 3600 * 1000) : null,
+    legs: info.legs,
+    courseChanges,
+  };
+}
+
+/** Speed assumed when a route has no planned duration, knots */
+const FALLBACK_SPEED = 5;
+
+/** The average speed a route was planned at, knots */
+export function plannedSpeed(route: Route): number {
+  return route.estimatedDuration > 0 && route.totalDistance > 0
+    ? route.totalDistance / route.estimatedDuration
+    : FALLBACK_SPEED;
 }

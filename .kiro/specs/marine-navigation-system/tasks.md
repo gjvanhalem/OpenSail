@@ -66,10 +66,11 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Display waypoints as markers on map
   - _Requirements: 2.1_
 
-- [ ] 24.2 Implement route calculations
+- [x] 24.2 Implement route calculations
   - Calculate distance and bearing between waypoints
   - Update route statistics in real-time
   - Display route line on map
+  - Route summary on the Routes page: total distance, time and ETA at the planned speed, and the course change at each waypoint (R2.4)
   - _Requirements: 2.2, 2.4_
 
 - [x] 24.3 Connect route service to UI
