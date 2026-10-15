@@ -9,6 +9,7 @@ import chartCacheReducer from './slices/chartCacheSlice';
 import settingsReducer from './slices/settingsSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import alertsReducer from './slices/alertsSlice';
+import safetyReducer from './slices/safetySlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     settings: settingsReducer,
     notifications: notificationsReducer,
     alerts: alertsReducer,
+    safety: safetyReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

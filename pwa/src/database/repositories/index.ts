@@ -5,3 +5,4 @@ export * from './TrackRepository';
 export * from './AISRepository';
 export * from './LogbookRepository';
 export * from './SettingsRepository';
+export * from './SafetyEventRepository';
