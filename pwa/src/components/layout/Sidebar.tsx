@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { toggleSidebarCollapsed, setSidebarOpen } from '@/store/slices/uiSlice';
+import { activateMob } from '@/store/slices/safetySlice';
 
 export const Sidebar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -73,7 +74,7 @@ export const Sidebar: React.FC = () => {
                   <h3 className="text-sm font-semibold text-gray-600 mb-2">Quick Actions</h3>
                   <SidebarButton icon="📥" label="Download Charts" />
                   <SidebarButton icon="⚓" label="Anchor Watch" />
-                  <SidebarButton icon="🆘" label="Man Overboard" />
+                  <SidebarButton icon="🆘" label="Man Overboard" onClick={() => dispatch(activateMob())} />
                 </div>
               </div>
             )}

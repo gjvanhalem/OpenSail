@@ -7,6 +7,8 @@ import { AlertBanner } from '@/components/alerts/AlertBanner';
 import { AlarmOverlay } from '@/components/alerts/AlarmOverlay';
 import { useAlertMonitor } from '@/hooks/useAlertMonitor';
 import { useAlarmOutput } from '@/hooks/useAlarmOutput';
+import { useSafetyMonitor } from '@/hooks/useSafetyMonitor';
+import { MobButton, MobPanel } from '@/components/safety';
 import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 
 interface LayoutProps {
@@ -19,7 +21,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
   const fullscreenMode = useAppSelector((state) => state.ui.fullscreenMode);
   useAlertMonitor();
-  useAlarmOutput();
+  const safetyWatchActive = useSafetyMonitor();
+  useAlarmOutput(safetyWatchActive);
   useRouteNavigation();
 
   // Handle responsive behavior - close sidebar on mobile by default
@@ -59,6 +62,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <AlertBanner />
       <AlarmOverlay />
+      <MobPanel />
+      <MobButton />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - hidden in fullscreen mode */}

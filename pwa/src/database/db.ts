@@ -63,6 +63,44 @@ export interface LogbookEntry {
   notes?: string;
 }
 
+/** What happened, for the safety event log (R8.4, R12) */
+export type SafetyEventType =
+  | 'mob_activated'
+  | 'mob_position'
+  | 'mob_cleared'
+  | 'anchor_dropped'
+  | 'anchor_radius_changed'
+  | 'anchor_drag_alarm'
+  | 'anchor_back_inside'
+  | 'anchor_gps_lost'
+  | 'anchor_gps_restored'
+  | 'anchor_raised'
+  | 'alarm_silenced';
+
+/**
+ * A man-overboard or anchor-watch event. Kept for the logbook (Phase 6), and
+ * read back on start-up to restore a MOB or anchor watch that was active
+ * when the app closed.
+ */
+export interface SafetyEvent {
+  id?: string;
+  timestamp: Date;
+  type: SafetyEventType;
+  /** The MOB or anchor watch this event belongs to */
+  sessionId: string;
+  /** Where the vessel was, when known */
+  latitude: number | null;
+  longitude: number | null;
+  /** The MOB spot or the anchor */
+  targetLatitude?: number;
+  targetLongitude?: number;
+  /** Anchor watch radius, metres */
+  radius?: number;
+  /** Vessel distance from the MOB spot or anchor, metres */
+  distance?: number;
+  notes?: string;
+}
+
 export interface ChartTile {
   key: string; // Composite key: `${z}-${x}-${y}`
   z: number;
@@ -88,6 +126,7 @@ export class NavigationDatabase extends Dexie {
   logbook!: Table<LogbookEntry, string>;
   chartTiles!: Table<ChartTile, string>;
   settings!: Table<Setting, string>;
+  safetyEvents!: Table<SafetyEvent, string>;
 
   constructor() {
     super('NavigationDB');
@@ -101,6 +140,11 @@ export class NavigationDatabase extends Dexie {
       logbook: 'id, voyageId, timestamp, type',
       chartTiles: 'key, [z+x+y], timestamp, region',
       settings: 'key'
+    });
+
+    // Phase 4: man overboard and anchor watch events
+    this.version(2).stores({
+      safetyEvents: 'id, timestamp, type, sessionId'
     });
   }
 }
