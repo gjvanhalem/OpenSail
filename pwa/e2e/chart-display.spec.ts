@@ -11,6 +11,17 @@ test.describe('Chart Display', () => {
     await expect(mapContainer).toBeVisible({ timeout: 10000 });
   });
 
+  test('opens on the IJsselmeer without a vessel position', async ({ page }) => {
+    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
+    const view = await page.evaluate(() => ({
+      center: window.__OPENSAIL_MAP__!.getCenter().toArray(),
+      zoom: window.__OPENSAIL_MAP__!.getZoom(),
+    }));
+    expect(view.center[0]).toBeCloseTo(5.3, 1);
+    expect(view.center[1]).toBeCloseTo(52.7, 1);
+    expect(view.zoom).toBeCloseTo(9, 1);
+  });
+
   test('should allow map interaction', async ({ page }) => {
     const center = () =>
       page.evaluate(() => window.__OPENSAIL_MAP__?.getCenter().toArray() ?? null);
@@ -83,9 +94,11 @@ test.describe('Chart Display', () => {
 
     await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
     await page.evaluate(() => window.__OPENSAIL_MAP__?.jumpTo({ center: [4.9, 52.37], zoom: 12 }));
-    await expect.poll(() => seamarkTiles.length).toBeGreaterThan(0);
-    // 256-pixel raster tiles come from one zoom level above the map's
-    expect(seamarkTiles[0]).toMatch(/\/seamark\/1[23]\/\d+\/\d+\.png$/);
+    // 256-pixel raster tiles come from one zoom level above the map's. The
+    // default view is on Dutch waters too, so its zoom-10 tiles may come first.
+    await expect
+      .poll(() => seamarkTiles.some((url) => /\/seamark\/1[23]\/\d+\/\d+\.png$/.test(url)))
+      .toBe(true);
 
     const layers = await page.evaluate(
       () => window.__OPENSAIL_MAP__?.getStyle().layers.map((layer) => layer.id) ?? []

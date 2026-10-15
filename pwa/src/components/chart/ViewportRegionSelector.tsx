@@ -4,41 +4,20 @@ import type { Viewport } from './ChartView';
 
 export interface ViewportRegionSelectorProps {
   viewport: Viewport;
+  /** The map's visible area (ChartView onBoundsChange); null until the map has rendered */
+  bounds: Bounds | null;
   onSelectCurrentView: (bounds: Bounds) => void;
   onCancel: () => void;
 }
 
-// Calculate bounds from viewport
-function viewportToBounds(viewport: Viewport): Bounds {
-  const { latitude, longitude, zoom } = viewport;
-  
-  // Approximate degrees per pixel at this zoom level
-  const metersPerPixel = 156543.03392 * Math.cos(latitude * Math.PI / 180) / Math.pow(2, zoom);
-  const degreesPerPixel = metersPerPixel / 111320; // meters per degree at equator
-  
-  // Assume viewport is roughly 800x600 pixels
-  const viewportWidth = 800;
-  const viewportHeight = 600;
-  
-  const latDelta = (viewportHeight / 2) * degreesPerPixel;
-  const lngDelta = (viewportWidth / 2) * degreesPerPixel / Math.cos(latitude * Math.PI / 180);
-  
-  return {
-    north: latitude + latDelta,
-    south: latitude - latDelta,
-    east: longitude + lngDelta,
-    west: longitude - lngDelta,
-  };
-}
-
 export const ViewportRegionSelector: React.FC<ViewportRegionSelectorProps> = ({
   viewport,
+  bounds,
   onSelectCurrentView,
   onCancel,
 }) => {
   const handleSelectView = () => {
-    const bounds = viewportToBounds(viewport);
-    onSelectCurrentView(bounds);
+    if (bounds) onSelectCurrentView(bounds);
   };
 
   return (
@@ -69,7 +48,8 @@ export const ViewportRegionSelector: React.FC<ViewportRegionSelectorProps> = ({
           </button>
           <button
             onClick={handleSelectView}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            disabled={!bounds}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             Select This Area
           </button>

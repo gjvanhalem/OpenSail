@@ -12,6 +12,7 @@ import {
   ChartDownloadPanel,
   ViewportRegionSelector,
   resolveChartViewState,
+  DEFAULT_CHART_VIEW,
   type ActiveLeg,
   vesselDirection,
 } from '@/components/chart';
@@ -49,9 +50,9 @@ export const ChartPage: React.FC = () => {
   const aisTargets = useMemo(() => Object.values(aisTargetsRecord), [aisTargetsRecord]);
 
   const [viewport, setViewport] = useState<Viewport>(() => ({
-    latitude: navigation.position?.latitude ?? 51.5074,
-    longitude: navigation.position?.longitude ?? -0.1278,
-    zoom: settings.defaultZoom || 10,
+    latitude: navigation.position?.latitude ?? DEFAULT_CHART_VIEW.latitude,
+    longitude: navigation.position?.longitude ?? DEFAULT_CHART_VIEW.longitude,
+    zoom: navigation.position ? settings.defaultZoom || 10 : DEFAULT_CHART_VIEW.zoom,
     bearing: 0,
     pitch: 0,
   }));
@@ -91,6 +92,8 @@ export const ChartPage: React.FC = () => {
   const [showDownloadPanel, setShowDownloadPanel] = useState(false);
   const [showRegionSelector, setShowRegionSelector] = useState(false);
   const [selectedBounds, setSelectedBounds] = useState<Bounds | null>(null);
+  // The map's visible area, which "Select This Area" downloads
+  const [visibleBounds, setVisibleBounds] = useState<Bounds | null>(null);
 
   const handleMove = useCallback((newViewport: Viewport) => {
     setViewport(newViewport);
@@ -187,6 +190,7 @@ export const ChartPage: React.FC = () => {
       <ChartView
         viewState={viewState}
         onMove={handleMove}
+        onBoundsChange={setVisibleBounds}
         onUserPan={handleUserPan}
         rotatable={false}
       >
@@ -213,6 +217,7 @@ export const ChartPage: React.FC = () => {
       {showRegionSelector && (
         <ViewportRegionSelector
           viewport={debouncedViewport}
+          bounds={visibleBounds}
           onSelectCurrentView={handleRegionSelected}
           onCancel={() => setShowRegionSelector(false)}
         />

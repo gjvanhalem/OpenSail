@@ -93,6 +93,39 @@ test.describe('Offline Functionality', () => {
     await expect(syncMessage).toBeVisible({ timeout: 5000 });
   });
 
+  test('"Select This Area" downloads exactly the visible map area', async ({ page, context }) => {
+    test.slow();
+    // Not the 800×600 the region selector used to assume
+    await page.setViewportSize({ width: 1400, height: 500 });
+    await serveChartFixtures(context);
+    await page.goto('/chart');
+    await showStavoren(page);
+    await downloadVisibleRegion(page, 'Visible area');
+
+    const visible = await page.evaluate(() => {
+      const bounds = window.__OPENSAIL_MAP__!.getBounds();
+      return { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest() };
+    });
+    const downloaded = await page.evaluate(
+      () =>
+        new Promise<{ north: number; south: number; east: number; west: number }>((resolve, reject) => {
+          const open = indexedDB.open('NavigationDB');
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const request = open.result.transaction('chartRegions').objectStore('chartRegions').getAll();
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+              open.result.close();
+              resolve(request.result.find((region) => region.name === 'Visible area').bounds);
+            };
+          };
+        })
+    );
+    for (const side of ['north', 'south', 'east', 'west'] as const) {
+      expect(downloaded[side]).toBeCloseTo(visible[side], 6);
+    }
+  });
+
   test('a downloaded region works offline: reload, pan and zoom (R5.1, R5.2)', async ({ page, context }) => {
     test.slow();
     await serveChartFixtures(context);

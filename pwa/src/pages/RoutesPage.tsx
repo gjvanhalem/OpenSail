@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
 import { deleteRoute, startNavigation, stopNavigation } from '@/store/slices/routesSlice';
-import { ChartView, RouteHazardLayer, RouteLayer } from '@/components/chart';
+import { ChartView, DEFAULT_CHART_VIEW, RouteHazardLayer, RouteLayer } from '@/components/chart';
 import {
   RouteHazardList,
   RoutePlannerUI,
@@ -14,8 +14,15 @@ import { routeRepository } from '@/database/repositories/RouteRepository';
 import type { Route, Waypoint } from '@/models';
 import { useUnits } from '@/hooks/useUnits';
 
-const MAP_CENTER: [number, number] = [0, 51.5];
 const MAP_ZOOM = 8;
+
+/** Open on the vessel, or on the Dutch waters without a position */
+function useMapCenter(): [number, number] {
+  const position = useSelector((state: RootState) => state.navigation.position);
+  return position
+    ? [position.longitude, position.latitude]
+    : [DEFAULT_CHART_VIEW.longitude, DEFAULT_CHART_VIEW.latitude];
+}
 
 interface RoutePlanningWorkspaceProps {
   routes: Route[];
@@ -36,6 +43,7 @@ const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
   onWaypointClick,
 }) => {
   const planner = useRoutePlanner({ onClose, editingRouteId });
+  const mapCenter = useMapCenter();
   const { handleAddWaypoint, waypoints, routeName } = planner;
 
   const handleMapClick = useCallback(
@@ -61,7 +69,7 @@ const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
 
   return (
     <>
-      <ChartView center={MAP_CENTER} zoom={MAP_ZOOM} onClick={handleMapClick} cursor="crosshair">
+      <ChartView center={mapCenter} zoom={MAP_ZOOM} onClick={handleMapClick} cursor="crosshair">
         <RouteLayer routes={displayedRoutes} visible={true} />
         <RouteHazardLayer warnings={hazards.warnings} />
       </ChartView>
@@ -90,6 +98,7 @@ export const RoutesPage: React.FC = () => {
   const isNavigating = useSelector((state: RootState) => state.routes.isNavigating);
   const position = useSelector((state: RootState) => state.navigation.position);
   const units = useUnits();
+  const mapCenter = useMapCenter();
   
   const [showPlanner, setShowPlanner] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
@@ -255,7 +264,7 @@ export const RoutesPage: React.FC = () => {
           />
         ) : (
           <>
-            <ChartView center={MAP_CENTER} zoom={MAP_ZOOM}>
+            <ChartView center={mapCenter} zoom={MAP_ZOOM}>
               <RouteLayer
                 routes={selectedRoute ? [selectedRoute] : routes}
                 visible={true}
