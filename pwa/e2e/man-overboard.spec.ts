@@ -17,6 +17,9 @@ async function startStub(page: Page, latitude: string, longitude: string) {
   await page.getByLabel('Longitude (°)').fill(longitude);
 }
 
+/** 52.1 N 4.2 E on the instruments page */
+const SPOT_READOUT = "52°06.000' N004°12.000' E";
+
 /** Change simulator values; the stub keeps running while the page changes */
 async function setStub(page: Page, values: Record<string, string>) {
   await page.click('a[href="/instruments"]');
@@ -26,6 +29,29 @@ async function setStub(page: Page, values: Record<string, string>) {
   await page.click('a[href="/chart"]');
 }
 
+/** Wait until the app has stored a safety event of this type */
+async function waitForEvent(page: Page, type: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (type) =>
+          new Promise<number>((resolve) => {
+            const request = indexedDB.open('NavigationDB');
+            request.onsuccess = () => {
+              const db = request.result;
+              const all = db.transaction('safetyEvents').objectStore('safetyEvents').getAll();
+              all.onsuccess = () => {
+                resolve(all.result.filter((e: { type: string }) => e.type === type).length);
+                db.close();
+              };
+            };
+          }),
+        type
+      )
+    )
+    .toBeGreaterThan(0);
+}
+
 const mobButton = (page: Page) => page.getByRole('button', { name: 'Man overboard', exact: true });
 const panel = (page: Page) => page.getByRole('region', { name: 'Man overboard' });
 const html = (page: Page) => page.locator('html');
@@ -33,7 +59,7 @@ const html = (page: Page) => page.locator('html');
 test.describe('Man overboard', () => {
   test('marks the spot, sounds the alarm and guides back to it', async ({ page }) => {
     await startStub(page, '52.1', '4.2');
-    await expect(page.getByTestId('position-readout')).toHaveText("52°06.000' N004°12.000' E");
+    await expect(page.getByTestId('position-readout')).toHaveText(SPOT_READOUT);
     await page.click('a[href="/chart"]');
 
     await mobButton(page).click();
@@ -73,6 +99,7 @@ test.describe('Man overboard', () => {
 
   test('stays on screen in fullscreen mode and survives a reload', async ({ page }) => {
     await startStub(page, '52.1', '4.2');
+    await expect(page.getByTestId('position-readout')).toHaveText(SPOT_READOUT);
     await page.click('a[href="/chart"]');
     await page.getByRole('button', { name: 'Toggle fullscreen' }).click();
     await expect(mobButton(page)).toBeVisible();
@@ -82,6 +109,7 @@ test.describe('Man overboard', () => {
     await expect(page.getByTestId('mob-position')).toHaveText("52°06.000' N 004°12.000' E");
 
     // A crash or reload keeps the MOB spot
+    await waitForEvent(page, 'mob_activated');
     await page.reload();
     await expect(panel(page)).toBeVisible();
     await expect(page.getByTestId('mob-position')).toHaveText("52°06.000' N 004°12.000' E");
@@ -94,6 +122,7 @@ test.describe('Man overboard', () => {
     await expect(panel(page)).toBeHidden();
     await expect(mobButton(page)).toHaveAttribute('aria-pressed', 'false');
 
+    await waitForEvent(page, 'mob_cleared');
     await page.reload();
     await expect(mobButton(page)).toBeVisible();
     await expect(panel(page)).toBeHidden();
@@ -106,8 +135,11 @@ test.describe('Man overboard', () => {
     await page.getByRole('alertdialog').getByRole('button', { name: 'Silence' }).click();
     await expect(page.getByTestId('mob-waiting')).toHaveText('Waiting for a position fix…');
 
-    // The first fix becomes the spot
+    // The first fix becomes the spot: the stub starts at its default position
     await startStub(page, '52.3', '4.1');
-    await expect(page.getByTestId('mob-position')).toHaveText("52°18.000' N 004°06.000' E");
+    await expect(page.getByTestId('mob-position')).toHaveText("51°59.550' N 004°04.950' E");
+    // ...and later fixes don't move it
+    await expect(page.getByTestId('position-readout')).toHaveText("52°18.000' N004°06.000' E");
+    await expect(page.getByTestId('mob-position')).toHaveText("51°59.550' N 004°04.950' E");
   });
 });
