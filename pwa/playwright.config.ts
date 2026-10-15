@@ -25,7 +25,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Headless Chromium's default WebGL (ANGLE on SwiftShader Vulkan) fails to
+        // compile one of MapLibre's shaders and loses the WebGL context on the
+        // first frame; ANGLE's own SwiftShader backend doesn't
+        launchOptions: { args: ['--use-angle=swiftshader'] },
+      },
     },
     {
       name: 'firefox',

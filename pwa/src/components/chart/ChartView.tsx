@@ -10,6 +10,9 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { createBaseMapStyle } from './baseMapStyle';
 import { ChartDisclaimer } from './ChartDisclaimer';
+import { EncLayers } from './EncLayers';
+import { useChartCatalog } from './useChartCatalog';
+import type { EncDepthSettings } from './encStyle';
 
 export interface Viewport {
   latitude: number;
@@ -43,6 +46,8 @@ export interface ChartViewProps {
   cursor?: string;
   /** Draw OpenSeaMap seamarks (buoys, beacons, lights). On by default. */
   showSeamarks?: boolean;
+  /** Shallow, safety and deep contours for shading ENC depth areas */
+  encDepths?: EncDepthSettings;
   children?: React.ReactNode;
 }
 
@@ -64,6 +69,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
   onClick,
   cursor,
   showSeamarks = true,
+  encDepths,
   children,
 }) => {
   const mapRef = useRef<MapRef>(null);
@@ -109,6 +115,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
     [onClick]
   );
 
+  const chartRegions = useChartCatalog();
   const mapStyle = useMemo(() => createBaseMapStyle({ seamarks: showSeamarks }), [showSeamarks]);
 
   return (
@@ -138,8 +145,11 @@ export const ChartView: React.FC<ChartViewProps> = ({
         cursor={cursor}
         maxPitch={0}
         renderWorldCopies={false}
+        // Collapsed to an (i) button, so the attribution never covers the disclaimer
+        attributionControl={{ compact: true }}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
+        <EncLayers regions={chartRegions} depths={encDepths} />
         {children}
       </Map>
       <ChartDisclaimer />
