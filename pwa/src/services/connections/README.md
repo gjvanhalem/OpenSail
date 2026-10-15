@@ -112,3 +112,45 @@ if (BluetoothConnection.isSupported()) {
   // Bluetooth is available
 }
 ```
+
+## StubConnection
+
+Simulates an instrument bus (requirement R10), so the app can be developed and
+tested without a boat. It works in every browser.
+
+A `VesselSimulation` dead-reckons a boat from heading and speed, with optional
+realistic wander on heading, speed, depth and wind. Every interval (500 ms by
+default) the stub encodes the state as the protocol's real wire format and hands
+it over line by line through `onData`, exactly like the hardware connections:
+
+- **NMEA 0183:** RMC, GGA, VTG, HDG, VHW, DPT, DBT, MWV sentences
+- **NMEA 2000:** single CAN frames in candump format (`CANID#data`) for PGNs
+  129025, 129026, 127250, 128259, 128267, 130306 and 130310
+- **SeaTalk:** datagrams 00, 10, 11, 20, 23, 50, 51, 52, 53, 89 and 99, wrapped
+  as `$STALK,...*hh` the way SeaTalk-to-NMEA gateways forward them
+
+**Usage:**
+```typescript
+const connection = new StubConnection({
+  id: 'stub-1',
+  protocol: 'SeaTalk',
+  intervalMs: 500,
+  simulation: { heading: 270, speed: 6, depth: 8 },
+});
+
+instrumentDataService.wireConnection(connection, 'SeaTalk');
+await connection.connect();
+
+// Change what is simulated while it runs
+connection.updateSimulation({ depth: 2.5 });
+```
+
+On the Instruments page, choose **Simulator** as the connection type. The
+connection card then shows controls for position, heading, speed, depth and
+wind.
+
+## connectionRegistry
+
+Live connection objects by id. Redux holds only their status, so the objects
+are kept here: a connection keeps running, and can still be disconnected,
+after the page that opened it unmounts.

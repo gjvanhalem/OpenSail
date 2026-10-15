@@ -56,7 +56,7 @@ export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({
       
       {/* Digital readout */}
       <div className="mt-3 text-center">
-        <div className="text-3xl font-bold text-white">
+        <div className="text-3xl font-bold text-white" data-testid="depth-readout">
           {depthMeters.toFixed(1)}
         </div>
         <div className="text-xs text-gray-400">meters</div>

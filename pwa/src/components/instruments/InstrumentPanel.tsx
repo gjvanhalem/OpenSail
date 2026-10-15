@@ -3,8 +3,9 @@ import { SpeedGauge } from './SpeedGauge';
 import { DepthGauge } from './DepthGauge';
 import { WindGauge } from './WindGauge';
 import { HeadingCompass } from './HeadingCompass';
+import { PositionDisplay } from './PositionDisplay';
 
-export type GaugeType = 'speed' | 'depth' | 'wind' | 'heading';
+export type GaugeType = 'speed' | 'depth' | 'wind' | 'heading' | 'position';
 
 export interface GaugeConfig {
   id: string;
@@ -24,6 +25,7 @@ const defaultGauges: GaugeConfig[] = [
   { id: 'depth', type: 'depth', enabled: true },
   { id: 'wind', type: 'wind', enabled: true },
   { id: 'heading', type: 'heading', enabled: true },
+  { id: 'position', type: 'position', enabled: true },
 ];
 
 export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
@@ -55,6 +57,8 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
         return <WindGauge key={gauge.id} />;
       case 'heading':
         return <HeadingCompass key={gauge.id} />;
+      case 'position':
+        return <PositionDisplay key={gauge.id} />;
       default:
         return null;
     }

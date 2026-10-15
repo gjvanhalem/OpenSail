@@ -1,8 +1,9 @@
 /**
  * InstrumentManager - UI for managing instrument connections
  * 
- * Provides interface for connecting to marine instruments via USB (Web Serial API)
- * and displays connection status and received data.
+ * Provides interface for connecting to marine instruments via USB (Web Serial API),
+ * Bluetooth, or the built-in instrument simulator, and displays connection status
+ * and received data.
  */
 
 import { useState, useRef } from 'react';
@@ -12,21 +13,21 @@ import {
   removeConnection,
   setConnectionStatus,
   setActiveConnection,
+  updateConnection,
   type ProtocolType,
   type ConnectionStatus,
   type InstrumentConnection
 } from '@/store/slices/instrumentsSlice';
-import { SerialConnection, BluetoothConnection } from '@/services/connections';
+import {
+  SerialConnection,
+  BluetoothConnection,
+  StubConnection,
+  connectionRegistry,
+} from '@/services/connections';
+import { StubControls } from './StubControls';
 import { InstrumentDataService } from '@/services/InstrumentDataService';
 import { useFeatureSupport } from '@/hooks/useCompatibility';
 import type { InstrumentData } from '@/models';
-
-interface ConnectionItem {
-  id: string;
-  name: string;
-  protocol: ProtocolType;
-  connection: SerialConnection | BluetoothConnection;
-}
 
 function formatTimestamp(timestamp: number | null): string {
   if (!timestamp) return 'Never';
@@ -44,14 +45,16 @@ export function InstrumentManager() {
   const activeConnectionId = useAppSelector((state) => state.instruments.activeConnectionId);
   const dataStreams = useAppSelector((state) => state.instruments.dataStreams);
   
-  const [activeConnections, setActiveConnections] = useState<Map<string, ConnectionItem>>(new Map());
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolType>('NMEA0183');
-  const [connectionType, setConnectionType] = useState<'serial' | 'bluetooth'>('serial');
   const [error, setError] = useState<string | null>(null);
   
   // Check feature support using compatibility hook
   const isSerialSupported = useFeatureSupport('webSerial');
   const isBluetoothSupported = useFeatureSupport('webBluetooth');
+  // The simulator works in every browser, so it is the default without device APIs
+  const [connectionType, setConnectionType] = useState<'serial' | 'bluetooth' | 'stub'>(
+    isSerialSupported ? 'serial' : 'stub'
+  );
   
   // Create InstrumentDataService instance
   const dataServiceRef = useRef<InstrumentDataService | null>(null);
@@ -66,8 +69,10 @@ export function InstrumentManager() {
     try {
       if (connectionType === 'serial') {
         await handleSerialConnect();
-      } else {
+      } else if (connectionType === 'bluetooth') {
         await handleBluetoothConnect();
+      } else {
+        await handleStubConnect();
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to connect';
@@ -122,12 +127,8 @@ export function InstrumentManager() {
       ? `USB ${selectedProtocol} (${portInfo.usbVendorId?.toString(16)}:${portInfo.usbProductId?.toString(16)})`
       : `USB ${selectedProtocol}`;
 
-    setActiveConnections(prev => new Map(prev).set(connectionId, {
-      id: connectionId,
-      name: connectionName,
-      protocol: selectedProtocol,
-      connection: serialConnection
-    }));
+    connectionRegistry.add(serialConnection);
+    dispatch(updateConnection({ id: connectionId, updates: { name: connectionName } }));
 
     // Set as active connection
     dispatch(setActiveConnection(connectionId));
@@ -176,30 +177,45 @@ export function InstrumentManager() {
       ? `Bluetooth ${selectedProtocol} (${deviceInfo.name})`
       : `Bluetooth ${selectedProtocol}`;
 
-    setActiveConnections(prev => new Map(prev).set(connectionId, {
-      id: connectionId,
-      name: connectionName,
-      protocol: selectedProtocol,
-      connection: bluetoothConnection
-    }));
+    connectionRegistry.add(bluetoothConnection);
+    dispatch(updateConnection({ id: connectionId, updates: { name: connectionName } }));
 
     // Set as active connection
     dispatch(setActiveConnection(connectionId));
   };
 
+  const handleStubConnect = async () => {
+    const connectionId = `stub-${Date.now()}`;
+    const stubConnection = new StubConnection({ id: connectionId, protocol: selectedProtocol });
+
+    stubConnection.onStatusChange((status: ConnectionStatus, errorMsg?: string) => {
+      dispatch(setConnectionStatus({ id: connectionId, status, errorMessage: errorMsg }));
+    });
+
+    dispatch(addConnection({
+      id: connectionId,
+      type: 'stub',
+      protocol: selectedProtocol,
+      status: 'connecting',
+      name: `Simulator ${selectedProtocol}`,
+      lastDataReceived: null,
+      errorMessage: null
+    }));
+
+    // Wire before connecting: the stub sends its first data on connect
+    dataServiceRef.current?.wireConnection(stubConnection, selectedProtocol);
+    connectionRegistry.add(stubConnection);
+    dispatch(setActiveConnection(connectionId));
+    await stubConnection.connect();
+  };
+
   const handleDisconnect = async (connectionId: string) => {
-    const connectionItem = activeConnections.get(connectionId);
-    if (!connectionItem) return;
+    const connection = connectionRegistry.get(connectionId);
 
     try {
-      await connectionItem.connection.disconnect();
-      
-      // Remove from active connections
-      setActiveConnections(prev => {
-        const next = new Map(prev);
-        next.delete(connectionId);
-        return next;
-      });
+      // A connection from an earlier session of the app has no live object left
+      await connection?.disconnect();
+      connectionRegistry.remove(connectionId);
 
       // Remove from Redux store
       dispatch(removeConnection(connectionId));
@@ -241,22 +257,6 @@ export function InstrumentManager() {
     }
   };
 
-  if (!isSerialSupported && !isBluetoothSupported) {
-    return (
-      <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-          Device APIs Not Supported
-        </h3>
-        <p className="text-yellow-800 mb-4">
-          Your browser does not support the Web Serial API or Web Bluetooth API required for instrument connections.
-        </p>
-        <p className="text-sm text-yellow-700">
-          Please use Chrome 89+ or Edge 89+ for full instrument support.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Connection Controls */}
@@ -296,6 +296,16 @@ export function InstrumentManager() {
                 Bluetooth
                 {!isBluetoothSupported && <span className="block text-xs">(Not supported)</span>}
               </button>
+              <button
+                onClick={() => setConnectionType('stub')}
+                className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
+                  connectionType === 'stub'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Simulator
+              </button>
             </div>
           </div>
 
@@ -321,7 +331,11 @@ export function InstrumentManager() {
             disabled={(connectionType === 'serial' && !isSerialSupported) || (connectionType === 'bluetooth' && !isBluetoothSupported)}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {connectionType === 'serial' ? 'Connect to USB Port' : 'Connect to Bluetooth Device'}
+            {connectionType === 'serial'
+              ? 'Connect to USB Port'
+              : connectionType === 'bluetooth'
+                ? 'Connect to Bluetooth Device'
+                : 'Start Simulator'}
           </button>
 
           {/* Error Message */}
@@ -392,6 +406,7 @@ export function InstrumentManager() {
                     Disconnect
                   </button>
                 </div>
+                {conn.type === 'stub' && <StubControls connectionId={conn.id} />}
               </div>
             ))}
           </div>
@@ -445,6 +460,7 @@ export function InstrumentManager() {
           <li>Bluetooth: Make sure your device is powered on and in pairing mode</li>
           <li>Select the correct protocol for your instrument</li>
           <li>NMEA 0183 is the most common protocol (4800 baud)</li>
+          <li>Simulator: generates real NMEA 0183, NMEA 2000 or SeaTalk data for testing without a boat</li>
           <li>You may need to grant permission to access the device</li>
         </ul>
         {(!isSerialSupported || !isBluetoothSupported) && (

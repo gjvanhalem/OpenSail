@@ -96,11 +96,11 @@ export const WindGauge: React.FC<WindGaugeProps> = React.memo(({ className = '' 
       
       {/* Digital readout */}
       <div className="mt-2 text-center">
-        <div className="text-3xl font-bold text-white">
+        <div className="text-3xl font-bold text-white" data-testid="wind-speed-readout">
           {displaySpeed.toFixed(1)}
         </div>
         <div className="text-xs text-gray-400">knots</div>
-        <div className="text-sm text-gray-500 mt-1">
+        <div className="text-sm text-gray-500 mt-1" data-testid="wind-angle-readout">
           {apparentWindAngle.toFixed(0)}° {apparentWindAngle < 180 ? 'Stbd' : 'Port'}
         </div>
         {trueWindDirection !== null && (

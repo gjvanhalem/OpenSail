@@ -1,53 +1,56 @@
 import type { SeaTalkMessage, InstrumentData } from '../models';
 import { InstrumentDataType } from '../models';
 
+/**
+ * SeaTalk (SeaTalk1, Raymarine) parser.
+ *
+ * Input is one datagram as bytes: command, attribute, data. The low nibble of
+ * the attribute byte is the number of data bytes after the first one, so a
+ * datagram is 3 + (attribute & 0x0F) bytes long. 16-bit values are LSB first,
+ * except the apparent wind angle. Formats follow Thomas Knauf's SeaTalk
+ * reference (http://www.thomasknauf.de/seatalk.htm).
+ *
+ * Latitude and longitude come in separate datagrams (0x50, 0x51), and magnetic
+ * variation in its own (0x99), so the parser keeps them between datagrams.
+ */
 export class SeaTalkParser {
-  private static readonly SUPPORTED_COMMANDS: Record<
-    number,
-    (data: Uint8Array) => InstrumentData | null
-  > = {
-    0x00: SeaTalkParser.parseDepth,
-    0x10: SeaTalkParser.parseApparentWindAngle,
-    0x11: SeaTalkParser.parseApparentWindSpeed,
-    0x20: SeaTalkParser.parseSpeedThroughWater,
-    0x84: SeaTalkParser.parseHeading
+  private static readonly FEET_TO_METERS = 0.3048;
+
+  private latitude: number | null = null;
+  private longitude: number | null = null;
+  /** Magnetic variation in degrees, east positive, once a 0x99 datagram arrived */
+  private variation: number | null = null;
+
+  private readonly handlers: Record<number, (data: Uint8Array) => InstrumentData | null> = {
+    0x00: (d) => this.parseDepth(d),
+    0x10: (d) => this.parseApparentWindAngle(d),
+    0x11: (d) => this.parseApparentWindSpeed(d),
+    0x20: (d) => this.parseSpeedThroughWater(d),
+    0x23: (d) => this.parseWaterTemperature(d),
+    0x27: (d) => this.parsePreciseWaterTemperature(d),
+    0x50: (d) => this.parseLatitude(d),
+    0x51: (d) => this.parseLongitude(d),
+    0x52: (d) => this.parseSpeedOverGround(d),
+    0x53: (d) => this.parseCourseOverGround(d),
+    0x84: (d) => this.parseAutopilotHeading(d),
+    0x89: (d) => this.parseCompassHeading(d),
+    0x99: (d) => this.parseVariation(d),
+    0x9c: (d) => this.parseCompassHeading(d)
   };
 
+  /** Length in bytes of the datagram that starts with these bytes */
+  static datagramLength(data: Uint8Array): number {
+    return data.length < 2 ? 0 : 3 + (data[1] & 0x0f);
+  }
+
   parse(data: Uint8Array): SeaTalkMessage | null {
-    if (data.length < 2) return null;
+    if (data.length < 3 || data.length < SeaTalkParser.datagramLength(data)) return null;
 
-    const command = this.getCommandByte(data);
-    const commandData = data.slice(1);
-
-    const interpretation: Record<string, unknown> = {};
-
-    switch (command) {
-      case 0x00:
-        interpretation.depth = ((commandData[0] & 0x07) << 7) | (commandData[1] & 0x7f);
-        interpretation.offset = ((commandData[2] & 0x0f) - 10) * 0.1;
-        break;
-      case 0x10:
-        interpretation.windAngle =
-          (((commandData[0] & 0x7f) << 1) | ((commandData[1] >> 7) & 1)) * 0.5;
-        break;
-      case 0x11:
-        interpretation.windSpeed = ((commandData[0] & 0x3f) << 3) | ((commandData[1] >> 4) & 0x07);
-        break;
-      case 0x20:
-        interpretation.speed = ((commandData[0] & 0x3f) << 4) | ((commandData[1] >> 4) & 0x0f);
-        interpretation.trip = ((commandData[2] & 0x0f) << 8) | commandData[3];
-        break;
-      case 0x84:
-        interpretation.heading = (((commandData[0] & 0x1f) << 7) | (commandData[1] & 0x7f)) * 0.5;
-        interpretation.deviation = (commandData[2] & 0x7f) * 0.5 - 180;
-        interpretation.variation = (commandData[3] & 0x7f) * 0.5 - 180;
-        break;
-    }
-
+    const datagram = data.slice(0, SeaTalkParser.datagramLength(data));
     return {
-      command,
-      data: commandData,
-      interpretation,
+      command: this.getCommandByte(datagram),
+      // The whole datagram: attribute byte and data, after the command
+      data: datagram.slice(1),
       timestamp: Date.now()
     };
   }
@@ -58,94 +61,167 @@ export class SeaTalkParser {
   }
 
   parseToInstrumentData(message: SeaTalkMessage): InstrumentData | null {
-    const parser = SeaTalkParser.SUPPORTED_COMMANDS[message.command];
-    if (!parser) {
-      return null;
-    }
-    return parser(message.data);
+    const handler = this.handlers[message.command];
+    if (!handler) return null;
+    // Handlers index the full datagram, command byte included
+    const datagram = new Uint8Array(message.data.length + 1);
+    datagram[0] = message.command;
+    datagram.set(message.data, 1);
+    return handler(datagram);
   }
 
-  private static parseDepth(data: Uint8Array): InstrumentData | null {
-    if (data.length < 3) return null;
-
-    const depthRaw = ((data[0] & 0x07) << 7) | (data[1] & 0x7f);
-    const depth = depthRaw * 0.1 + 0.2;
-    const offset = ((data[2] & 0x0f) - 10) * 0.1;
-    const alarm = (data[2] & 0x10) !== 0;
-
-    return {
-      type: InstrumentDataType.Depth,
-      value: { depth: depth + offset, offset, alarm },
-      unit: 'm',
-      timestamp: Date.now(),
-      source: 'seatalk'
-    };
+  /**
+   * Compass heading as used by 0x84, 0x89, 0x9C and 0x53:
+   * (U & 0x3) * 90 + (VW & 0x3F) * 2, plus the high bits of U for the odd degrees.
+   */
+  private static heading(u: number, vw: number, autopilot = false): number {
+    const base = (u & 0x3) * 90 + (vw & 0x3f) * 2;
+    const high = u & 0xc;
+    if (autopilot) return base + (high ? (high === 0xc ? 2 : 1) : 0);
+    return base + high / 8;
   }
 
-  private static parseApparentWindAngle(data: Uint8Array): InstrumentData | null {
-    if (data.length < 2) return null;
-
-    const angleRaw = ((data[0] & 0x7f) << 1) | ((data[1] >> 7) & 1);
-    const angle = angleRaw * 0.5;
-    const direction = (data[1] & 0x40) !== 0 ? 'port' : 'starboard';
-
-    return {
-      type: InstrumentDataType.Wind,
-      value: { angle, direction, reference: 'apparent' },
-      unit: 'deg',
-      timestamp: Date.now(),
-      source: 'seatalk'
-    };
+  private static result(
+    type: InstrumentData['type'],
+    value: unknown,
+    unit: string
+  ): InstrumentData {
+    return { type, value, unit, timestamp: Date.now(), source: 'seatalk' };
   }
 
-  private static parseApparentWindSpeed(data: Uint8Array): InstrumentData | null {
-    if (data.length < 2) return null;
-
-    const speedRaw = ((data[0] & 0x3f) << 3) | ((data[1] >> 4) & 0x07);
-    const speed = speedRaw * 0.1;
-    const unit = data[1] & 0x08 ? 'm/s' : 'knots';
-
-    return {
-      type: InstrumentDataType.Wind,
-      value: { speed, unit, reference: 'apparent' },
-      unit: unit,
-      timestamp: Date.now(),
-      source: 'seatalk'
-    };
+  // 00 02 YZ XX XX: depth below transducer XXXX/10 feet; Z&1 shallow, Z&2 deep alarm
+  private parseDepth(d: Uint8Array): InstrumentData | null {
+    if (d.length < 5) return null;
+    const feet = (d[3] | (d[4] << 8)) / 10;
+    return SeaTalkParser.result(
+      InstrumentDataType.Depth,
+      {
+        depth: feet * SeaTalkParser.FEET_TO_METERS,
+        shallowAlarm: (d[2] & 0x01) !== 0,
+        deepAlarm: (d[2] & 0x02) !== 0
+      },
+      'm'
+    );
   }
 
-  private static parseSpeedThroughWater(data: Uint8Array): InstrumentData | null {
-    if (data.length < 4) return null;
-
-    const speedRaw = ((data[0] & 0x3f) << 4) | ((data[1] >> 4) & 0x0f);
-    const speed = speedRaw * 0.1;
-    const tripRaw = ((data[2] & 0x0f) << 8) | data[3];
-    const trip = tripRaw * 0.1;
-
-    return {
-      type: InstrumentDataType.Speed,
-      value: { speed, trip },
-      unit: 'nm',
-      timestamp: Date.now(),
-      source: 'seatalk'
-    };
+  // 10 01 XX YY: apparent wind angle XXYY/2 degrees right of the bow (MSB first)
+  private parseApparentWindAngle(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4) return null;
+    const angle = ((d[2] << 8) | d[3]) / 2;
+    return SeaTalkParser.result(InstrumentDataType.Wind, { angle, reference: 'apparent' }, 'deg');
   }
 
-  private static parseHeading(data: Uint8Array): InstrumentData | null {
-    if (data.length < 4) return null;
+  // 11 01 XX 0Y: apparent wind speed (XX & 0x7F) + Y/10 knots, m/s when XX & 0x80
+  private parseApparentWindSpeed(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4) return null;
+    const speed = (d[2] & 0x7f) + (d[3] & 0x0f) / 10;
+    const unit = d[2] & 0x80 ? 'm/s' : 'kn';
+    return SeaTalkParser.result(InstrumentDataType.Wind, { speed, reference: 'apparent' }, unit);
+  }
 
-    const headingRaw = ((data[0] & 0x1f) << 7) | (data[1] & 0x7f);
-    const heading = headingRaw * 0.5;
-    const locked = (data[0] & 0x20) !== 0;
-    const deviation = ((data[2] & 0x7f) - 180) * 0.5;
-    const variation = ((data[3] & 0x7f) - 180) * 0.5;
+  // 20 01 XX XX: speed through water XXXX/10 knots
+  private parseSpeedThroughWater(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4) return null;
+    const speed = (d[2] | (d[3] << 8)) / 10;
+    return SeaTalkParser.result(InstrumentDataType.Speed, { speed }, 'kn');
+  }
 
-    return {
-      type: InstrumentDataType.Heading,
-      value: { heading, deviation, variation, locked },
-      unit: 'deg',
-      timestamp: Date.now(),
-      source: 'seatalk'
-    };
+  // 23 Z1 XX YY: water temperature XX °C, YY °F; Z&4 sensor defective
+  private parseWaterTemperature(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4 || (d[1] & 0x40) !== 0) return null;
+    const temperature = d[2] << 24 >> 24; // signed byte
+    return SeaTalkParser.result(InstrumentDataType.Temperature, { temperature }, 'C');
+  }
+
+  // 27 01 XX XX: water temperature (XXXX - 100) / 10 °C
+  private parsePreciseWaterTemperature(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4) return null;
+    const temperature = ((d[2] | (d[3] << 8)) - 100) / 10;
+    return SeaTalkParser.result(InstrumentDataType.Temperature, { temperature }, 'C');
+  }
+
+  /** Degrees XX and minutes (YYYY & 0x7FFF)/100; bit 15 of YYYY is the hemisphere */
+  private static coordinate(d: Uint8Array): { degrees: number; flag: boolean } {
+    const yyyy = d[3] | (d[4] << 8);
+    return { degrees: d[2] + (yyyy & 0x7fff) / 100 / 60, flag: (yyyy & 0x8000) !== 0 };
+  }
+
+  // 50 Z2 XX YY YY: latitude, south when the flag is set
+  private parseLatitude(d: Uint8Array): InstrumentData | null {
+    if (d.length < 5) return null;
+    const { degrees, flag } = SeaTalkParser.coordinate(d);
+    this.latitude = flag ? -degrees : degrees;
+    return this.positionResult();
+  }
+
+  // 51 Z2 XX YY YY: longitude, east when the flag is set
+  private parseLongitude(d: Uint8Array): InstrumentData | null {
+    if (d.length < 5) return null;
+    const { degrees, flag } = SeaTalkParser.coordinate(d);
+    this.longitude = flag ? degrees : -degrees;
+    return this.positionResult();
+  }
+
+  private positionResult(): InstrumentData | null {
+    if (this.latitude === null || this.longitude === null) return null;
+    return SeaTalkParser.result(
+      InstrumentDataType.GPS,
+      {
+        position: {
+          latitude: this.latitude,
+          longitude: this.longitude,
+          accuracy: 0,
+          timestamp: Date.now()
+        }
+      },
+      ''
+    );
+  }
+
+  // 52 01 XX XX: speed over ground XXXX/10 knots
+  private parseSpeedOverGround(d: Uint8Array): InstrumentData | null {
+    if (d.length < 4) return null;
+    const speedKnots = (d[2] | (d[3] << 8)) / 10;
+    return SeaTalkParser.result(InstrumentDataType.GPS, { speedKnots }, 'kn');
+  }
+
+  // 53 U0 VW: magnetic course over ground; made true once the variation is known
+  private parseCourseOverGround(d: Uint8Array): InstrumentData | null {
+    if (d.length < 3) return null;
+    const magnetic = SeaTalkParser.heading(d[1] >> 4, d[2]);
+    const course =
+      this.variation === null ? magnetic : (magnetic + this.variation + 360) % 360;
+    return SeaTalkParser.result(
+      InstrumentDataType.GPS,
+      { course, reference: this.variation === null ? 'magnetic' : 'true' },
+      'deg'
+    );
+  }
+
+  private headingResult(heading: number): InstrumentData {
+    return SeaTalkParser.result(
+      InstrumentDataType.Heading,
+      { heading, deviation: 0, variation: this.variation ?? 0 },
+      'deg'
+    );
+  }
+
+  // 89 U2 VW XY 2Z (ST40 compass) and 9C U1 VW RR (compass and rudder): magnetic heading
+  private parseCompassHeading(d: Uint8Array): InstrumentData | null {
+    if (d.length < 3) return null;
+    return this.headingResult(SeaTalkParser.heading(d[1] >> 4, d[2]));
+  }
+
+  // 84 U6 VW XY 0Z 0M RR SS TT: autopilot compass heading
+  private parseAutopilotHeading(d: Uint8Array): InstrumentData | null {
+    if (d.length < 3) return null;
+    return this.headingResult(SeaTalkParser.heading(d[1] >> 4, d[2], true));
+  }
+
+  // 99 00 XX: magnetic variation, signed, positive is west
+  private parseVariation(d: Uint8Array): InstrumentData | null {
+    if (d.length < 3) return null;
+    this.variation = -((d[2] << 24) >> 24);
+    return null;
   }
 }

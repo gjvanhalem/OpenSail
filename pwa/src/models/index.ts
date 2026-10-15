@@ -186,8 +186,8 @@ export interface NMEA2000Message {
 
 export interface SeaTalkMessage {
   command: number;
-  data: Uint8Array; // Changed from Buffer to Uint8Array for browser compatibility
-  interpretation: Record<string, unknown>;
+  /** The datagram after the command byte: attribute byte and data */
+  data: Uint8Array;
   timestamp: number;
 }
 

@@ -1,128 +1,148 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SeaTalkParser } from '../SeaTalkParser';
 import { InstrumentDataType } from '../../models';
 
+/** Parse one datagram given as hex bytes, e.g. "00 02 00 7B 00" */
+function decode(parser: SeaTalkParser, hex: string) {
+  const bytes = new Uint8Array(hex.split(' ').map((b) => parseInt(b, 16)));
+  const message = parser.parse(bytes);
+  return message ? parser.parseToInstrumentData(message) : null;
+}
+
 describe('SeaTalkParser', () => {
-  const parser = new SeaTalkParser();
+  let parser: SeaTalkParser;
 
-  describe('depth parsing (0x00)', () => {
-    it('should parse depth data', () => {
-      // Depth: 5.2m, offset: 0m
-      const data = new Uint8Array([0x00, 0x02, 0x34, 0x0a]);
-      const message = parser.parse(data);
-      
-      expect(message).not.toBeNull();
-      expect(message?.command).toBe(0x00);
-      
-      const instrumentData = parser.parseToInstrumentData(message!);
-      expect(instrumentData).not.toBeNull();
-      expect(instrumentData?.type).toBe(InstrumentDataType.Depth);
-      expect(instrumentData?.unit).toBe('m');
-    });
+  beforeEach(() => {
+    parser = new SeaTalkParser();
   });
 
-  describe('wind angle parsing (0x10)', () => {
-    it('should parse apparent wind angle', () => {
-      // Wind angle: 45 degrees
-      const data = new Uint8Array([0x10, 0x2d, 0x00]);
-      const message = parser.parse(data);
-      
-      expect(message).not.toBeNull();
-      expect(message?.command).toBe(0x10);
-      
-      const instrumentData = parser.parseToInstrumentData(message!);
-      expect(instrumentData).not.toBeNull();
-      expect(instrumentData?.type).toBe(InstrumentDataType.Wind);
-      expect(instrumentData?.unit).toBe('deg');
+  describe('datagram framing', () => {
+    it('takes the length from the attribute byte', () => {
+      expect(SeaTalkParser.datagramLength(new Uint8Array([0x00, 0x02]))).toBe(5);
+      expect(SeaTalkParser.datagramLength(new Uint8Array([0x84, 0x86]))).toBe(9);
+      expect(SeaTalkParser.datagramLength(new Uint8Array([0x53, 0x00]))).toBe(3);
     });
-  });
 
-  describe('wind speed parsing (0x11)', () => {
-    it('should parse apparent wind speed', () => {
-      // Wind speed: 12 knots
-      const data = new Uint8Array([0x11, 0x0f, 0x00]);
-      const message = parser.parse(data);
-      
-      expect(message).not.toBeNull();
-      expect(message?.command).toBe(0x11);
-      
-      const instrumentData = parser.parseToInstrumentData(message!);
-      expect(instrumentData).not.toBeNull();
-      expect(instrumentData?.type).toBe(InstrumentDataType.Wind);
+    it('rejects a datagram shorter than its attribute says', () => {
+      expect(parser.parse(new Uint8Array([0x00, 0x02, 0x00, 0x7b]))).toBeNull();
+      expect(parser.parse(new Uint8Array([0x00]))).toBeNull();
+      expect(parser.parse(new Uint8Array([]))).toBeNull();
     });
-  });
 
-  describe('speed through water parsing (0x20)', () => {
-    it('should parse speed and trip data', () => {
-      // Speed: 5.5 knots, trip: 10.5 nm
-      const data = new Uint8Array([0x20, 0x23, 0x50, 0x00, 0x69]);
-      const message = parser.parse(data);
-      
-      expect(message).not.toBeNull();
+    it('returns the command and the bytes after it', () => {
+      const message = parser.parse(new Uint8Array([0x20, 0x01, 0x41, 0x00]));
       expect(message?.command).toBe(0x20);
-      
-      const instrumentData = parser.parseToInstrumentData(message!);
-      expect(instrumentData).not.toBeNull();
-      expect(instrumentData?.type).toBe(InstrumentDataType.Speed);
-      expect(instrumentData?.unit).toBe('nm');
+      expect(Array.from(message!.data)).toEqual([0x01, 0x41, 0x00]);
     });
-  });
 
-  describe('heading parsing (0x84)', () => {
-    it('should parse heading with deviation and variation', () => {
-      // Heading: 270 degrees
-      const data = new Uint8Array([0x84, 0x06, 0x1c, 0xb4, 0xb4]);
-      const message = parser.parse(data);
-      
+    it('extracts the command byte', () => {
+      expect(parser.getCommandByte(new Uint8Array([0x84, 0x06]))).toBe(0x84);
+      expect(parser.getCommandByte(new Uint8Array([]))).toBe(0);
+    });
+
+    it('gives no instrument data for an unsupported command', () => {
+      const message = parser.parse(new Uint8Array([0x30, 0x00, 0x0c]));
       expect(message).not.toBeNull();
-      expect(message?.command).toBe(0x84);
-      
-      const instrumentData = parser.parseToInstrumentData(message!);
-      expect(instrumentData).not.toBeNull();
-      expect(instrumentData?.type).toBe(InstrumentDataType.Heading);
-      expect(instrumentData?.unit).toBe('deg');
+      expect(parser.parseToInstrumentData(message!)).toBeNull();
     });
   });
 
-  describe('command byte extraction', () => {
-    it('should extract command byte correctly', () => {
-      const data = new Uint8Array([0x84, 0x06, 0x1c]);
-      const command = parser.getCommandByte(data);
-      
-      expect(command).toBe(0x84);
-    });
-
-    it('should return 0 for empty data', () => {
-      const data = new Uint8Array([]);
-      const command = parser.getCommandByte(data);
-      
-      expect(command).toBe(0);
-    });
+  it('00: depth below transducer in tenths of feet, as metres', () => {
+    // 0x007B = 123 → 12.3 ft
+    const data = decode(parser, '00 02 00 7B 00');
+    expect(data?.type).toBe(InstrumentDataType.Depth);
+    expect(data?.unit).toBe('m');
+    expect((data?.value as { depth: number }).depth).toBeCloseTo(12.3 * 0.3048);
   });
 
-  describe('edge cases', () => {
-    it('should handle empty data', () => {
-      const data = new Uint8Array([]);
-      const message = parser.parse(data);
-      
-      expect(message).toBeNull();
-    });
+  it('00: reads the shallow and deep alarm flags', () => {
+    const value = decode(parser, '00 02 03 10 00')?.value as Record<string, boolean>;
+    expect(value.shallowAlarm).toBe(true);
+    expect(value.deepAlarm).toBe(true);
+  });
 
-    it('should handle insufficient data', () => {
-      const data = new Uint8Array([0x00]);
-      const message = parser.parse(data);
-      
-      expect(message).toBeNull();
-    });
+  it('10: apparent wind angle in half degrees, most significant byte first', () => {
+    // 0x0109 = 265 → 132.5°
+    const data = decode(parser, '10 01 01 09');
+    expect(data?.type).toBe(InstrumentDataType.Wind);
+    expect(data?.value).toEqual({ angle: 132.5, reference: 'apparent' });
+  });
 
-    it('should handle unsupported command', () => {
-      const data = new Uint8Array([0xff, 0x01, 0x02]);
-      const message = parser.parse(data);
-      
-      expect(message).not.toBeNull();
-      const instrumentData = parser.parseToInstrumentData(message!);
-      
-      expect(instrumentData).toBeNull();
+  it('11: apparent wind speed in knots, or m/s with the high bit set', () => {
+    expect(decode(parser, '11 01 0E 03')).toMatchObject({
+      value: { speed: 14.3, reference: 'apparent' },
+      unit: 'kn',
     });
+    expect(decode(parser, '11 01 87 05')).toMatchObject({ value: { speed: 7.5 }, unit: 'm/s' });
+  });
+
+  it('20: speed through water in tenths of knots', () => {
+    const data = decode(parser, '20 01 41 00');
+    expect(data?.type).toBe(InstrumentDataType.Speed);
+    expect(data?.value).toEqual({ speed: 6.5 });
+    expect(data?.unit).toBe('kn');
+  });
+
+  it('23 and 27: water temperature in °C', () => {
+    expect(decode(parser, '23 01 0E 39')?.value).toEqual({ temperature: 14 });
+    // (0x0122 - 100) / 10 = 19.0
+    expect(decode(parser, '27 01 22 01')?.value).toEqual({ temperature: 19 });
+  });
+
+  it('50 + 51: a position once both latitude and longitude arrived', () => {
+    // 51° 59.55' N: 0x1743 = 5955
+    expect(decode(parser, '50 02 33 43 17')).toBeNull();
+    // 4° 4.95' E: 0x01EF = 495 with the east bit
+    const data = decode(parser, '51 02 04 EF 81');
+    expect(data?.type).toBe(InstrumentDataType.GPS);
+    const { position } = data?.value as { position: { latitude: number; longitude: number } };
+    expect(position.latitude).toBeCloseTo(51 + 59.55 / 60, 6);
+    expect(position.longitude).toBeCloseTo(4 + 4.95 / 60, 6);
+  });
+
+  it('50 + 51: south and west are negative', () => {
+    decode(parser, '50 02 21 43 97');
+    const data = decode(parser, '51 02 46 EF 01');
+    const { position } = data?.value as { position: { latitude: number; longitude: number } };
+    expect(position.latitude).toBeCloseTo(-(33 + 59.55 / 60), 6);
+    expect(position.longitude).toBeCloseTo(-(70 + 4.95 / 60), 6);
+  });
+
+  it('52: speed over ground in tenths of knots', () => {
+    expect(decode(parser, '52 01 3C 00')?.value).toEqual({ speedKnots: 6 });
+  });
+
+  it('89: compass heading, magnetic', () => {
+    // U = 0xB: 3 * 90 + 0 * 2 + 8 / 8 = 271
+    const data = decode(parser, '89 B2 00 00 20');
+    expect(data?.type).toBe(InstrumentDataType.Heading);
+    expect(data?.value).toEqual({ heading: 271, deviation: 0, variation: 0 });
+  });
+
+  it('9C: compass heading with rudder position', () => {
+    // U = 0x1: 90 + 0x16 * 2 = 134
+    expect((decode(parser, '9C 11 16 00')?.value as { heading: number }).heading).toBe(134);
+  });
+
+  it('84: autopilot compass heading', () => {
+    // U = 0x2 with 0x4: 180 + 0x0A * 2 + 1 = 201
+    const data = decode(parser, '84 66 0A 00 00 00 00 00 00');
+    expect((data?.value as { heading: number }).heading).toBe(201);
+  });
+
+  it('99: variation is applied to later headings and COG, west positive on the wire', () => {
+    // 0xFD = -3: 3° east
+    expect(decode(parser, '99 00 FD')).toBeNull();
+    expect(decode(parser, '89 B2 00 00 20')?.value).toEqual({
+      heading: 271,
+      deviation: 0,
+      variation: 3,
+    });
+    // 53: magnetic COG 271 → 274 true
+    expect(decode(parser, '53 B0 00')?.value).toEqual({ course: 274, reference: 'true' });
+  });
+
+  it('53: COG stays magnetic while the variation is unknown', () => {
+    expect(decode(parser, '53 B0 00')?.value).toEqual({ course: 271, reference: 'magnetic' });
   });
 });
