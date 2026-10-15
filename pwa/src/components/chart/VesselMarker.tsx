@@ -11,18 +11,12 @@ export interface VesselMarkerProps {
 export const VesselMarker: React.FC<VesselMarkerProps> = React.memo(
   ({ position, heading = null, size = 24 }) => {
     const vesselIcon = useMemo(() => {
-      const rotation = heading !== null ? heading : 0;
-
       return (
         <svg
           data-testid="vessel-marker"
           width={size}
           height={size}
           viewBox="0 0 24 24"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: 'transform 0.3s ease-out',
-          }}
         >
           {/* Vessel shape - triangle pointing up (north) */}
           <path
@@ -39,8 +33,16 @@ export const VesselMarker: React.FC<VesselMarkerProps> = React.memo(
       );
     }, [heading, size]);
 
+    // Rotate relative to the map's north, so the bow points the right way in
+    // both north-up and heading-up
     return (
-      <Marker longitude={position.longitude} latitude={position.latitude} anchor="center">
+      <Marker
+        longitude={position.longitude}
+        latitude={position.latitude}
+        anchor="center"
+        rotation={heading ?? 0}
+        rotationAlignment="map"
+      >
         {vesselIcon}
       </Marker>
     );

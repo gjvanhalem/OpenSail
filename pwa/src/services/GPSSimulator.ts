@@ -1,5 +1,11 @@
 import type { Position } from '@/models';
-import { updatePosition, setGPSActive } from '@/store/slices/navigationSlice';
+import {
+  updatePosition,
+  updateCourse,
+  updateSpeed,
+  setGPSActive,
+} from '@/store/slices/navigationSlice';
+import { calculateBearing } from '@/utils/calculations';
 import type { AppDispatch } from '@/store';
 
 export interface SimulatedTrack {
@@ -162,8 +168,10 @@ export class GPSSimulator {
     // Interpolate position
     this.currentPosition = this.interpolatePosition(start, end, this.progress);
 
-    // Dispatch to Redux
+    // Dispatch to Redux, with course and speed over ground like a real GPS
     this.dispatch(updatePosition(this.currentPosition));
+    this.dispatch(updateCourse(calculateBearing(start, end)));
+    this.dispatch(updateSpeed(this.currentTrack.speed));
 
     // Calculate progress increment based on speed
     // Speed is in knots, convert to meters per second: 1 knot = 0.514444 m/s
