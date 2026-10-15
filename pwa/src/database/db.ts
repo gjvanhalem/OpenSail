@@ -14,6 +14,8 @@ export interface Track {
   distance: number;
   maxSpeed: number;
   avgSpeed: number;
+  /** Line colour on the chart (R9.3); a palette colour by id when unset */
+  color?: string;
 }
 
 export interface TrackPoint {

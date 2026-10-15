@@ -1,6 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setTracks, deleteTrack } from '@/store/slices/tracksSlice';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+import { setTracks, deleteTrack, fromStoredTrack, setTrackColor } from '@/store/slices/tracksSlice';
+import { addRoute } from '@/store/slices/routesSlice';
+import { routeRepository } from '@/database/repositories/RouteRepository';
+import { TRACK_COLORS, trackColor } from '@/utils/trackColors';
+import {
+  DEFAULT_SIMPLIFY_TOLERANCE_NM,
+  MAX_CONVERTED_WAYPOINTS,
+  simplifyTrack,
+  trackToRoute,
+} from '@/utils/trackToRoute';
+import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 import { trackRepository } from '@/database/repositories/TrackRepository';
 import { TrackList } from '@/components/tracks/TrackList';
 import { TrackRecordingControls } from '@/components/tracks/TrackRecordingControls';
@@ -14,6 +26,23 @@ export const TracksPage: React.FC = () => {
   const [selectedTrack, setSelectedTrack] = useState<DBTrack | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dbTracks, setDbTracks] = useState<DBTrack[]>([]);
+  const arrivalRadius = useSelector(
+    (state: RootState) => state.settings.settings.arrivalRadius ?? DEFAULT_ARRIVAL_RADIUS_NM
+  );
+  const [tolerance, setTolerance] = useState(DEFAULT_SIMPLIFY_TOLERANCE_NM);
+  const [convertedRoute, setConvertedRoute] = useState<{ name: string; waypoints: number } | null>(
+    null
+  );
+
+  const selectedPoints = useMemo(
+    () => (selectedTrack ? JSON.parse(selectedTrack.points.data) : []),
+    [selectedTrack]
+  );
+  // How many waypoints converting the selected track would give
+  const previewWaypoints = useMemo(
+    () => simplifyTrack(selectedPoints, tolerance).length,
+    [selectedPoints, tolerance]
+  );
 
   // Load tracks from database on mount
   useEffect(() => {
@@ -27,18 +56,7 @@ export const TracksPage: React.FC = () => {
       setDbTracks(loadedTracks);
       
       // Convert compressed points to uncompressed for Redux state
-      const tracksWithPoints = loadedTracks.map((track) => ({
-        id: track.id!,
-        name: track.name,
-        startTime: track.startTime,
-        endTime: track.endTime,
-        distance: track.distance,
-        maxSpeed: track.maxSpeed,
-        avgSpeed: track.avgSpeed,
-        points: JSON.parse(track.points.data),
-      }));
-      
-      dispatch(setTracks(tracksWithPoints));
+      dispatch(setTracks(loadedTracks.map(fromStoredTrack)));
     } catch (error) {
       console.error('Failed to load tracks:', error);
     } finally {
@@ -48,6 +66,35 @@ export const TracksPage: React.FC = () => {
 
   const handleSelectTrack = (track: DBTrack) => {
     setSelectedTrack(track);
+    setConvertedRoute(null);
+  };
+
+  const handleColorChange = async (track: DBTrack, color: string) => {
+    try {
+      await trackRepository.update(track.id!, { color });
+      dispatch(setTrackColor({ id: track.id!, color }));
+      const updated = { ...track, color };
+      setDbTracks((prev) => prev.map((t) => (t.id === track.id ? updated : t)));
+      setSelectedTrack(updated);
+    } catch (error) {
+      console.error('Failed to change track colour:', error);
+    }
+  };
+
+  // R9.5: a route along the track, with the points where the course changed
+  const handleConvertToRoute = async (track: DBTrack) => {
+    try {
+      const draft = trackToRoute(
+        { name: track.name, points: selectedPoints, avgSpeed: track.avgSpeed },
+        { tolerance, arrivalRadius, name: `${track.name} (route)` }
+      );
+      const created = await routeRepository.create(draft);
+      dispatch(addRoute(created));
+      setConvertedRoute({ name: created.name, waypoints: created.waypoints.length });
+    } catch (error) {
+      console.error('Failed to convert track to route:', error);
+      alert('Failed to convert track to route');
+    }
   };
 
   const handleDeleteTrack = async (trackId: string) => {
@@ -143,9 +190,7 @@ export const TracksPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Points</p>
-                  <p className="text-sm font-medium">
-                    {JSON.parse(selectedTrack.points.data).length}
-                  </p>
+                  <p className="text-sm font-medium">{selectedPoints.length}</p>
                 </div>
               </div>
 
@@ -162,6 +207,66 @@ export const TracksPage: React.FC = () => {
                   {new Date(selectedTrack.endTime).toLocaleString()}
                 </p>
               </div>
+            </div>
+
+            <fieldset className="mt-4">
+              <legend className="text-xs text-gray-500 mb-1">Colour on the chart</legend>
+              <div className="flex flex-wrap gap-2">
+                {TRACK_COLORS.map(({ value, name }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleColorChange(selectedTrack, value)}
+                    aria-label={name}
+                    aria-pressed={trackColor(selectedTrack) === value}
+                    className={`w-7 h-7 rounded-full border-2 ${
+                      trackColor(selectedTrack) === value
+                        ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-400'
+                        : 'border-white shadow'
+                    }`}
+                    style={{ backgroundColor: value }}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium mb-2">Convert to route</h4>
+              <label htmlFor="simplify-tolerance" className="block text-xs text-gray-500 mb-1">
+                Simplify: keep points off a straight line by more than ({units.label('distance')})
+              </label>
+              <input
+                id="simplify-tolerance"
+                type="number"
+                min="0.001"
+                step="0.01"
+                value={Number(units.toDisplay('distance', tolerance).toFixed(3))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (Number.isFinite(value) && value > 0) {
+                    setTolerance(units.fromDisplay('distance', value));
+                  }
+                }}
+                className="w-28 px-2 py-1 border border-gray-300 rounded text-sm"
+              />
+              <p className="text-xs text-gray-600 mt-1" data-testid="convert-preview">
+                {selectedPoints.length} track points → {previewWaypoints} waypoints
+                {previewWaypoints === MAX_CONVERTED_WAYPOINTS && ' (the most a converted route gets)'}
+              </p>
+              <button
+                onClick={() => handleConvertToRoute(selectedTrack)}
+                disabled={previewWaypoints < 2}
+                className="mt-2 w-full px-4 py-2 border border-blue-600 text-blue-700 rounded hover:bg-blue-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Convert to route
+              </button>
+              {convertedRoute && (
+                <p role="status" className="text-sm text-green-700 mt-2">
+                  Route “{convertedRoute.name}” created with {convertedRoute.waypoints} waypoints.{' '}
+                  <Link to="/routes" className="underline">
+                    Open Routes
+                  </Link>
+                </p>
+              )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">

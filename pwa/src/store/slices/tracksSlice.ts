@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { TrackPoint } from '@/database/db';
+import type { TrackPoint, Track as StoredTrack } from '@/database/db';
 
 // Redux state uses uncompressed points for easier access
 export interface Track {
@@ -12,6 +12,7 @@ export interface Track {
   distance: number;
   maxSpeed: number;
   avgSpeed: number;
+  color?: string;
 }
 
 export interface TracksState {
@@ -19,6 +20,21 @@ export interface TracksState {
   currentTrack: Track | null;
   isRecording: boolean;
   isPaused: boolean;
+}
+
+/** A track as saved in the database, with its points unpacked for the store */
+export function fromStoredTrack(track: StoredTrack): Track {
+  return {
+    id: track.id!,
+    name: track.name,
+    startTime: track.startTime,
+    endTime: track.endTime,
+    distance: track.distance,
+    maxSpeed: track.maxSpeed,
+    avgSpeed: track.avgSpeed,
+    ...(track.color ? { color: track.color } : {}),
+    points: JSON.parse(track.points.data),
+  };
 }
 
 const initialState: TracksState = {
@@ -84,6 +100,10 @@ const tracksSlice = createSlice({
     deleteTrack: (state, action: PayloadAction<string>) => {
       state.tracks = state.tracks.filter((t) => t.id !== action.payload);
     },
+    setTrackColor: (state, action: PayloadAction<{ id: string; color: string }>) => {
+      const track = state.tracks.find((t) => t.id === action.payload.id);
+      if (track) track.color = action.payload.color;
+    },
     updateTrack: (state, action: PayloadAction<Track>) => {
       const index = state.tracks.findIndex((t) => t.id === action.payload.id);
       if (index !== -1) {
@@ -110,6 +130,7 @@ export const {
   addTrack,
   deleteTrack,
   updateTrack,
+  setTrackColor,
   setTracks,
   clearCurrentTrack,
 } = tracksSlice.actions;

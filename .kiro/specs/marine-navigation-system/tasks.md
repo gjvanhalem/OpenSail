@@ -94,9 +94,9 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Save track points to database
   - _Requirements: 9.1, 9.2_
 
-- [ ] 25.2 Display recorded tracks on map
-  - Load tracks from database
-  - Render track lines on ChartView
+- [x] 25.2 Display recorded tracks on map
+  - Load tracks from database (on app start, in the layout)
+  - Render track lines on ChartView, each in its own colour; pick a colour per track on the Tracks page
   - Show track statistics
   - _Requirements: 9.3_
 
@@ -105,6 +105,11 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Show recording status indicator
   - Display current track statistics
   - _Requirements: 9.1_
+
+- [x] 25.4 Convert a recorded track into a route
+  - Douglas-Peucker simplification with an adjustable tolerance (default 0.05 nm), at most 50 waypoints
+  - The new route gets the arrival radius setting and the track's average speed as its planned speed
+  - _Requirements: 9.5_
 
 - [ ] 26. Implement AIS target display
 - [ ] 26.1 Connect AIS service to data sources

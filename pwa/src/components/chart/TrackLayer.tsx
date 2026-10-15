@@ -1,6 +1,7 @@
 import React from 'react';
 import { Source, Layer } from 'react-map-gl/mapbox';
 import type { TrackPoint } from '@/database/db';
+import { trackColor } from '@/utils/trackColors';
 
 // Redux Track type (with uncompressed points)
 interface Track {
@@ -12,6 +13,7 @@ interface Track {
   distance: number;
   maxSpeed: number;
   avgSpeed: number;
+  color?: string;
 }
 
 export interface TrackLayerProps {
@@ -69,9 +71,10 @@ export const TrackLayer: React.FC<TrackLayerProps> = ({
                 id={`track-line-${track.id}`}
                 type="line"
                 paint={{
-                  'line-color': isSelected ? '#3b82f6' : '#9ca3af',
-                  'line-width': isSelected ? 4 : 2,
-                  'line-opacity': isSelected ? 0.9 : 0.6,
+                  // Each track in its own colour (R9.3); the selected one stands out
+                  'line-color': trackColor(track),
+                  'line-width': isSelected ? 4 : 2.5,
+                  'line-opacity': isSelected ? 0.95 : 0.75,
                 }}
               />
             </Source>
