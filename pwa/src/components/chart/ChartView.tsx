@@ -12,6 +12,11 @@ import { createBaseMapStyle } from './baseMapStyle';
 import { ChartDisclaimer } from './ChartDisclaimer';
 import { EncLayers } from './EncLayers';
 import { useChartCatalog } from './useChartCatalog';
+import { registerTileProtocol } from './tileProtocol';
+import { ConnectionStatus } from './ConnectionStatus';
+
+// Before any map loads its style: every tile and glyph goes through opensail://
+registerTileProtocol();
 import type { EncDepthSettings } from './encStyle';
 
 export interface Viewport {
@@ -95,6 +100,14 @@ export const ChartView: React.FC<ChartViewProps> = ({
 
   // On render rather than load: load waits for the base map's tiles, which
   // never arrive offline or when the tile server can't be reached
+  // MapLibre opens a compact attribution until the first drag; start it
+  // collapsed so it doesn't cover the "Not for navigation" note
+  const handleLoad = useCallback((evt: MapEvent) => {
+    const attribution = evt.target.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    attribution?.classList.remove('maplibregl-compact-show');
+    attribution?.removeAttribute('open');
+  }, []);
+
   const handleRender = useCallback((evt: MapEvent) => {
     if (window.__OPENSAIL_MAP__ !== evt.target) window.__OPENSAIL_MAP__ = evt.target;
   }, []);
@@ -141,6 +154,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
         dragRotate={rotatable}
         touchPitch={false}
         onRender={handleRender}
+        onLoad={handleLoad}
         onClick={onClick ? handleClick : undefined}
         cursor={cursor}
         maxPitch={0}
@@ -152,7 +166,10 @@ export const ChartView: React.FC<ChartViewProps> = ({
         <EncLayers regions={chartRegions} depths={encDepths} />
         {children}
       </Map>
-      <ChartDisclaimer />
+      <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-1">
+        <ConnectionStatus />
+        <ChartDisclaimer />
+      </div>
     </div>
   );
 };

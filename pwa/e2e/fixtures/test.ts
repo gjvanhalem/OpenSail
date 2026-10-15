@@ -32,12 +32,14 @@ export async function stubTileServers(context: BrowserContext): Promise<void> {
   for (const host of TILE_HOSTS) {
     await context.route(`https://${host}/**`, async (route) => {
       const url = new URL(route.request().url());
+      // The app fetches tiles itself (tileProtocol.ts), so they need CORS headers
+      const headers = { 'Access-Control-Allow-Origin': '*' };
       if (url.pathname === '/planet') {
-        await route.fulfill({ json: STUB_TILEJSON });
+        await route.fulfill({ json: STUB_TILEJSON, headers });
       } else if (url.pathname.endsWith('.png')) {
-        await route.fulfill({ status: 200, contentType: 'image/png', body: EMPTY_PNG });
+        await route.fulfill({ status: 200, contentType: 'image/png', body: EMPTY_PNG, headers });
       } else {
-        await route.fulfill({ status: 200, contentType: 'application/x-protobuf', body: Buffer.alloc(0) });
+        await route.fulfill({ status: 200, contentType: 'application/x-protobuf', body: Buffer.alloc(0), headers });
       }
     });
   }

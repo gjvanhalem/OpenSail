@@ -28,27 +28,6 @@ export function useChartCache() {
   };
 }
 
-// Hook to check if a tile is cached
-export function useIsTileCached(z: number, x: number, y: number): boolean | null {
-  const [isCached, setIsCached] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    tileCache.hasTile(z, x, y).then(result => {
-      if (mounted) {
-        setIsCached(result);
-      }
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, [z, x, y]);
-
-  return isCached;
-}
-
 // Hook to monitor storage quota
 export function useStorageQuota() {
   const [quota, setQuota] = useState<{

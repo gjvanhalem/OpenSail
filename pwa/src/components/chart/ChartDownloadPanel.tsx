@@ -4,6 +4,7 @@ import type { RootState, AppDispatch } from '@/store';
 import { chartDownloadService } from '@/services/ChartDownloadService';
 import { loadCacheStats, clearRegion, clearAllCache } from '@/store/slices/chartCacheSlice';
 import type { Bounds } from '@/database/services/TileCache';
+import type { ChartRegionManifest } from '@/services/chartCatalog';
 
 export interface ChartDownloadPanelProps {
   selectedBounds: Bounds | null;
@@ -21,13 +22,32 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
     useSelector((state: RootState) => state.chartCache);
 
   const [regionName, setRegionName] = useState('');
-  const [selectedZoomLevels, setSelectedZoomLevels] = useState<number[]>([8, 9, 10, 11, 12]);
+  const [selectedZoomLevels, setSelectedZoomLevels] = useState<number[]>([8, 9, 10, 11, 12, 13, 14]);
+  // ENC regions in the chart catalog that overlap the selected area
+  const [encRegions, setEncRegions] = useState<ChartRegionManifest[]>([]);
+  useEffect(() => {
+    if (!selectedBounds) return;
+    const controller = new AbortController();
+    chartDownloadService
+      .encRegionsFor(selectedBounds, controller.signal)
+      .then(setEncRegions)
+      .catch(() => setEncRegions([]));
+    return () => controller.abort();
+  }, [selectedBounds]);
+
   const estimatedSize = useMemo(
     () =>
       selectedBounds
-        ? chartDownloadService.estimateDownloadSize(selectedBounds, selectedZoomLevels)
+        ? chartDownloadService.estimateDownloadSize(selectedBounds, selectedZoomLevels, encRegions)
         : 0,
-    [selectedBounds, selectedZoomLevels]
+    [selectedBounds, selectedZoomLevels, encRegions]
+  );
+  const tileCount = useMemo(
+    () =>
+      selectedBounds
+        ? chartDownloadService.calculateTileCount(selectedBounds, selectedZoomLevels, encRegions)
+        : 0,
+    [selectedBounds, selectedZoomLevels, encRegions]
   );
 
   useEffect(() => {
@@ -44,6 +64,7 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
         regionName: regionName.trim(),
         bounds: selectedBounds,
         zoomLevels: selectedZoomLevels,
+        encRegions,
       },
       dispatch
     );
@@ -135,8 +156,9 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
             <h3 className="text-sm font-semibold mb-3">Download Region</h3>
             
             <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">Region Name</label>
+              <label htmlFor="chart-region-name" className="block text-sm font-medium mb-1">Region Name</label>
               <input
+                id="chart-region-name"
                 type="text"
                 value={regionName}
                 onChange={(e) => setRegionName(e.target.value)}
@@ -152,6 +174,8 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
                   <button
                     key={level}
                     onClick={() => toggleZoomLevel(level)}
+                    aria-pressed={selectedZoomLevels.includes(level)}
+                    aria-label={`Zoom level ${level}`}
                     className={`px-3 py-1 rounded text-sm ${
                       selectedZoomLevels.includes(level)
                         ? 'bg-blue-600 text-white'
@@ -174,9 +198,16 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
               </div>
               <div className="flex justify-between">
                 <span>Tiles:</span>
-                <span className="font-medium">
-                  {chartDownloadService.calculateTileCount(selectedBounds, selectedZoomLevels)}
-                </span>
+                <span className="font-medium">{tileCount}</span>
+              </div>
+              <div className="mt-2 text-xs text-gray-700" data-testid="download-includes">
+                Includes the base map, OpenSeaMap seamarks and label fonts
+                {encRegions.length > 0 && (
+                  <>
+                    , and depth data from {encRegions.map((region) => region.name).join(', ')}
+                  </>
+                )}
+                .
               </div>
             </div>
 
@@ -256,7 +287,7 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
           ) : (
             <div className="space-y-2">
               {cachedRegions.map(region => (
-                <div key={region.id} className="p-3 bg-gray-50 rounded-lg">
+                <div key={region.id} className="p-3 bg-gray-50 rounded-lg" data-testid="cached-region">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-medium text-sm">{region.name}</span>
                     <button

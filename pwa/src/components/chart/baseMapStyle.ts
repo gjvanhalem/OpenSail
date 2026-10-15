@@ -2,13 +2,11 @@ import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl';
 import {
   BASE_MAP_ATTRIBUTION,
   BASE_MAP_MAX_ZOOM,
-  BASE_MAP_TILEJSON_URL,
-  GLYPHS_URL,
   SEAMARK_ATTRIBUTION,
   SEAMARK_MAX_ZOOM,
   SEAMARK_MIN_ZOOM,
-  SEAMARK_TILES_URL,
 } from './chartSources';
+import { BASE_SOURCE, PROTOCOL_GLYPHS_URL, SEAMARK_SOURCE_ID, protocolTileUrl } from './tileUrls';
 
 /** Source id of the OpenStreetMap base map; overlays add their own sources */
 export const BASE_MAP_SOURCE = 'openmaptiles';
@@ -48,17 +46,19 @@ export function createBaseMapStyle({ seamarks = true }: ChartStyleOptions = {}):
   return {
     version: 8,
     name: 'OpenSail chart',
-    glyphs: GLYPHS_URL,
+    // Every tile and glyph goes through the opensail:// protocol, which serves
+    // downloaded ones from IndexedDB (tileProtocol.ts)
+    glyphs: PROTOCOL_GLYPHS_URL,
     sources: {
       [BASE_MAP_SOURCE]: {
         type: 'vector',
-        url: BASE_MAP_TILEJSON_URL,
+        tiles: [protocolTileUrl(BASE_SOURCE)],
         maxzoom: BASE_MAP_MAX_ZOOM,
         attribution: BASE_MAP_ATTRIBUTION,
       },
       [SEAMARK_SOURCE]: {
         type: 'raster',
-        tiles: [SEAMARK_TILES_URL],
+        tiles: [protocolTileUrl(SEAMARK_SOURCE_ID)],
         tileSize: 256,
         minzoom: SEAMARK_MIN_ZOOM,
         maxzoom: SEAMARK_MAX_ZOOM,
