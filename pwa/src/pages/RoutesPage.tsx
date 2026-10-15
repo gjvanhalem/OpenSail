@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
 import { deleteRoute, startNavigation, stopNavigation } from '@/store/slices/routesSlice';
 import { ChartView, RouteLayer } from '@/components/chart';
-import { RoutePlannerUI, useRoutePlanner } from '@/components/routes';
+import { RoutePlannerUI, RouteSummary, useRoutePlanner } from '@/components/routes';
 import { routeRepository } from '@/database/repositories/RouteRepository';
 import type { Route, Waypoint } from '@/models';
 import { useUnits } from '@/hooks/useUnits';
@@ -80,7 +80,9 @@ export const RoutesPage: React.FC = () => {
   const [showPlanner, setShowPlanner] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
   const [plannerSession, setPlannerSession] = useState(0);
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  // Look the route up, so the summary follows edits
+  const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? null;
 
   // The app layout loads the saved routes (useRouteNavigation)
 
@@ -108,7 +110,7 @@ export const RoutesPage: React.FC = () => {
   }, [dispatch]);
 
   const handleSelectRoute = useCallback((route: Route) => {
-    setSelectedRoute(route);
+    setSelectedRouteId(route.id);
   }, []);
 
   const handleStartRoute = useCallback((routeId: string) => {
@@ -237,12 +239,19 @@ export const RoutesPage: React.FC = () => {
             onWaypointClick={handleWaypointClick}
           />
         ) : (
-          <ChartView center={MAP_CENTER} zoom={MAP_ZOOM}>
-            <RouteLayer
-              routes={selectedRoute ? [selectedRoute] : routes}
-              visible={true}
-            />
-          </ChartView>
+          <>
+            <ChartView center={MAP_CENTER} zoom={MAP_ZOOM}>
+              <RouteLayer
+                routes={selectedRoute ? [selectedRoute] : routes}
+                visible={true}
+              />
+            </ChartView>
+            {selectedRoute && (
+              <div className="absolute top-4 left-4 z-10">
+                <RouteSummary route={selectedRoute} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
