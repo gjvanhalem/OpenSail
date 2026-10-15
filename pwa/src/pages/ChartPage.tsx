@@ -12,9 +12,12 @@ import {
   ChartDownloadPanel,
   ViewportRegionSelector,
   resolveChartViewState,
+  type ActiveLeg,
   vesselDirection,
 } from '@/components/chart';
 import { RouteNavigationControl } from '@/components/routes';
+import { NavigationStatus } from '@/components/NavigationStatus';
+import { activeLegStart } from '@/utils/routeGuidance';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { RootState } from '@/store';
 import type { AISTarget, ChartRotation } from '@/models';
@@ -24,10 +27,23 @@ export const ChartPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useSelector((state: RootState) => state.navigation);
   const routes = useSelector((state: RootState) => state.routes.routes);
+  const { activeRouteId, activeWaypointIndex, isNavigating, navigationStart } = useSelector(
+    (state: RootState) => state.routes
+  );
   const tracks = useSelector((state: RootState) => state.tracks.tracks);
   const aisTargetsRecord = useSelector((state: RootState) => state.ais.targets);
   const { showRoutes, showTracks, showAIS } = useSelector((state: RootState) => state.ui);
   const settings = useSelector((state: RootState) => state.settings.settings);
+
+  const activeLeg = useMemo((): ActiveLeg | null => {
+    const route = routes.find((r) => r.id === activeRouteId);
+    if (!isNavigating || !route) return null;
+    return {
+      routeId: route.id,
+      waypointIndex: activeWaypointIndex,
+      from: activeLegStart(route, activeWaypointIndex, navigationStart),
+    };
+  }, [routes, activeRouteId, activeWaypointIndex, isNavigating, navigationStart]);
 
   // Convert AIS targets from Record to Array
   const aisTargets = useMemo(() => Object.values(aisTargetsRecord), [aisTargetsRecord]);
@@ -174,7 +190,7 @@ export const ChartPage: React.FC = () => {
         onUserPan={handleUserPan}
         rotatable={false}
       >
-        <RouteLayer routes={routes} visible={showRoutes} />
+        <RouteLayer routes={routes} visible={showRoutes} activeLeg={activeLeg} />
         <TrackLayer tracks={tracks} visible={showTracks} />
         <AISLayer
           targets={aisTargets}
@@ -188,6 +204,11 @@ export const ChartPage: React.FC = () => {
           />
         )}
       </ChartView>
+
+      {/* Route guidance while navigating */}
+      <div className="absolute top-4 left-4 z-10">
+        <NavigationStatus />
+      </div>
 
       {showRegionSelector && (
         <ViewportRegionSelector

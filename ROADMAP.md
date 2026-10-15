@@ -91,7 +91,7 @@ Spec tasks 23 and 29. Requirements R1.2, R1.5, R3, R10, R14.
 Spec tasks 24 and 25. Requirements R2, R9.
 
 - [x] **Activating a route:** calculate bearing and distance to the next waypoint, cross-track error, and ETA from current speed. Advance to the next waypoint automatically when within the arrival radius.
-- [ ] Wire `NavigationStatus` into the chart page as the route-guidance panel.
+- [x] Wire `NavigationStatus` into the chart page as the route-guidance panel.
 - [ ] Route summary (R2.4): total distance, ETA and a list of course changes.
 - [ ] Track colours (R9.3) and converting a track into a route (R9.5).
 - [ ] Stress tests: a route with 50+ waypoints (R2.1), 100 hours of track data (R9.2), and 10+ routes stored offline (R5.3).

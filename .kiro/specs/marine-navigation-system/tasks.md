@@ -82,6 +82,8 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Start and stop a route from the Routes page and the chart
   - Bearing and distance to the next waypoint, cross-track error, and ETA from current SOG, against navigationSlice's position
   - Advance to the next waypoint automatically inside the arrival radius (a setting; a waypoint's own radius wins when larger)
+  - Route-guidance panel (NavigationStatus) on the chart, and the active leg highlighted on the map
+  - e2e: a simulated passage over a 5-waypoint route with the protocol stub (route-passage.spec.ts)
   - _Requirements: 2.2, 2.4_
 
 - [ ] 25. Implement track recording
