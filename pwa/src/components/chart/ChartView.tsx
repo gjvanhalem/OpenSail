@@ -9,6 +9,7 @@ import Map, {
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { createBaseMapStyle } from './baseMapStyle';
+import { ChartDisclaimer } from './ChartDisclaimer';
 
 export interface Viewport {
   latitude: number;
@@ -40,6 +41,8 @@ export interface ChartViewProps {
   onClick?: (coordinate: { latitude: number; longitude: number }) => void;
   /** CSS cursor for the map canvas */
   cursor?: string;
+  /** Draw OpenSeaMap seamarks (buoys, beacons, lights). On by default. */
+  showSeamarks?: boolean;
   children?: React.ReactNode;
 }
 
@@ -60,6 +63,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
   rotatable = true,
   onClick,
   cursor,
+  showSeamarks = true,
   children,
 }) => {
   const mapRef = useRef<MapRef>(null);
@@ -105,7 +109,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
     [onClick]
   );
 
-  const mapStyle = useMemo(() => createBaseMapStyle(), []);
+  const mapStyle = useMemo(() => createBaseMapStyle({ seamarks: showSeamarks }), [showSeamarks]);
 
   return (
     <div className="w-full h-full relative">
@@ -138,6 +142,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
         <NavigationControl position="bottom-right" showCompass={false} />
         {children}
       </Map>
+      <ChartDisclaimer />
     </div>
   );
 };

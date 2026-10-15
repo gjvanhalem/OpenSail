@@ -19,3 +19,12 @@ export const BASE_MAP_ATTRIBUTION =
 
 /** The highest zoom the base map tiles exist for; MapLibre overzooms beyond it */
 export const BASE_MAP_MAX_ZOOM = 14;
+
+/** OpenSeaMap seamarks (buoys, beacons, lights) as transparent raster tiles, CC BY-SA 2.0 */
+export const SEAMARK_ORIGIN = 'https://tiles.openseamap.org';
+export const SEAMARK_TILES_URL = `${SEAMARK_ORIGIN}/seamark/{z}/{x}/{y}.png`;
+export const SEAMARK_ATTRIBUTION =
+  'Seamarks <a href="https://www.openseamap.org" target="_blank" rel="noopener">&copy; OpenSeaMap</a> contributors';
+/** Seamarks are too dense to read below this zoom, and OpenSeaMap draws few there */
+export const SEAMARK_MIN_ZOOM = 9;
+export const SEAMARK_MAX_ZOOM = 18;

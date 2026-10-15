@@ -65,4 +65,32 @@ test.describe('Chart Display', () => {
     await page.getByRole('button', { name: 'Exit fullscreen' }).click();
     await expect(nav).toBeVisible();
   });
+
+  test('shows a "not for navigation" disclaimer on the chart', async ({ page }) => {
+    const disclaimer = page.getByRole('note', { name: 'Chart disclaimer' });
+    await expect(disclaimer).toBeVisible();
+    await disclaimer.getByRole('button', { name: /Not for navigation/ }).click();
+    await expect(disclaimer).toContainText('OpenSeaMap');
+    await expect(disclaimer).toContainText('official charts');
+  });
+
+  test('draws OpenSeaMap seamarks with attribution', async ({ page, context }) => {
+    const seamarkTiles: string[] = [];
+    await context.route('https://tiles.openseamap.org/seamark/**', async (route) => {
+      seamarkTiles.push(route.request().url());
+      await route.fallback();
+    });
+
+    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
+    await page.evaluate(() => window.__OPENSAIL_MAP__?.jumpTo({ center: [4.9, 52.37], zoom: 12 }));
+    await expect.poll(() => seamarkTiles.length).toBeGreaterThan(0);
+    // 256-pixel raster tiles come from one zoom level above the map's
+    expect(seamarkTiles[0]).toMatch(/\/seamark\/1[23]\/\d+\/\d+\.png$/);
+
+    const layers = await page.evaluate(
+      () => window.__OPENSAIL_MAP__?.getStyle().layers.map((layer) => layer.id) ?? []
+    );
+    expect(layers).toContain('seamarks');
+    await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenSeaMap');
+  });
 });
