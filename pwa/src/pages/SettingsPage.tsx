@@ -5,6 +5,7 @@ import type { AppSettings } from '@/database/repositories/SettingsRepository';
 import { CompatibilityInfo } from '@/components/CompatibilityInfo';
 import { GPSControl } from '@/components/GPSControl';
 import { NavigationSourceSettings } from '@/components/NavigationSourceSettings';
+import { InstrumentAlertSettings } from '@/components/InstrumentAlertSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
 import { useUnits } from '@/hooks/useUnits';
 
@@ -298,6 +299,8 @@ export const SettingsPage: React.FC = () => {
 
         <NavigationSourceSettings />
 
+        <InstrumentAlertSettings />
+
         {/* Alarms Section */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Alarms</h2>
@@ -369,45 +372,6 @@ export const SettingsPage: React.FC = () => {
                     onChange={(e) =>
                       handleSettingChange(
                         'collisionWarningDistance',
-                        parseFloat(e.target.value)
-                      )
-                    }
-                    className="w-full"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Shallow Water Alarm */}
-            <div>
-              <label className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  checked={settings.enableShallowWaterAlarm}
-                  onChange={(e) =>
-                    handleSettingChange('enableShallowWaterAlarm', e.target.checked)
-                  }
-                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Enable Shallow Water Alarm
-                </span>
-              </label>
-              
-              {settings.enableShallowWaterAlarm && (
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Shallow Water Depth: {units.format('depth', settings.shallowWaterDepth)}
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    step="0.5"
-                    value={settings.shallowWaterDepth}
-                    onChange={(e) =>
-                      handleSettingChange(
-                        'shallowWaterDepth',
                         parseFloat(e.target.value)
                       )
                     }

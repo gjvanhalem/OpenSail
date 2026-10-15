@@ -1,5 +1,6 @@
 import { db, type Setting } from '../db';
 import type { NavigationSourceChoice } from '@/store/slices/navigationSlice';
+import { DEFAULT_ALERT_THRESHOLDS, type AlertThresholds } from '@/store/slices/alertsSlice';
 
 // Settings type definitions
 export interface AppSettings {
@@ -30,8 +31,8 @@ export interface AppSettings {
   enableAnchorAlarm: boolean;
   enableCollisionAlarm: boolean;
   collisionWarningDistance: number;
-  enableShallowWaterAlarm: boolean;
-  shallowWaterDepth: number;
+  /** Min / max alerts per instrument value (depth in m, speeds in knots) */
+  alertThresholds: AlertThresholds;
   enableWeatherAlerts: boolean;
   
   // Offline mode
@@ -67,8 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableAnchorAlarm: false,
   enableCollisionAlarm: true,
   collisionWarningDistance: 2,
-  enableShallowWaterAlarm: true,
-  shallowWaterDepth: 5,
+  alertThresholds: DEFAULT_ALERT_THRESHOLDS,
   enableWeatherAlerts: true,
   
   // Offline mode
