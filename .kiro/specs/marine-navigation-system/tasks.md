@@ -60,7 +60,7 @@ The protocol parsers, services, database, and UI components exist but are not co
   - _Requirements: 10.4, 10.5_
 
 - [ ] 24. Implement route planning functionality
-- [ ] 24.1 Enable waypoint creation on map
+- [x] 24.1 Enable waypoint creation on map
   - Add click handler to ChartView for waypoint placement
   - Connect RoutePlannerUI to map interactions
   - Display waypoints as markers on map
@@ -72,11 +72,17 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Display route line on map
   - _Requirements: 2.2, 2.4_
 
-- [ ] 24.3 Connect route service to UI
+- [x] 24.3 Connect route service to UI
   - Save routes to database when created
-  - Load routes from database on app start
+  - Load routes from database on app start (the layout loads them, so a route can be started from the chart)
   - Update Redux when routes change
   - _Requirements: 2.3_
+
+- [x] 24.4 Navigate an active route
+  - Start and stop a route from the Routes page and the chart
+  - Bearing and distance to the next waypoint, cross-track error, and ETA from current SOG, against navigationSlice's position
+  - Advance to the next waypoint automatically inside the arrival radius (a setting; a waypoint's own radius wins when larger)
+  - _Requirements: 2.2, 2.4_
 
 - [ ] 25. Implement track recording
 - [ ] 25.1 Connect TrackRecorder to position data

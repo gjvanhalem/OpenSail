@@ -2,6 +2,7 @@ import { db, type Setting } from '../db';
 import type { NavigationSourceChoice } from '@/store/slices/navigationSlice';
 import { DEFAULT_ALERT_THRESHOLDS, type AlertThresholds } from '@/store/slices/alertsSlice';
 import { DEFAULT_PANEL_LAYOUT, type PanelLayout } from '@/components/instruments/panelLayout';
+import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
 // Settings type definitions
 export interface AppSettings {
@@ -26,6 +27,9 @@ export interface AppSettings {
   positionSource: NavigationSourceChoice;
   cogSogSource: NavigationSourceChoice;
   headingSource: NavigationSourceChoice;
+
+  /** Route navigation: advance to the next waypoint within this distance, nautical miles */
+  arrivalRadius: number;
   
   // Alarms
   anchorWatchRadius: number;
@@ -66,6 +70,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   positionSource: 'auto',
   cogSogSource: 'auto',
   headingSource: 'auto',
+
+  arrivalRadius: DEFAULT_ARRIVAL_RADIUS_NM,
   
   // Alarms
   anchorWatchRadius: 50,

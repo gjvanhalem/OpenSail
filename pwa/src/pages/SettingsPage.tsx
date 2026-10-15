@@ -301,6 +301,33 @@ export const SettingsPage: React.FC = () => {
 
         <InstrumentAlertSettings />
 
+        {/* Route navigation */}
+        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Route Navigation</h2>
+          <label htmlFor="arrival-radius" className="block text-sm font-medium text-gray-700 mb-1">
+            Arrival radius ({units.label('distance')})
+          </label>
+          <input
+            id="arrival-radius"
+            type="number"
+            min="0.01"
+            step="0.01"
+            defaultValue={Number(units.toDisplay('distance', settings.arrivalRadius).toFixed(2))}
+            key={`${units.system}-${settings.arrivalRadius}`}
+            onBlur={(e) => {
+              const value = parseFloat(e.target.value);
+              if (Number.isFinite(value) && value > 0) {
+                handleSettingChange('arrivalRadius', units.fromDisplay('distance', value));
+              }
+            }}
+            className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            While navigating a route, the next waypoint becomes active once the boat is this close
+            to the current one. New waypoints also start with this radius.
+          </p>
+        </section>
+
         {/* Alarms Section */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Alarms</h2>
