@@ -59,3 +59,20 @@ export function lShapedTrack(): SeedTrackPoint[] {
   for (let i = 1; i <= 100; i++) add(52.02 + wobble(i), 4 + i * 0.0004, 90);
   return points;
 }
+
+/** 100 hours at 5 kn, a point every 10 seconds (36,000 points), in slow loops */
+export function hundredHourTrack(): SeedTrackPoint[] {
+  const start = Date.UTC(2026, 6, 1);
+  const points: SeedTrackPoint[] = [];
+  let latitude = 52;
+  let longitude = 4;
+  const stepNm = 5 / 360;
+  for (let i = 0; i < 36_000; i++) {
+    const heading = (i / 20) % 360;
+    points.push({ latitude, longitude, speed: 5, heading, timestamp: new Date(start + i * 10_000).toISOString() });
+    const rad = (heading * Math.PI) / 180;
+    latitude += (stepNm * Math.cos(rad)) / 60;
+    longitude += (stepNm * Math.sin(rad)) / (60 * Math.cos((latitude * Math.PI) / 180));
+  }
+  return points;
+}

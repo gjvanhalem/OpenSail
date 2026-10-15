@@ -32,14 +32,14 @@ Basic project setup is also still incomplete: there is no git remote, and the CI
 | # | Requirement | Status | Phase |
 |---|---|---|---|
 | R1 | Chart display & navigation | 🟡 Map renders. No nautical layers, and it doesn't follow the vessel or rotate | 1, 3 |
-| R2 | Route planning | 🟡 Planning and saving work. No ETA, course changes or hazard warnings | 2, 3 |
+| R2 | Route planning | 🟢 Planning, saving, active navigation (XTE, ETA, auto-advance) and the route summary work. No hazard warnings yet | 2, 3 |
 | R3 | Instrument integration | 🟡 Parsers fixed in a separate worktree. Position and heading don't reach navigation | 0, 1 |
 | R4 | AIS | 🔴 Layer only. No decoder, no data, no CPA | 5 |
 | R5 | Offline operation | 🔴 Tiles download, but the map never uses them | 3, 7 |
 | R6 | Tablet compatibility | 🟡 Responsive layout. Not tested on devices | 8 |
 | R7 | Weather | ⚪ Not started | 7 |
 | R8 | Anchor watch | 🔴 Button with no logic | 4 |
-| R9 | Track recording | 🟢 Mostly done. Missing per-track colours and track → route | 2 |
+| R9 | Track recording | 🟢 Done, including per-track colours and track → route | 2 |
 | R10 | Protocol stubs | 🟡 GPS simulator only. No NMEA, NMEA 2000 or SeaTalk stubs | 1 |
 | R11 | Tides & currents | ⚪ Not started | 7 |
 | R12 | Man overboard | 🔴 Button with no logic | 4 |
@@ -94,7 +94,7 @@ Spec tasks 24 and 25. Requirements R2, R9.
 - [x] Wire `NavigationStatus` into the chart page as the route-guidance panel.
 - [x] Route summary (R2.4): total distance, ETA and a list of course changes.
 - [x] Track colours (R9.3) and converting a track into a route (R9.5).
-- [ ] Stress tests: a route with 50+ waypoints (R2.1), 100 hours of track data (R9.2), and 10+ routes stored offline (R5.3).
+- [x] Stress tests: a route with 50+ waypoints (R2.1), 100 hours of track data (R9.2), and 10+ routes stored offline (R5.3).
 - [ ] *Depends on Phase 3:* hazard and shallow-water warnings (R2.5) need depth data from the chart source. For now `routeValidation.ts` only has TODO placeholders.
 
 **Done when:** a simulated passage over a 5-waypoint route shows correct cross-track error and ETA and switches waypoints automatically.

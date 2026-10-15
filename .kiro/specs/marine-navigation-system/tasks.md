@@ -59,7 +59,7 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Create realistic data variation
   - _Requirements: 10.4, 10.5_
 
-- [ ] 24. Implement route planning functionality
+- [x] 24. Implement route planning functionality
 - [x] 24.1 Enable waypoint creation on map
   - Add click handler to ChartView for waypoint placement
   - Connect RoutePlannerUI to map interactions
@@ -86,6 +86,13 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Route-guidance panel (NavigationStatus) on the chart, and the active leg highlighted on the map
   - e2e: a simulated passage over a 5-waypoint route with the protocol stub (route-passage.spec.ts)
   - _Requirements: 2.2, 2.4_
+
+- [x] 24.5 Stress tests
+  - A route with 60 waypoints: saved, summarised and navigated to the end (R2.1)
+  - 100 hours of track at one point every 10 s: stored, loaded and converted to a route (R9.2)
+  - 12 routes stored and listed offline (R5.3)
+  - stress.integration.test.ts and e2e/stress.spec.ts
+  - _Requirements: 2.1, 5.3, 9.2_
 
 - [ ] 25. Implement track recording
 - [ ] 25.1 Connect TrackRecorder to position data
