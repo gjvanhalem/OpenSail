@@ -100,9 +100,9 @@ test.describe('Route Planning', () => {
     const routeCard = page
       .locator('div')
       .filter({ has: page.getByRole('heading', { name: 'Route to Delete' }) })
-      .filter({ has: page.getByRole('button', { name: 'Delete' }) })
+      .filter({ has: page.getByRole('button', { name: 'Delete', exact: true }) })
       .last();
-    await routeCard.getByRole('button', { name: 'Delete' }).click();
+    await routeCard.getByRole('button', { name: 'Delete', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: 'Route to Delete' })).toBeHidden();
     await expect(page.getByText('No routes yet')).toBeVisible();

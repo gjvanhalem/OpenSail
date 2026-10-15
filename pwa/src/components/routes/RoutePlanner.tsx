@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
-import { addRoute, updateRoute, setActiveRoute } from '@/store/slices/routesSlice';
+import { addRoute, updateRoute } from '@/store/slices/routesSlice';
 import { routeRepository } from '@/database/repositories/RouteRepository';
 import { calculateTotalDistance, estimateRouteTime } from '@/utils/routeCalculations';
+import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 import type { Waypoint, Position } from '@/models';
 
 export interface RoutePlannerProps {
@@ -32,6 +33,9 @@ export interface RoutePlannerHook {
 export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps): RoutePlannerHook => {
   const dispatch = useDispatch();
   const routes = useSelector((state: RootState) => state.routes.routes);
+  const defaultArrivalRadius = useSelector(
+    (state: RootState) => state.settings.settings.arrivalRadius ?? DEFAULT_ARRIVAL_RADIUS_NM
+  );
   
   const editingRoute = editingRouteId 
     ? routes.find((r) => r.id === editingRouteId) 
@@ -55,10 +59,10 @@ export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps):
         id: `waypoint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         position,
         name: name || `Waypoint ${prev.length + 1}`,
-        arrivalRadius: 0.1, // Default 0.1 nm
+        arrivalRadius: defaultArrivalRadius,
       },
     ]);
-  }, []);
+  }, [defaultArrivalRadius]);
 
   const handleRemoveWaypoint = useCallback((waypointId: string) => {
     setWaypoints(waypoints.filter(w => w.id !== waypointId));
@@ -109,7 +113,6 @@ export const useRoutePlanner = ({ onClose, editingRouteId }: RoutePlannerProps):
         // Create new route
         const created = await routeRepository.create(routeData);
         dispatch(addRoute(created));
-        dispatch(setActiveRoute(created.id!));
       }
 
       onClose?.();

@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
-import { setRoutes, deleteRoute, setActiveRoute } from '@/store/slices/routesSlice';
+import { deleteRoute, startNavigation, stopNavigation } from '@/store/slices/routesSlice';
 import { ChartView, RouteLayer } from '@/components/chart';
 import { RoutePlannerUI, useRoutePlanner } from '@/components/routes';
 import { routeRepository } from '@/database/repositories/RouteRepository';
@@ -72,7 +72,9 @@ const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
 export const RoutesPage: React.FC = () => {
   const dispatch = useDispatch();
   const routes = useSelector((state: RootState) => state.routes.routes);
-  const activeRouteId = useSelector((state: RootState) => state.routes.activeRouteId) as string | null;
+  const activeRouteId = useSelector((state: RootState) => state.routes.activeRouteId);
+  const isNavigating = useSelector((state: RootState) => state.routes.isNavigating);
+  const position = useSelector((state: RootState) => state.navigation.position);
   const units = useUnits();
   
   const [showPlanner, setShowPlanner] = useState(false);
@@ -80,18 +82,7 @@ export const RoutesPage: React.FC = () => {
   const [plannerSession, setPlannerSession] = useState(0);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
 
-  // Load routes from database on mount
-  useEffect(() => {
-    const loadRoutes = async () => {
-      try {
-        const loadedRoutes = await routeRepository.getAll();
-        dispatch(setRoutes(loadedRoutes));
-      } catch (error) {
-        console.error('Failed to load routes:', error);
-      }
-    };
-    loadRoutes();
-  }, [dispatch]);
+  // The app layout loads the saved routes (useRouteNavigation)
 
   const handleNewRoute = useCallback(() => {
     setEditingRouteId(null);
@@ -118,7 +109,14 @@ export const RoutesPage: React.FC = () => {
 
   const handleSelectRoute = useCallback((route: Route) => {
     setSelectedRoute(route);
-    dispatch(setActiveRoute(route.id!));
+  }, []);
+
+  const handleStartRoute = useCallback((routeId: string) => {
+    dispatch(startNavigation(routeId, position));
+  }, [dispatch, position]);
+
+  const handleStopRoute = useCallback(() => {
+    dispatch(stopNavigation());
   }, [dispatch]);
 
   const handleWaypointClick = useCallback((waypoint: Waypoint) => {
@@ -165,9 +163,9 @@ export const RoutesPage: React.FC = () => {
                         {route.waypoints.length} waypoints
                       </div>
                     </div>
-                    {activeRouteId === route.id && (
+                    {isNavigating && activeRouteId === route.id && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                        Active
+                        Navigating
                       </span>
                     )}
                   </div>
@@ -178,6 +176,30 @@ export const RoutesPage: React.FC = () => {
                   </div>
 
                   <div className="flex gap-1">
+                    {isNavigating && activeRouteId === route.id ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStopRoute();
+                        }}
+                        aria-label={`Stop navigating ${route.name}`}
+                        className="flex-1 px-2 py-1 text-xs bg-gray-700 text-white rounded hover:bg-gray-800"
+                      >
+                        Stop
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartRoute(route.id);
+                        }}
+                        disabled={route.waypoints.length < 2}
+                        aria-label={`Navigate ${route.name}`}
+                        className="flex-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        Navigate
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

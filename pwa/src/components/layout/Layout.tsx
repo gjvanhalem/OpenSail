@@ -5,6 +5,7 @@ import { Navigation } from './Navigation';
 import { Sidebar } from './Sidebar';
 import { AlertBanner } from '@/components/alerts/AlertBanner';
 import { useAlertMonitor } from '@/hooks/useAlertMonitor';
+import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
   const fullscreenMode = useAppSelector((state) => state.ui.fullscreenMode);
   useAlertMonitor();
+  useRouteNavigation();
 
   // Handle responsive behavior - close sidebar on mobile by default
   useEffect(() => {

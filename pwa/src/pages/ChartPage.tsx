@@ -14,6 +14,7 @@ import {
   resolveChartViewState,
   vesselDirection,
 } from '@/components/chart';
+import { RouteNavigationControl } from '@/components/routes';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { RootState } from '@/store';
 import type { AISTarget, ChartRotation } from '@/models';
@@ -150,6 +151,8 @@ export const ChartPage: React.FC = () => {
             </button>
           ))}
         </div>
+
+        <RouteNavigationControl />
 
         {/* Download button */}
         {!showRegionSelector && (

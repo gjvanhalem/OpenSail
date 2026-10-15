@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { settingsRepository, type AppSettings } from '@/database/repositories/SettingsRepository';
 import { DEFAULT_ALERT_THRESHOLDS } from './alertsSlice';
 import { DEFAULT_PANEL_LAYOUT } from '@/components/instruments/panelLayout';
+import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
 export interface SettingsState {
   settings: AppSettings;
@@ -29,6 +30,7 @@ const initialState: SettingsState = {
     positionSource: 'auto',
     cogSogSource: 'auto',
     headingSource: 'auto',
+    arrivalRadius: DEFAULT_ARRIVAL_RADIUS_NM,
     anchorWatchRadius: 50,
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,

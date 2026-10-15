@@ -1,12 +1,16 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { Route, Waypoint } from '@/models';
+import type { Position, Route, Waypoint } from '@/models';
 
 export interface RoutesState {
   routes: Route[];
   activeRouteId: string | null;
   activeWaypointIndex: number;
   isNavigating: boolean;
+  /** Where the boat was when navigation started: the start of the first leg */
+  navigationStart: Position | null;
+  /** The last waypoint of the active route has been reached */
+  routeCompleted: boolean;
 }
 
 const initialState: RoutesState = {
@@ -14,6 +18,8 @@ const initialState: RoutesState = {
   activeRouteId: null,
   activeWaypointIndex: 0,
   isNavigating: false,
+  navigationStart: null,
+  routeCompleted: false,
 };
 
 const routesSlice = createSlice({
@@ -35,20 +41,41 @@ const routesSlice = createSlice({
         state.activeRouteId = null;
         state.isNavigating = false;
         state.activeWaypointIndex = 0;
+        state.navigationStart = null;
+        state.routeCompleted = false;
       }
     },
     setActiveRoute: (state, action: PayloadAction<string | null>) => {
+      // Selecting another route ends navigation along the current one
+      if (state.isNavigating && action.payload !== state.activeRouteId) {
+        state.isNavigating = false;
+        state.navigationStart = null;
+      }
       state.activeRouteId = action.payload;
       state.activeWaypointIndex = 0;
+      state.routeCompleted = false;
     },
-    startNavigation: (state, action: PayloadAction<string>) => {
-      state.activeRouteId = action.payload;
-      state.activeWaypointIndex = 0;
-      state.isNavigating = true;
+    startNavigation: {
+      reducer: (
+        state,
+        action: PayloadAction<{ routeId: string; from: Position | null }>
+      ) => {
+        state.activeRouteId = action.payload.routeId;
+        state.activeWaypointIndex = 0;
+        state.isNavigating = true;
+        state.navigationStart = action.payload.from;
+        state.routeCompleted = false;
+      },
+      /** `from`: the boat's position now, where the first leg starts */
+      prepare: (routeId: string, from: Position | null = null) => ({
+        payload: { routeId, from },
+      }),
     },
     stopNavigation: (state) => {
       state.isNavigating = false;
       state.activeWaypointIndex = 0;
+      state.navigationStart = null;
+      state.routeCompleted = false;
     },
     advanceToNextWaypoint: (state) => {
       const activeRoute = state.routes.find((r) => r.id === state.activeRouteId);
@@ -57,6 +84,7 @@ const routesSlice = createSlice({
       } else {
         // Reached end of route
         state.isNavigating = false;
+        state.routeCompleted = activeRoute !== undefined;
       }
     },
     setActiveWaypointIndex: (state, action: PayloadAction<number>) => {
