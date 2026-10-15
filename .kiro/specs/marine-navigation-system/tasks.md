@@ -38,13 +38,14 @@ The protocol parsers, services, database, and UI components exist but are not co
   - _Requirements: 1.2, 1.5_
 
 - [ ] 23. Wire up instrument services to Redux
-- [ ] 23.1 Connect InstrumentService to Redux store
+- [x] 23.1 Connect InstrumentService to Redux store
   - Dispatch instrument data to Redux slices
   - Update instrumentsSlice with real-time data
   - Connect depth, wind, speed, heading to Redux
+  - Route NMEA 0183 GGA/RMC/GLL/VTG/HDG/HDT and NMEA 2000 PGNs 129025/129026/127250 into navigationSlice, with a GPS / instrument / auto source choice per value
   - _Requirements: 3.4, 3.5, 14.3_
 
-- [ ] 23.2 Connect instrument gauges to Redux data
+- [x] 23.2 Connect instrument gauges to Redux data
   - Update SpeedGauge to read from Redux
   - Update DepthGauge to read from Redux
   - Update WindGauge to read from Redux

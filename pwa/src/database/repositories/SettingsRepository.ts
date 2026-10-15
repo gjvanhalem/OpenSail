@@ -1,4 +1,5 @@
 import { db, type Setting } from '../db';
+import type { NavigationSourceChoice } from '@/store/slices/navigationSlice';
 
 // Settings type definitions
 export interface AppSettings {
@@ -18,6 +19,11 @@ export interface AppSettings {
   networkPort: number;
   baudRate: number;
   autoReconnect: boolean;
+
+  // Navigation data sources: GPS, instruments, or auto (instruments while they report)
+  positionSource: NavigationSourceChoice;
+  cogSogSource: NavigationSourceChoice;
+  headingSource: NavigationSourceChoice;
   
   // Alarms
   anchorWatchRadius: number;
@@ -50,6 +56,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   networkPort: 10110,
   baudRate: 4800,
   autoReconnect: true,
+
+  // Navigation data sources
+  positionSource: 'auto',
+  cogSogSource: 'auto',
+  headingSource: 'auto',
   
   // Alarms
   anchorWatchRadius: 50,

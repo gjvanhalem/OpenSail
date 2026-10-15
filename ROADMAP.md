@@ -73,8 +73,8 @@ Basic project setup is also still incomplete: there is no git remote, and the CI
 Spec tasks 23 and 29. Requirements R1.2, R1.5, R3, R10, R14.
 
 - [x] **Make the map follow the vessel:** switch `ChartView` to controlled `viewState`, so auto-center and Recenter actually move the map.
-- [x] **North-up / heading-up toggle (R1.5):** the `ChartOrientation` enum already exists. Connect it to the map's bearing.
-- [ ] **Instrument position and heading:** route NMEA GGA, RMC, GLL and HDG (and the matching NMEA 2000 messages) into `navigationSlice`. Choose a source per value: GPS, instrument, or automatic.
+- [x] **North-up / heading-up toggle (R1.5):** the `ChartRotation` enum already exists. Connect it to the map's bearing.
+- [x] **Instrument position and heading:** route NMEA GGA, RMC, GLL and HDG (and the matching NMEA 2000 messages) into `navigationSlice`. Choose a source per value: GPS, instrument, or automatic.
 - [ ] **Protocol stub (R10):** a configurable simulator that generates NMEA0183, NMEA 2000 and SeaTalk data. It must go through the same connection interface as real hardware (fill in the `'stub'` `ConnectionType`). Makes development and end-to-end tests possible without a boat.
 - [ ] **Units (R14.4):** apply the `units` setting (nautical, metric or imperial) in every gauge and readout.
 - [ ] **Threshold alerts (R14.5):** user-set minimum and maximum per value (for example a shallow-depth alarm), with visual alerts.
