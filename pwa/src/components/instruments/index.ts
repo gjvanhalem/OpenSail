@@ -6,4 +6,4 @@ export { HeadingCompass } from './HeadingCompass';
 export { PositionDisplay } from './PositionDisplay';
 export { StubControls } from './StubControls';
 export { InstrumentPanel } from './InstrumentPanel';
-export type { GaugeType, GaugeConfig } from './InstrumentPanel';
+export type { GaugeType, GaugeSize, GaugeLayoutItem, PanelLayout } from './panelLayout';
