@@ -50,9 +50,12 @@ test.describe('Chart follows the vessel', () => {
 
     const map = await page.locator('.maplibregl-canvas').boundingBox();
     if (!map) throw new Error('map not on screen');
-    await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+    // Start the drag away from the center, where the vessel marker sits
+    const x = map.x + map.width / 2 + 120;
+    const y = map.y + map.height / 2 + 90;
+    await page.mouse.move(x, y);
     await page.mouse.down();
-    await page.mouse.move(map.x + map.width / 2 - 200, map.y + map.height / 2 - 150, { steps: 10 });
+    await page.mouse.move(x - 200, y - 150, { steps: 10 });
     await page.mouse.up();
 
     await expect(page.getByRole('button', { name: 'Recenter' })).toBeVisible();
