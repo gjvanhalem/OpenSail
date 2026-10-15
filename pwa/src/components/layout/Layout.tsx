@@ -8,7 +8,7 @@ import { AlarmOverlay } from '@/components/alerts/AlarmOverlay';
 import { useAlertMonitor } from '@/hooks/useAlertMonitor';
 import { useAlarmOutput } from '@/hooks/useAlarmOutput';
 import { useSafetyMonitor } from '@/hooks/useSafetyMonitor';
-import { MobButton, MobPanel } from '@/components/safety';
+import { AnchorWatchPanel, MobButton, MobPanel } from '@/components/safety';
 import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 
 interface LayoutProps {
@@ -63,6 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <AlertBanner />
       <AlarmOverlay />
       <MobPanel />
+      <AnchorWatchPanel />
       <MobButton />
 
       <div className="flex flex-1 overflow-hidden">
