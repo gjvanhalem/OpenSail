@@ -124,6 +124,8 @@ With no budget, coastal depth contours have to come from free bathymetry instead
 - **EMODnet Bathymetry**: a free, open European digital terrain model of the seabed that covers the North Sea. It can be turned into depth contours with GDAL (`gdal_contour`) and then into vector tiles.
 - **Rijkswaterstaat open bathymetry data** for the coastal zone, Wadden Sea and Zeeland (for example the "vaklodingen" surveys). It's more detailed near the coast, but may be updated less often.
 
+**Spike result (2026-10-15):** see [`coastal-depth-spike.md`](coastal-depth-spike.md). The Waddenzee and Zeeland have free official RWS ENCs with depths; for the rest of the coast the recommendation is the RWS 20 m coastal grid.
+
 Both are survey or model data, not official charts. The coastal hazard warnings (R2.5) built on them must carry the same "not for navigation" disclaimer and should be described as advisory. Spend a short spike on this at the start of the Phase 3 depth work.
 
 ### Effects on the requirements
