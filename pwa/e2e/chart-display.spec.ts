@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('Chart Display', () => {
   test.beforeEach(async ({ page }) => {
@@ -7,7 +7,7 @@ test.describe('Chart Display', () => {
 
   test('should display map container', async ({ page }) => {
     // Wait for map to load
-    const mapContainer = page.locator('.mapboxgl-map, [class*="map"]').first();
+    const mapContainer = page.locator('.maplibregl-map, [class*="map"]').first();
     await expect(mapContainer).toBeVisible({ timeout: 10000 });
   });
 
@@ -18,7 +18,7 @@ test.describe('Chart Display', () => {
     const initialCenter = await center();
 
     // Pan the map
-    const canvas = await page.locator('.mapboxgl-canvas').boundingBox();
+    const canvas = await page.locator('.maplibregl-canvas').boundingBox();
     if (!canvas) throw new Error('map not on screen');
     await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
     await page.mouse.down();
@@ -29,8 +29,8 @@ test.describe('Chart Display', () => {
   });
 
   test('should have zoom controls', async ({ page }) => {
-    await expect(page.locator('.mapboxgl-ctrl-zoom-in')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('.mapboxgl-ctrl-zoom-out')).toBeVisible();
+    await expect(page.locator('.maplibregl-ctrl-zoom-in')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.maplibregl-ctrl-zoom-out')).toBeVisible();
   });
 
   test('should display vessel position marker when available', async ({ page }) => {

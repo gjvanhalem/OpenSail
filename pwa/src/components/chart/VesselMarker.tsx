@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Marker } from 'react-map-gl/mapbox';
+import { Marker } from 'react-map-gl/maplibre';
 import type { Position } from '@/models';
 
 export interface VesselMarkerProps {

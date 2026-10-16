@@ -6,14 +6,13 @@ This guide covers deploying the OpenSail PWA to production hosting platforms.
 
 - Node.js 20+ installed
 - Git repository with the PWA code
-- Mapbox API token (get from https://account.mapbox.com/access-tokens/)
 
 ## Environment Variables
 
 The following environment variables must be configured in your hosting platform:
 
 ### Required
-- `VITE_MAPBOX_TOKEN`: Your Mapbox API access token
+None. The map uses free OpenStreetMap tiles from OpenFreeMap and needs no API token.
 
 ### Optional
 - `VITE_API_ENDPOINT`: Backend API endpoint (if using external API)
@@ -44,8 +43,7 @@ Netlify provides automatic HTTPS, global CDN, and continuous deployment.
 
 4. **Set Environment Variables**
    - Go to Site settings → Environment variables
-   - Add `VITE_MAPBOX_TOKEN` with your Mapbox token
-   - Add any other optional variables
+   - Add any optional variables
 
 5. **Deploy**
    - Click "Deploy site"
@@ -99,8 +97,7 @@ Vercel offers edge network deployment with automatic HTTPS.
    - The `vercel.json` file will configure the rest
 
 4. **Set Environment Variables**
-   - Add `VITE_MAPBOX_TOKEN` with your Mapbox token
-   - Add any other optional variables
+   - Add any optional variables
 
 5. **Deploy**
    - Click "Deploy"
@@ -166,8 +163,6 @@ jobs:
           npm ci
       
       - name: Build
-        env:
-          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: |
           cd pwa
           npm run build
@@ -189,11 +184,7 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-3. **Add Secrets**
-   - Go to repository Settings → Secrets and variables → Actions
-   - Add `VITE_MAPBOX_TOKEN` secret
-
-4. **Deploy**
+3. **Deploy**
    - Push to main branch
    - GitHub Actions will build and deploy automatically
 
@@ -219,7 +210,6 @@ Fast global CDN with automatic HTTPS.
    - Root directory: `/`
 
 4. **Set Environment Variables**
-   - Add `VITE_MAPBOX_TOKEN` with your Mapbox token
    - Add `NODE_VERSION` = `20`
 
 5. **Deploy**
@@ -237,9 +227,6 @@ cd pwa
 
 # Install dependencies
 npm install
-
-# Create .env file with your Mapbox token
-echo "VITE_MAPBOX_TOKEN=your_token_here" > .env
 
 # Build for production
 npm run build
@@ -366,7 +353,7 @@ npm run build
 # Verify .env file exists locally
 cat .env
 ```
-**Solution:** Add `VITE_MAPBOX_TOKEN` to hosting platform
+**Solution:** Add the missing optional variables to the hosting platform
 
 ### Service Worker Not Registering
 
@@ -396,12 +383,11 @@ cat .env
 
 ### Map Not Loading
 
-**Issue:** Mapbox map doesn't display
+**Issue:** The chart shows only its background colour
 **Solution:**
-- Verify `VITE_MAPBOX_TOKEN` is set correctly
-- Check browser console for API errors
-- Verify CSP headers allow Mapbox domains
-- Test token at https://account.mapbox.com/
+- Check the browser console and network tab for failed requests to `tiles.openfreemap.org`
+- Verify the CSP headers allow `https://tiles.openfreemap.org`
+- Offline, only downloaded regions show the base map
 
 ## Performance Optimization
 
@@ -452,7 +438,7 @@ All hosting platforms provide automatic HTTPS. Verify:
 
 CSP headers are configured in `netlify.toml` and `vercel.json`:
 - Restricts script sources
-- Allows Mapbox domains
+- Allows the chart tile servers (OpenFreeMap)
 - Prevents XSS attacks
 
 ### Permissions Policy

@@ -253,7 +253,7 @@ While tablets are the primary target, test on phones for backup navigation:
 | Geolocation | ✅ | ✅ | ✅ | All support |
 | Web Serial | ✅ | ❌ | ❌ | Chrome/Edge only |
 | Web Bluetooth | ✅ | Limited | ❌ | Limited on iOS |
-| Mapbox GL JS | ✅ | ✅ | ✅ | All support |
+| MapLibre GL JS | ✅ | ✅ | ✅ | All support |
 | Offline Mode | ✅ | ✅ | ✅ | All support |
 
 ## Testing Tools
@@ -342,9 +342,9 @@ console.table(testReport);
 **Symptoms:** Blank map or error message
 
 **Solutions:**
-1. Verify Mapbox token is set
+1. Verify `tiles.openfreemap.org` is reachable
 2. Check network requests for 401 errors
-3. Verify CSP headers allow Mapbox domains
+3. Verify CSP headers allow `tiles.openfreemap.org`
 4. Check browser console for errors
 5. Test with different network connection
 

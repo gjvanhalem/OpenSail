@@ -20,7 +20,7 @@ export function vesselDirection(heading: number | null, course: number | null): 
 
 /**
  * The bearing the chart shows for an orientation: 0 for north-up, the vessel's
- * direction for heading-up (a mapbox bearing is the compass direction at the
+ * direction for heading-up (a map bearing is the compass direction at the
  * top of the screen). Null when heading-up has no direction to use yet.
  */
 export function chartBearing(

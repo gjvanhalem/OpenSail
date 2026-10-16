@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('Performance Testing', () => {
   test.describe('Load Time Metrics', () => {
@@ -62,7 +62,7 @@ test.describe('Performance Testing', () => {
       await page.click('a[href="/chart"]');
       
       // Wait for map to be visible
-      await page.waitForSelector('.mapboxgl-canvas', { timeout: 5000 });
+      await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
       
       const chartLoadTime = Date.now() - startTime;
       
@@ -125,7 +125,7 @@ test.describe('Performance Testing', () => {
       await page.goto('/chart');
       
       // Wait for map to load
-      await page.waitForSelector('.mapboxgl-canvas', { timeout: 5000 });
+      await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
       
       // Start measuring FPS
       const fpsData = await page.evaluate(async () => {
@@ -167,7 +167,7 @@ test.describe('Performance Testing', () => {
       await page.goto('/chart');
       
       // Wait for map to load
-      const canvas = await page.waitForSelector('.mapboxgl-canvas', { timeout: 5000 });
+      const canvas = await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
       
       // Get canvas bounding box
       const box = await canvas.boundingBox();
@@ -217,7 +217,7 @@ test.describe('Performance Testing', () => {
       await page.goto('/chart');
       
       // Wait for map to load
-      await page.waitForSelector('.mapboxgl-canvas', { timeout: 5000 });
+      await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
       
       // Measure FPS during zoom
       const performanceMetrics = await page.evaluate(async () => {
@@ -253,7 +253,7 @@ test.describe('Performance Testing', () => {
       });
       
       // Trigger zoom
-      const canvas = page.locator('.mapboxgl-canvas');
+      const canvas = page.locator('.maplibregl-canvas');
       await canvas.click();
       await page.keyboard.press('Equal'); // Zoom in
       await page.keyboard.press('Equal');
@@ -347,7 +347,7 @@ test.describe('Performance Testing', () => {
       
       // Navigate to chart (should lazy load)
       await page.goto('/chart');
-      await page.waitForSelector('.mapboxgl-canvas', { timeout: 5000 });
+      await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
       
       // Get resources after navigation
       const afterResources = await page.evaluate(() => {

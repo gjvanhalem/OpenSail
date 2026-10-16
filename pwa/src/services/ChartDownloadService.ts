@@ -9,8 +9,7 @@ import {
   type CachedRegion,
 } from '@/store/slices/chartCacheSlice';
 import { errorHandler } from './ErrorHandler';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+import { BASE_MAP_TILEJSON_URL } from '@/components/chart/chartSources';
 
 export interface DownloadOptions {
   regionId: string;
@@ -22,6 +21,28 @@ export interface DownloadOptions {
 
 export class ChartDownloadService {
   private activeDownloads = new Map<string, AbortController>();
+  private tileUrlTemplate: Promise<string> | null = null;
+
+  /** The base map's tile URL template, read from its TileJSON (it changes with each build) */
+  private getTileUrlTemplate(signal: AbortSignal): Promise<string> {
+    if (!this.tileUrlTemplate) {
+      this.tileUrlTemplate = fetch(BASE_MAP_TILEJSON_URL, { signal })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json() as Promise<{ tiles?: string[] }>;
+        })
+        .then((tileJson) => {
+          const template = tileJson.tiles?.[0];
+          if (!template) throw new Error('Base map TileJSON has no tile URL');
+          return template;
+        })
+        .catch((error) => {
+          this.tileUrlTemplate = null;
+          throw error;
+        });
+    }
+    return this.tileUrlTemplate;
+  }
 
   // Calculate total number of tiles for a region
   calculateTileCount(bounds: Bounds, zoomLevels: number[]): number {
@@ -192,10 +213,11 @@ export class ChartDownloadService {
     y: number,
     signal: AbortSignal
   ): Promise<Blob | null> {
-    // Use Mapbox vector tiles
-    const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/${z}/${x}/${y}.mvt?access_token=${MAPBOX_TOKEN}`;
-
     try {
+      const url = (await this.getTileUrlTemplate(signal))
+        .replace('{z}', String(z))
+        .replace('{x}', String(x))
+        .replace('{y}', String(y));
       const response = await fetch(url, { signal });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

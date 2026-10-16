@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('PWA Installation', () => {
   test('should have valid web app manifest', async ({ page }) => {

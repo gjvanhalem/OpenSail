@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('Navigation sources', () => {
   test('shows GPS as the source while only GPS reports', async ({ page }) => {

@@ -108,7 +108,7 @@ Requirements R1.1, R1.3, R1.4, R2.5, R5.1–5.2, R15.
 
 The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`](docs/chart-source-decision.md#decision). In short: MapLibre on a free base map, OpenSeaMap seamarks with a "not for navigation" disclaimer, and Rijkswaterstaat inland ENCs. No commercial charts.
 
-- [ ] **Switch from mapbox-gl to MapLibre GL JS** (`react-map-gl/maplibre`) on a free OpenStreetMap-based base map, so no Mapbox token is needed. This is the first PR.
+- [x] **Switch from mapbox-gl to MapLibre GL JS** (`react-map-gl/maplibre`) on a free OpenStreetMap-based base map, so no Mapbox token is needed. This is the first PR. *Done: OpenFreeMap vector tiles with a chart-coloured style built in code; e2e tests stub the tile servers.*
 - [ ] **OpenSeaMap seamark overlay (R1.4):** buoys, beacons and lights, inland and coastal, with attribution and a visible "not for navigation" disclaimer. Agree bulk-download use with the OpenSeaMap team, or mirror the tiles.
 - [ ] **Rijkswaterstaat inland ENCs (CC-0) as vector tiles:** an S-57 → GDAL → tippecanoe → PMTiles pipeline, an S-52-like style (depth areas, contours, hazards) and per-region archives with their edition date.
 - [ ] **Spike: coastal depth data.** Official Dutch coastal ENCs are commercial, and there is no budget. Check free bathymetry (EMODnet Bathymetry, Rijkswaterstaat coastal surveys / "vaklodingen") for licence, resolution and update frequency, then turn the best one into depth contours. Coastal depths are advisory only.

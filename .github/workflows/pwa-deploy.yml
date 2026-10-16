@@ -65,15 +65,11 @@ jobs:
           npx playwright install --with-deps chromium
       
       - name: Build application
-        env:
-          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN || 'pk.test.placeholder' }}
         run: |
           cd pwa
           npm run build
       
       - name: Run E2E tests
-        env:
-          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN || 'pk.test.placeholder' }}
         run: |
           cd pwa
           npm run test:e2e:chromium

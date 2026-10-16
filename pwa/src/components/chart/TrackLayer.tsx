@@ -1,5 +1,5 @@
 import React from 'react';
-import { Source, Layer } from 'react-map-gl/mapbox';
+import { Source, Layer } from 'react-map-gl/maplibre';
 import type { TrackPoint } from '@/database/db';
 import { trackColor } from '@/utils/trackColors';
 

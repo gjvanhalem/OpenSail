@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import { lShapedTrack, seedTrack } from './helpers/tracks';
 
 test.describe('Tracks: colours and converting to a route', () => {

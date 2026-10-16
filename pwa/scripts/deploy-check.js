@@ -171,11 +171,10 @@ if (fs.existsSync(indexPath)) {
   const indexContent = fs.readFileSync(indexPath, 'utf8');
   
   // Check for placeholder tokens (indicates missing env vars)
-  if (indexContent.includes('your_mapbox_token_here') || 
-      indexContent.includes('undefined') ||
+  if (indexContent.includes('undefined') ||
       indexContent.includes('VITE_')) {
     console.warn('  ⚠️  WARNING: Possible missing environment variables detected');
-    console.warn('     Make sure VITE_MAPBOX_TOKEN is set before building');
+    console.warn('     Make sure the optional VITE_ variables are set before building');
     hasWarnings = true;
   } else {
     console.log('  ✓ No placeholder tokens detected');

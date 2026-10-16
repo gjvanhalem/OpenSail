@@ -1,9 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /**
  * The chart follows the vessel. These tests use the GPS simulator and compare
  * the vessel marker with the map's center on screen, so they don't need map
- * tiles (CI runs with a placeholder Mapbox token).
+ * tiles (e2e tests stub the tile servers).
  */
 
 async function startSimulator(page: Page) {
@@ -20,7 +21,7 @@ async function startSimulator(page: Page) {
 /** Distance in pixels between the vessel marker and the center of the map */
 async function markerOffsetFromCenter(page: Page): Promise<number> {
   const marker = await page.getByTestId('vessel-marker').boundingBox();
-  const map = await page.locator('.mapboxgl-map').boundingBox();
+  const map = await page.locator('.maplibregl-map').boundingBox();
   if (!marker || !map) throw new Error('vessel marker or map not on screen');
   const dx = marker.x + marker.width / 2 - (map.x + map.width / 2);
   const dy = marker.y + marker.height / 2 - (map.y + map.height / 2);
@@ -47,7 +48,7 @@ test.describe('Chart follows the vessel', () => {
     await startSimulator(page);
     await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
 
-    const map = await page.locator('.mapboxgl-canvas').boundingBox();
+    const map = await page.locator('.maplibregl-canvas').boundingBox();
     if (!map) throw new Error('map not on screen');
     await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
     await page.mouse.down();

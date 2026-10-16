@@ -25,12 +25,6 @@ See the [User Guide](USER_GUIDE.md) for detailed instructions.
 # Install dependencies
 npm install
 
-# Copy environment template
-cp .env.example .env
-
-# Add your Mapbox token to .env
-# VITE_MAPBOX_TOKEN=your_token_here
-
 # Start development server
 npm run dev
 ```
@@ -42,7 +36,7 @@ See the [Developer Guide](DEVELOPER_GUIDE.md) for complete setup instructions.
 - **React 19.2** with TypeScript 5.9
 - **Vite 7.3** for fast development and optimized builds
 - **Redux Toolkit 2.2** for state management
-- **Mapbox GL JS 3.x** for vector maps
+- **MapLibre GL JS** (via `react-map-gl/maplibre`) for vector maps, on free OpenStreetMap tiles from OpenFreeMap
 - **Dexie.js 4.x** for IndexedDB storage
 - **Tailwind CSS 4.2** for responsive styling
 - **Workbox 7.x** for PWA/Service Worker
@@ -117,7 +111,7 @@ npm run test:e2e:ui      # Run E2E tests in UI mode
 ## 🚢 Features
 
 - **Offline-First**: Full functionality without internet connectivity
-- **Chart Display**: Vector nautical charts with Mapbox GL JS
+- **Chart Display**: Vector charts with MapLibre GL JS (no API token needed)
 - **Route Planning**: Create and navigate multi-waypoint routes
 - **Track Recording**: Record and export vessel tracks (GPX format)
 - **Instrument Integration**: Connect via USB (Web Serial) or Bluetooth
@@ -131,7 +125,6 @@ npm run test:e2e:ui      # Run E2E tests in UI mode
 Create a `.env` file in the `pwa/` directory:
 
 ```env
-VITE_MAPBOX_TOKEN=your_mapbox_token_here
 VITE_API_ENDPOINT=http://localhost:3000
 VITE_ENVIRONMENT=development
 ```

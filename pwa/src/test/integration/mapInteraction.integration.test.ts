@@ -5,8 +5,8 @@ import routesReducer from '@/store/slices/routesSlice';
 import aisReducer from '@/store/slices/aisSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
-// Mock mapbox-gl
-vi.mock('mapbox-gl', () => ({
+// Mock maplibre-gl
+vi.mock('maplibre-gl', () => ({
   default: {
     Map: vi.fn(),
     Marker: vi.fn(),
@@ -46,7 +46,7 @@ describe('Map Interaction Integration Tests', () => {
           zoom: 10,
         },
         style: { width: '100%', height: '100%' },
-        mapStyle: 'mapbox://styles/mapbox/streets-v11',
+        mapStyle: 'https://tiles.openfreemap.org/styles/liberty',
       };
 
       expect(mapProps.initialViewState.longitude).toBe(4.8);

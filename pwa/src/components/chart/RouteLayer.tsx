@@ -1,5 +1,5 @@
 import React from 'react';
-import { Source, Layer, Marker } from 'react-map-gl/mapbox';
+import { Source, Layer, Marker } from 'react-map-gl/maplibre';
 import type { Position, Route } from '@/models';
 
 /** The leg being navigated: from `from` to waypoint `waypointIndex` of route `routeId` */

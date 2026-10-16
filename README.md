@@ -11,7 +11,7 @@ As a Progressive Web App (PWA), OpenSail works on any device with a modern brows
 ## Key Features
 
 - **Offline-First Navigation**: Full functionality without internet connectivity
-- **Vector Nautical Charts**: High-quality chart display powered by Mapbox GL JS
+- **Vector Nautical Charts**: Chart display powered by MapLibre GL JS on free OpenStreetMap tiles (no API token needed)
 - **Route Planning**: Create and navigate multi-waypoint routes with real-time guidance
 - **Track Recording**: Record and export vessel tracks in GPX format
 - **Instrument Integration**: Connect marine instruments via USB or Bluetooth
@@ -25,7 +25,7 @@ As a Progressive Web App (PWA), OpenSail works on any device with a modern brows
 - **React 19** with TypeScript for type-safe UI development
 - **Vite 7** for fast development and optimized builds
 - **Redux Toolkit** for centralized state management
-- **Mapbox GL JS** for WebGL-based vector map rendering
+- **MapLibre GL JS** for WebGL-based vector map rendering
 - **Dexie.js** for IndexedDB storage (routes, tracks, charts)
 - **Tailwind CSS** for responsive, mobile-first design
 - **Workbox** for Service Worker and offline functionality
@@ -51,12 +51,6 @@ cd pwa
 
 # Install dependencies
 npm install
-
-# Copy environment template
-cp .env.example .env
-
-# Add your Mapbox token to .env
-# VITE_MAPBOX_TOKEN=your_token_here
 
 # Start development server
 npm run dev

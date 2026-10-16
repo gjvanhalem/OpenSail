@@ -28,7 +28,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
     "dexie": "^4.3.0",
-    "mapbox-gl": "^3.18.1",
+    "maplibre-gl": "^5.24.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-map-gl": "^8.1.0",
@@ -37,12 +37,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@maplibre/maplibre-gl-style-spec": "^24.10.0",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

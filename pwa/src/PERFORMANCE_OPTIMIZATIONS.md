@@ -19,7 +19,7 @@ This reduces the initial bundle size and improves Time to Interactive (TTI).
 Large dependencies are split into separate chunks:
 - `vendor-react`: React, React DOM, React Router
 - `vendor-redux`: Redux Toolkit, React Redux
-- `vendor-map`: Mapbox GL JS, React Map GL
+- `vendor-map`: MapLibre GL JS
 - `vendor-db`: Dexie, Dexie React Hooks
 - `protocols`: NMEA parsers
 - `connections`: Serial/Bluetooth connections

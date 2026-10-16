@@ -5,9 +5,10 @@ import Map, {
   type MapMouseEvent,
   type MapRef,
   type ViewStateChangeEvent,
-} from 'react-map-gl/mapbox';
-import type { Map as MapboxMap } from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+} from 'react-map-gl/maplibre';
+import type { Map as MapLibreMap } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { createBaseMapStyle } from './baseMapStyle';
 
 export interface Viewport {
   latitude: number;
@@ -42,12 +43,10 @@ export interface ChartViewProps {
   children?: React.ReactNode;
 }
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
-
 declare global {
   interface Window {
-    /** The chart's mapbox-gl map, exposed for end-to-end tests */
-    __OPENSAIL_MAP__?: MapboxMap;
+    /** The chart's MapLibre map, exposed for end-to-end tests */
+    __OPENSAIL_MAP__?: MapLibreMap;
   }
 }
 
@@ -84,8 +83,8 @@ export const ChartView: React.FC<ChartViewProps> = ({
     [onUserPan]
   );
 
-  // On render rather than load: load waits for the style's tiles, which never
-  // arrive without a valid Mapbox token
+  // On render rather than load: load waits for the base map's tiles, which
+  // never arrive offline or when the tile server can't be reached
   const handleRender = useCallback((evt: MapEvent) => {
     if (window.__OPENSAIL_MAP__ !== evt.target) window.__OPENSAIL_MAP__ = evt.target;
   }, []);
@@ -106,86 +105,12 @@ export const ChartView: React.FC<ChartViewProps> = ({
     [onClick]
   );
 
-  // Optimized map style for performance
-  const mapStyle = useMemo(
-    () => ({
-      version: 8 as const,
-      sources: {
-        'mapbox-streets': {
-          type: 'vector' as const,
-          url: 'mapbox://mapbox.mapbox-streets-v8',
-        },
-      },
-      layers: [
-        {
-          id: 'background',
-          type: 'background' as const,
-          paint: {
-            'background-color': '#d4e6f1',
-          },
-        },
-        {
-          id: 'water',
-          type: 'fill' as const,
-          source: 'mapbox-streets',
-          'source-layer': 'water',
-          paint: {
-            'fill-color': '#a8dadc',
-          },
-        },
-        {
-          id: 'land',
-          type: 'fill' as const,
-          source: 'mapbox-streets',
-          'source-layer': 'landuse',
-          paint: {
-            'fill-color': '#f1faee',
-          },
-        },
-        {
-          id: 'roads',
-          type: 'line' as const,
-          source: 'mapbox-streets',
-          'source-layer': 'road',
-          paint: {
-            'line-color': '#457b9d',
-            'line-width': 1,
-          },
-        },
-      ],
-    }),
-    []
-  );
+  const mapStyle = useMemo(() => createBaseMapStyle(), []);
 
   return (
     <div className="w-full h-full relative">
-      {!MAPBOX_TOKEN && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
-          <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Mapbox Token Missing</h2>
-            <p className="text-gray-700 mb-4">
-              The Mapbox API token is not configured. Please add your token to the .env file:
-            </p>
-            <code className="block bg-gray-100 p-3 rounded text-sm mb-4">
-              VITE_MAPBOX_TOKEN=your_token_here
-            </code>
-            <p className="text-sm text-gray-600">
-              Get a free token at{' '}
-              <a
-                href="https://account.mapbox.com/access-tokens/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                mapbox.com
-              </a>
-            </p>
-          </div>
-        </div>
-      )}
       <Map
         ref={mapRef}
-        mapboxAccessToken={MAPBOX_TOKEN}
         {...(viewState
           ? { ...viewState }
           : {
