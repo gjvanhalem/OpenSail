@@ -1,4 +1,5 @@
 import { test, expect, serveChartFixtures } from './fixtures/test';
+import { downloadVisibleRegion, showStavoren } from './helpers/charts';
 import type { Page } from '@playwright/test';
 
 // Wait until the service worker is active, so a reload is answered from the precache
@@ -97,32 +98,15 @@ test.describe('Offline Functionality', () => {
     await serveChartFixtures(context);
     await page.goto('/chart');
     await waitForServiceWorker(page);
-    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
-
-    // Frame Stavoren, where the ENC fixture has depth areas
-    const showStavoren = (zoom: number) =>
-      page.evaluate((z) => window.__OPENSAIL_MAP__!.jumpTo({ center: [5.3, 52.88], zoom: z }), zoom);
-    await showStavoren(12);
-
-    // Download the visible area at zoom levels 11 to 13
-    await page.getByRole('button', { name: 'Offline Charts' }).click();
-    await page.getByRole('button', { name: 'Select Region on Map' }).click();
-    await page.getByRole('button', { name: 'Select This Area' }).click();
-    await page.getByLabel('Region Name').fill('Stavoren');
-    for (const level of [8, 9, 10, 14]) {
-      await page.getByRole('button', { name: `Zoom level ${level}`, exact: true }).click();
-    }
-    await expect(page.getByTestId('download-includes')).toContainText('Stavoren (e2e fixture)');
-    await page.getByRole('button', { name: 'Start Download' }).click();
-    await expect(page.getByTestId('cached-region').filter({ hasText: 'Stavoren' })).toBeVisible({ timeout: 30000 });
+    await showStavoren(page);
+    await downloadVisibleRegion(page, 'Stavoren');
     await page.getByRole('button', { name: '✕' }).click();
 
     // Offline, after a reload, the app still starts and the chart comes from IndexedDB
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByRole('status').filter({ hasText: /offline/i })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
-    await showStavoren(12);
+    await showStavoren(page);
 
     const depthAreas = () =>
       page.evaluate(

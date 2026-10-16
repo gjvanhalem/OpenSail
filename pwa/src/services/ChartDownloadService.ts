@@ -38,6 +38,8 @@ export interface DownloadOptions {
   zoomLevels: number[];
   /** ENC regions to include; defaults to the catalog's regions that overlap the bounds */
   encRegions?: ChartRegionManifest[];
+  /** Sources to download again even where tiles are stored (a chart update) */
+  refreshSources?: string[];
 }
 
 /** One tile (or glyph range) to download */
@@ -159,7 +161,8 @@ export class ChartDownloadService {
         })
       );
 
-      const { done, failed } = await this.runJobs(jobs, regionId, signal, (downloaded, failures) =>
+      const refresh = new Set(options.refreshSources ?? []);
+      const { done, failed } = await this.runJobs(jobs, regionId, signal, refresh, (downloaded, failures) =>
         dispatch(updateDownloadProgress({ regionId, downloadedTiles: downloaded, failedTiles: failures }))
       );
       dispatch(updateDownloadProgress({ regionId, downloadedTiles: done, failedTiles: failed }));
@@ -219,6 +222,27 @@ export class ChartDownloadService {
     }
   }
 
+  /**
+   * Update a downloaded region to the catalog's current ENC editions (R15.2):
+   * ENC tiles are downloaded again, base map and seamark tiles are kept
+   */
+  async updateRegion(regionId: string, dispatch: AppDispatch): Promise<void> {
+    const region = await tileCache.getRegion(regionId);
+    if (!region) throw new Error(`No downloaded region ${regionId}`);
+    const encRegions = await this.encRegionsFor(region.bounds);
+    await this.downloadRegion(
+      {
+        regionId,
+        regionName: region.name,
+        bounds: region.bounds,
+        zoomLevels: region.zoomLevels,
+        encRegions,
+        refreshSources: encRegions.map((enc) => encSourceId(enc.id)),
+      },
+      dispatch
+    );
+  }
+
   cancelDownload(regionId: string): void {
     const controller = this.activeDownloads.get(regionId);
     if (controller) {
@@ -255,6 +279,7 @@ export class ChartDownloadService {
     jobs: DownloadJob[],
     regionId: string,
     signal: AbortSignal,
+    refresh: Set<string>,
     onProgress: (done: number, failed: number) => void
   ): Promise<{ done: number; failed: number }> {
     let done = 0;
@@ -285,7 +310,9 @@ export class ChartDownloadService {
     for (let start = 0; start < jobs.length; start += 200) {
       if (signal.aborted) throw abortError();
       const chunk = jobs.slice(start, start + 200);
-      const existing = await tileCache.existingKeys(chunk.map((job) => job.key));
+      const existing = await tileCache.existingKeys(
+        chunk.filter((job) => !refresh.has(job.source)).map((job) => job.key)
+      );
       await tileCache.addRegionToTiles(Array.from(existing), regionId);
       done += existing.size;
       const todo = chunk.filter((job) => !existing.has(job.key));

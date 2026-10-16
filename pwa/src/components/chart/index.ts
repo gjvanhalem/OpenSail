@@ -21,3 +21,5 @@ export { useChartCatalog, mergeRegions } from './useChartCatalog';
 export { ConnectionStatus } from './ConnectionStatus';
 export { createEncLayers, DEFAULT_ENC_DEPTHS, ENC_COLORS, ENC_LAYER_PREFIX, encSourceId } from './encStyle';
 export type { EncDepthSettings } from './encStyle';
+export { ChartRegionList } from './ChartRegionList';
+export { ChartUpdateNotice } from './ChartUpdateNotice';

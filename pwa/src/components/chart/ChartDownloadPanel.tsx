@@ -2,7 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store';
 import { chartDownloadService } from '@/services/ChartDownloadService';
-import { loadCacheStats, clearRegion, clearAllCache } from '@/store/slices/chartCacheSlice';
+import {
+  loadCacheStats,
+  clearRegion,
+  clearAllCache,
+  checkForChartUpdates,
+} from '@/store/slices/chartCacheSlice';
+import { ChartRegionList } from './ChartRegionList';
+import { formatBytes } from './formatBytes';
+import { useOnlineStatus } from './useOnlineStatus';
 import type { Bounds } from '@/database/services/TileCache';
 import type { ChartRegionManifest } from '@/services/chartCatalog';
 
@@ -18,8 +26,9 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
   onSelectNewRegion,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { cachedRegions, activeDownloads, totalCacheSize, totalTileCount, storageQuota } = 
+  const { cachedRegions, activeDownloads, totalCacheSize, totalTileCount, storageQuota, persistentStorage, updates } =
     useSelector((state: RootState) => state.chartCache);
+  const online = useOnlineStatus();
 
   const [regionName, setRegionName] = useState('');
   const [selectedZoomLevels, setSelectedZoomLevels] = useState<number[]>([8, 9, 10, 11, 12, 13, 14]);
@@ -52,7 +61,8 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
 
   useEffect(() => {
     dispatch(loadCacheStats());
-  }, [dispatch]);
+    if (online) dispatch(checkForChartUpdates());
+  }, [dispatch, online]);
 
   const handleDownload = async () => {
     if (!selectedBounds || !regionName.trim()) return;
@@ -74,8 +84,14 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
   };
 
   const handleClearRegion = async (regionId: string) => {
-    if (confirm('Are you sure you want to delete this cached region?')) {
-      await dispatch(clearRegion(regionId));
+    await dispatch(clearRegion(regionId));
+    dispatch(loadCacheStats());
+  };
+
+  const handleUpdateRegion = async (regionId: string) => {
+    try {
+      await chartDownloadService.updateRegion(regionId, dispatch);
+    } finally {
       dispatch(loadCacheStats());
     }
   };
@@ -97,14 +113,6 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
         ? prev.filter(l => l !== level)
         : [...prev, level].sort((a, b) => a - b)
     );
-  };
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   };
 
   return (
@@ -144,7 +152,12 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
                 />
               </div>
               <div className="text-xs text-gray-600 text-center">
-                {storageQuota.percentUsed.toFixed(1)}% used
+                {storageQuota.percentUsed.toFixed(1)}% of {formatBytes(storageQuota.quota)} browser storage used
+              </div>
+              <div className="text-xs text-gray-600" data-testid="storage-persistence">
+                {persistentStorage
+                  ? 'Downloaded charts are kept: the browser has granted persistent storage.'
+                  : 'The browser may clear downloaded charts when it runs low on space.'}
               </div>
             </div>
           </div>
@@ -271,7 +284,7 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
         {/* Cached Regions */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-sm font-semibold">Cached Regions</h3>
+            <h3 className="text-sm font-semibold">Downloaded Regions</h3>
             {cachedRegions.length > 0 && (
               <button
                 onClick={handleClearAll}
@@ -282,31 +295,14 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
             )}
           </div>
           
-          {cachedRegions.length === 0 ? (
-            <p className="text-sm text-gray-500">No cached regions yet</p>
-          ) : (
-            <div className="space-y-2">
-              {cachedRegions.map(region => (
-                <div key={region.id} className="p-3 bg-gray-50 rounded-lg" data-testid="cached-region">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium text-sm">{region.name}</span>
-                    <button
-                      onClick={() => handleClearRegion(region.id)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  <div className="text-xs text-gray-600 space-y-0.5">
-                    <div>Tiles: {region.tileCount}</div>
-                    <div>Size: {formatBytes(region.sizeBytes)}</div>
-                    <div>Zoom: {region.zoomLevels.join(', ')}</div>
-                    <div>Downloaded: {new Date(region.createdAt).toLocaleDateString()}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ChartRegionList
+            regions={cachedRegions}
+            updates={updates}
+            busyRegionIds={Object.keys(activeDownloads)}
+            online={online}
+            onUpdate={handleUpdateRegion}
+            onDelete={handleClearRegion}
+          />
         </div>
       </div>
     </div>

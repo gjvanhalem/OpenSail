@@ -41,6 +41,14 @@ The URLs live in [`pwa/src/components/chart/chartSources.ts`](../pwa/src/compone
 - The service worker doesn't cache tiles (IndexedDB holds them). It precaches the app, caches the chart catalog and TileJSON (network first), and leaves `/charts/` alone.
 - `ConnectionStatus` shows "Offline: downloaded charts only" on the chart without a connection.
 
+## Chart management (R15)
+
+The Offline Charts panel lists every downloaded region with its size, tile count, zoom levels, download date and **edition date**: the newest edition of the ENC data it contains, and how many days old that is. Regions without ENC data say so. Deleting a region asks for confirmation inline, and tiles that an overlapping region still needs are kept.
+
+**Updates (R15.2).** When the app starts or comes back online, it compares the ENC editions in each downloaded region with the chart catalog (`charts/index.json`). If the catalog has a newer edition, the chart shows a notice and the region shows "Update available" with the old and new edition. "Update" downloads that region's ENC tiles again; base map and seamark tiles are kept. The catalog is the "chart provider" here. When Rijkswaterstaat publishes a new edition, rebuild the archives with `tools/enc-pipeline` and upload them to the `charts` release.
+
+**Storage (R15.5).** The panel shows the size of the downloaded charts, how much browser storage is used of the quota, and whether the browser granted persistent storage (the app asks for it on every download). The spec's minimum of 50 GB isn't something a web app can promise. The quota belongs to the browser: Chromium allows up to about 60% of free disk space, while Safari on iPad allows much less and may ask the user. One Dutch region at z8–14 takes tens of MB, so this isn't a practical limit for the Dutch waters.
+
 ## Testing
 
 End-to-end tests never reach these servers: [`pwa/e2e/fixtures/test.ts`](../pwa/e2e/fixtures/test.ts) answers every request to `tiles.openfreemap.org` and `tiles.openseamap.org` with an empty tile (with CORS headers, because the app fetches tiles itself), so the chart renders its background and overlays. Every spec imports `test` from that file. `serveChartFixtures` serves a 36 KB inland ENC fixture (the Stavoren cell, built by the pipeline) from `e2e/fixtures/charts/`, with byte-range responses.

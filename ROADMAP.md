@@ -115,7 +115,7 @@ The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`
 - [x] **Serve downloaded tiles to the map** through MapLibre's `addProtocol` (PMTiles and `TileCache` in IndexedDB). Today the downloaded tiles are never read. *Done: every tile and glyph goes through `opensail://` (`tileProtocol.ts`): IndexedDB first, then the network.*
 - [x] Fix the service-worker caching rules so they match the URLs the map really requests. *Done: the SW no longer caches tiles (IndexedDB holds downloads), caches the chart catalog and TileJSON, and leaves `/charts/` archives alone.*
 - [x] Download glyphs, sprites and the style document as well, so an offline map has labels and icons. *Done: glyph ranges are downloaded with each region; the style is built in code (in the precached bundle) and uses no sprites.*
-- [ ] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online.
+- [x] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online. *Done: region list with editions and age, inline delete, update check on start and when coming online, "Update" re-downloads ENC tiles; see [`docs/chart-sources.md`](docs/chart-sources.md#chart-management-r15).*
 - [ ] Use depth contours and hazards for route hazard warnings (R2.5): official for inland waters, marked advisory on the coast.
 - [x] End-to-end test: download a region, go offline, reload, and pan and zoom within that region. *Done: `offline.spec.ts`.*
 - [x] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists). *Done: `ConnectionStatus` on the chart; the test is real now.*
