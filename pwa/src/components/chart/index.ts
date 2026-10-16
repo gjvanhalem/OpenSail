@@ -16,3 +16,7 @@ export { resolveChartViewState, chartBearing, vesselDirection } from './chartVie
 export type { ChartViewOptions } from './chartViewState';
 export { ChartDisclaimer } from './ChartDisclaimer';
 export { createBaseMapStyle, SEAMARK_LAYER, SEAMARK_SOURCE } from './baseMapStyle';
+export { EncLayers } from './EncLayers';
+export { useChartCatalog } from './useChartCatalog';
+export { createEncLayers, DEFAULT_ENC_DEPTHS, ENC_COLORS, ENC_LAYER_PREFIX, encSourceId } from './encStyle';
+export type { EncDepthSettings } from './encStyle';

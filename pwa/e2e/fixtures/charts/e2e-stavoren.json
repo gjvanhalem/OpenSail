@@ -1,0 +1,35 @@
+{
+  "id": "e2e-stavoren",
+  "name": "Stavoren (e2e fixture)",
+  "kind": "inland-enc",
+  "official": true,
+  "source": {
+    "publisher": "Rijkswaterstaat",
+    "licence": "CC0-1.0",
+    "list": "https://www.vaarweginformatie.nl/frp/api/webcontent/downloads?pageId=infra/enc",
+    "fileId": null
+  },
+  "editionDate": "2026-08-18",
+  "bounds": [
+    5.166667,
+    52.833333,
+    5.333333,
+    53
+  ],
+  "minzoom": 10,
+  "maxzoom": 14,
+  "file": "e2e-stavoren.pmtiles",
+  "bytes": 36773,
+  "sha256": "d4107b3e4b724a3fec8f601d6d8149cf9a1725f2b9ad68aa712ba92b78fd89a6",
+  "builtAt": "2026-10-15T09:41:56Z",
+  "cells": [
+    {
+      "name": "1R7YM003",
+      "edition": "8",
+      "update": "0",
+      "issueDate": "20260818",
+      "updateDate": "20260818",
+      "compilationScale": 2000
+    }
+  ]
+}

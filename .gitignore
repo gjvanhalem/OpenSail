@@ -36,3 +36,7 @@ pwa/playwright-report/
 pwa/test-results/
 pwa/performance-reports/
 
+# Chart archives (built by tools/enc-pipeline, hosted outside git)
+pwa/public/charts/
+tools/enc-pipeline/out/
+

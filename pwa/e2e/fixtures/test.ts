@@ -1,4 +1,9 @@
-import { test as base, expect, type BrowserContext } from '@playwright/test';
+import { test as base, expect, type BrowserContext, type Route } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const FIXTURES = path.dirname(fileURLToPath(import.meta.url));
 
 /** Hosts the chart loads tiles, fonts and styles from */
 export const TILE_HOSTS = ['tiles.openfreemap.org', 'tiles.openseamap.org'];
@@ -36,6 +41,38 @@ export async function stubTileServers(context: BrowserContext): Promise<void> {
       }
     });
   }
+}
+
+/** Answer a request with a file, honouring a byte-range request as PMTiles needs */
+async function fulfillFile(route: Route, file: string, contentType: string): Promise<void> {
+  const body = readFileSync(file);
+  const range = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers()['range'] ?? '');
+  if (!range) {
+    await route.fulfill({ status: 200, contentType, body });
+    return;
+  }
+  const start = Number(range[1]);
+  const end = Math.min(range[2] ? Number(range[2]) : body.length - 1, body.length - 1);
+  await route.fulfill({
+    status: 206,
+    contentType,
+    headers: { 'Content-Range': `bytes ${start}-${end}/${body.length}`, 'Accept-Ranges': 'bytes' },
+    body: body.subarray(start, end + 1),
+  });
+}
+
+/**
+ * Serve the chart catalog from e2e/fixtures/charts: one small inland ENC region
+ * (the Stavoren harbour cell, built by tools/enc-pipeline) at /charts/.
+ */
+export async function serveChartFixtures(context: BrowserContext): Promise<void> {
+  await context.route('**/charts/index.json', (route) =>
+    fulfillFile(route, path.join(FIXTURES, 'charts', 'index.json'), 'application/json')
+  );
+  await context.route('**/charts/*.pmtiles', (route) => {
+    const name = path.basename(new URL(route.request().url()).pathname);
+    return fulfillFile(route, path.join(FIXTURES, 'charts', name), 'application/octet-stream');
+  });
 }
 
 /** Playwright's test, with the external tile servers stubbed for every test */

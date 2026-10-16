@@ -199,7 +199,10 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Still open: agree bulk downloads with OpenSeaMap or mirror the tiles
   - _Requirements: 1.4_
 
-- [ ] 31.3 Rijkswaterstaat inland ENC pipeline (S-57 → GDAL → tippecanoe → PMTiles) and an S-52-like style
+- [x] 31.3 Rijkswaterstaat inland ENC pipeline (S-57 → GDAL → tippecanoe → PMTiles) and an S-52-like style
+  - `tools/enc-pipeline`: Docker image with GDAL and tippecanoe; one PMTiles archive and manifest per region, edition dates from DSID
+  - `encStyle.ts`: depth areas against shallow/safety/deep contours, contours, soundings, hazards, bridge clearances, fairways, locks
+  - The app reads `charts/index.json` and draws each region through the `pmtiles://` protocol
   - _Requirements: 1.1, 15.1, 15.4_
 
 - [ ] 31.4 Spike: free coastal depth data (EMODnet Bathymetry, Rijkswaterstaat vaklodingen)
