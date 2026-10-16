@@ -4,10 +4,22 @@ import {
   BASE_MAP_MAX_ZOOM,
   BASE_MAP_TILEJSON_URL,
   GLYPHS_URL,
+  SEAMARK_ATTRIBUTION,
+  SEAMARK_MAX_ZOOM,
+  SEAMARK_MIN_ZOOM,
+  SEAMARK_TILES_URL,
 } from './chartSources';
 
 /** Source id of the OpenStreetMap base map; overlays add their own sources */
 export const BASE_MAP_SOURCE = 'openmaptiles';
+/** Source and layer id of the OpenSeaMap seamark overlay */
+export const SEAMARK_SOURCE = 'openseamap';
+export const SEAMARK_LAYER = 'seamarks';
+
+export interface ChartStyleOptions {
+  /** Draw OpenSeaMap buoys, beacons and lights over the base map */
+  seamarks?: boolean;
+}
 
 /** Chart colours, loosely after the S-52 day palette */
 export const CHART_COLORS = {
@@ -32,7 +44,7 @@ const NAME: ExpressionSpecification = ['coalesce', ['get', 'name:nl'], ['get', '
  * paper chart so nautical overlays stand out. Built in code (not fetched) so
  * the map keeps rendering its background and overlays without a network.
  */
-export function createBaseMapStyle(): StyleSpecification {
+export function createBaseMapStyle({ seamarks = true }: ChartStyleOptions = {}): StyleSpecification {
   return {
     version: 8,
     name: 'OpenSail chart',
@@ -44,9 +56,17 @@ export function createBaseMapStyle(): StyleSpecification {
         maxzoom: BASE_MAP_MAX_ZOOM,
         attribution: BASE_MAP_ATTRIBUTION,
       },
+      [SEAMARK_SOURCE]: {
+        type: 'raster',
+        tiles: [SEAMARK_TILES_URL],
+        tileSize: 256,
+        minzoom: SEAMARK_MIN_ZOOM,
+        maxzoom: SEAMARK_MAX_ZOOM,
+        attribution: SEAMARK_ATTRIBUTION,
+      },
     },
     layers: [
-      // Water is the background: oceans have no polygons below the coastline
+      // Land is the background: OpenMapTiles has water polygons for seas and lakes
       { id: 'background', type: 'background', paint: { 'background-color': CHART_COLORS.land } },
       {
         id: 'landcover',
@@ -172,6 +192,14 @@ export function createBaseMapStyle(): StyleSpecification {
           'text-halo-color': CHART_COLORS.halo,
           'text-halo-width': 1.2,
         },
+      },
+      // Seamarks go over the labels: a buoy matters more than a village name
+      {
+        id: SEAMARK_LAYER,
+        type: 'raster',
+        source: SEAMARK_SOURCE,
+        minzoom: SEAMARK_MIN_ZOOM,
+        layout: { visibility: seamarks ? 'visible' : 'none' },
       },
     ],
   };

@@ -1,4 +1,22 @@
 import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
+
+/**
+ * Wait until the chart has loaded its style and tiles and stopped drawing, so
+ * frame rates measure steady rendering, not the first tile loads and shader
+ * compiles
+ */
+async function waitForMapIdle(page: Page) {
+  await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const map = window.__OPENSAIL_MAP__!;
+        if (map.loaded() && !map.isMoving()) resolve();
+        else map.once('idle', () => resolve());
+      })
+  );
+}
 
 test.describe('Performance Testing', () => {
   test.describe('Load Time Metrics', () => {
@@ -126,6 +144,7 @@ test.describe('Performance Testing', () => {
       
       // Wait for map to load
       await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
+      await waitForMapIdle(page);
       
       // Start measuring FPS
       const fpsData = await page.evaluate(async () => {
@@ -168,6 +187,7 @@ test.describe('Performance Testing', () => {
       
       // Wait for map to load
       const canvas = await page.waitForSelector('.maplibregl-canvas', { timeout: 5000 });
+      await waitForMapIdle(page);
       
       // Get canvas bounding box
       const box = await canvas.boundingBox();

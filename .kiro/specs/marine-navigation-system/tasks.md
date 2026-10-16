@@ -193,7 +193,10 @@ The protocol parsers, services, database, and UI components exist but are not co
   - e2e tests stub every tile server (`e2e/fixtures/test.ts`)
   - _Requirements: 1.1, 1.3_
 
-- [ ] 31.2 OpenSeaMap seamark overlay with attribution and a "not for navigation" disclaimer
+- [x] 31.2 OpenSeaMap seamark overlay with attribution and a "not for navigation" disclaimer
+  - Raster seamark tiles over the base map from zoom 9, attribution in the map's attribution control
+  - `ChartDisclaimer` always on the chart; sources and licences in `docs/chart-sources.md`
+  - Still open: agree bulk downloads with OpenSeaMap or mirror the tiles
   - _Requirements: 1.4_
 
 - [ ] 31.3 Rijkswaterstaat inland ENC pipeline (S-57 → GDAL → tippecanoe → PMTiles) and an S-52-like style

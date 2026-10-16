@@ -1,7 +1,13 @@
 import { test as base, expect, type BrowserContext } from '@playwright/test';
 
 /** Hosts the chart loads tiles, fonts and styles from */
-export const TILE_HOSTS = ['tiles.openfreemap.org'];
+export const TILE_HOSTS = ['tiles.openfreemap.org', 'tiles.openseamap.org'];
+
+/** A 1×1 transparent PNG, for raster tiles */
+const EMPTY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64'
+);
 
 /** A TileJSON that points the base map's tiles back at the (stubbed) tile host */
 const STUB_TILEJSON = {
@@ -23,6 +29,8 @@ export async function stubTileServers(context: BrowserContext): Promise<void> {
       const url = new URL(route.request().url());
       if (url.pathname === '/planet') {
         await route.fulfill({ json: STUB_TILEJSON });
+      } else if (url.pathname.endsWith('.png')) {
+        await route.fulfill({ status: 200, contentType: 'image/png', body: EMPTY_PNG });
       } else {
         await route.fulfill({ status: 200, contentType: 'application/x-protobuf', body: Buffer.alloc(0) });
       }

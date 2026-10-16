@@ -14,3 +14,5 @@ export { ViewportRegionSelector } from './ViewportRegionSelector';
 export type { ViewportRegionSelectorProps } from './ViewportRegionSelector';
 export { resolveChartViewState, chartBearing, vesselDirection } from './chartViewState';
 export type { ChartViewOptions } from './chartViewState';
+export { ChartDisclaimer } from './ChartDisclaimer';
+export { createBaseMapStyle, SEAMARK_LAYER, SEAMARK_SOURCE } from './baseMapStyle';

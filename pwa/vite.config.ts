@@ -80,6 +80,19 @@ export default defineConfig({
             }
           },
           {
+            // OpenSeaMap seamark tiles (transparent PNGs) - cache first
+            urlPattern: /^https:\/\/tiles\.openseamap\.org\/seamark\/.*\.png$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'chart-seamarks',
+              expiration: {
+                maxEntries: 5000,
+                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
+              },
+              cacheableResponse: { statuses: [200] }
+            }
+          },
+          {
             // Base map TileJSON - network first so a new weekly build is picked up
             urlPattern: /^https:\/\/tiles\.openfreemap\.org\/planet$/,
             handler: 'NetworkFirst',
