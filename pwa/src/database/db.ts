@@ -102,14 +102,35 @@ export interface SafetyEvent {
 }
 
 export interface ChartTile {
-  key: string; // Composite key: `${z}-${x}-${y}`
+  /** `${source}/${z}/${x}/${y}` for tiles; `glyphs/${fontstack}/${range}` for label fonts */
+  key: string;
+  /** Tile source: 'base', 'seamarks', 'enc-<region>' or 'glyphs' */
+  source: string;
   z: number;
   x: number;
   y: number;
   data: Blob;
-  format: 'vector' | 'raster';
+  format: 'vector' | 'raster' | 'glyphs';
   timestamp: Date;
-  region?: string; // Optional region identifier for bulk operations
+  /** Downloaded regions that include this tile; it's deleted with the last of them */
+  regions: string[];
+}
+
+/** A chart region downloaded for offline use (R15) */
+export interface ChartRegionRecord {
+  id: string;
+  name: string;
+  bounds: { north: number; south: number; east: number; west: number };
+  zoomLevels: number[];
+  /** Tile sources downloaded: 'base', 'seamarks', 'enc-<region>' */
+  sources: string[];
+  /** Manifests of the ENC regions included, so they can be drawn offline (ChartRegionManifest) */
+  encRegions: unknown[];
+  tileCount: number;
+  sizeBytes: number;
+  downloadedAt: Date;
+  /** Newest edition date of the ENC data included (YYYY-MM-DD), or null without ENC data */
+  editionDate: string | null;
 }
 
 export interface Setting {
@@ -125,6 +146,7 @@ export class NavigationDatabase extends Dexie {
   aisTargets!: Table<AISTarget, string>;
   logbook!: Table<LogbookEntry, string>;
   chartTiles!: Table<ChartTile, string>;
+  chartRegions!: Table<ChartRegionRecord, string>;
   settings!: Table<Setting, string>;
   safetyEvents!: Table<SafetyEvent, string>;
 
@@ -146,6 +168,14 @@ export class NavigationDatabase extends Dexie {
     this.version(2).stores({
       safetyEvents: 'id, timestamp, type, sessionId'
     });
+
+    // Phase 3 (offline charts): tiles get a source and the regions that hold
+    // them; downloaded regions get their own table. The old tiles were Mapbox
+    // tiles keyed by z-x-y only, which the map can't use any more.
+    this.version(3).stores({
+      chartTiles: 'key, source, timestamp, *regions',
+      chartRegions: 'id, downloadedAt',
+    }).upgrade(tx => tx.table('chartTiles').clear());
   }
 }
 

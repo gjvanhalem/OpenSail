@@ -10,6 +10,12 @@ export interface CachedRegion {
   tileCount: number;
   sizeBytes: number;
   createdAt: Date;
+  /** Newest edition date of the ENC data in the region (YYYY-MM-DD), or null without ENC data */
+  editionDate?: string | null;
+  /** Catalog ids of the ENC regions included */
+  encRegionIds?: string[];
+  /** Tiles that couldn't be downloaded */
+  failedTiles?: number;
 }
 
 export interface DownloadProgress {
@@ -61,7 +67,7 @@ export const loadCacheStats = createAsyncThunk(
 export const clearRegion = createAsyncThunk(
   'chartCache/clearRegion',
   async (regionId: string) => {
-    await tileCache.clearRegionByName(regionId);
+    await tileCache.deleteRegion(regionId);
     return regionId;
   }
 );

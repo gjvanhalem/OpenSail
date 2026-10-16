@@ -1,4 +1,4 @@
-import { db, type ChartTile } from '../db';
+import { db, type ChartTile, type ChartRegionRecord } from '../db';
 
 export interface Bounds {
   north: number;
@@ -14,261 +14,236 @@ export interface TileCacheStats {
   newestTile: Date | null;
 }
 
-export interface TileCache {
-  getTile(z: number, x: number, y: number): Promise<Blob | null>;
-  putTile(z: number, x: number, y: number, data: Blob, format?: 'vector' | 'raster', region?: string): Promise<void>;
-  hasTile(z: number, x: number, y: number): Promise<boolean>;
-  clearRegion(bounds: Bounds, zoomLevels?: number[]): Promise<number>;
-  clearAll(): Promise<void>;
-  getStats(): Promise<TileCacheStats>;
-  evictOldest(count: number): Promise<number>;
-  getStorageSize(): Promise<number>;
+export interface StorageQuota {
+  usage: number;
+  quota: number;
+  available: number;
+  percentUsed: number;
 }
 
-export class TileCacheService implements TileCache {
-  private readonly MAX_CACHE_SIZE_MB = 500; // Maximum cache size in MB
-  private readonly MAX_CACHE_SIZE_BYTES = this.MAX_CACHE_SIZE_MB * 1024 * 1024;
+/** A tile (or glyph range) to store */
+export interface TileEntry {
+  source: string;
+  z: number;
+  x: number;
+  y: number;
+  data: Blob;
+  format: ChartTile['format'];
+  /** Set for glyphs, which aren't addressed by z/x/y */
+  key?: string;
+}
 
-  // Generate composite key for tile
-  private getTileKey(z: number, x: number, y: number): string {
-    return `${z}-${x}-${y}`;
+/** Key of a tile in the cache */
+export function tileKey(source: string, z: number, x: number, y: number): string {
+  return `${source}/${z}/${x}/${y}`;
+}
+
+/** Key of a glyph range (label font) in the cache */
+export function glyphKey(fontstack: string, range: string): string {
+  return `glyphs/${fontstack}/${range}`;
+}
+
+/** Tile column and row that contain a position at a zoom level */
+export function lonLatToTile(lon: number, lat: number, z: number): { x: number; y: number } {
+  const n = 2 ** z;
+  const clampedLat = Math.max(-85.0511, Math.min(85.0511, lat));
+  const x = Math.floor(((lon + 180) / 360) * n);
+  const rad = (clampedLat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n);
+  return { x: Math.min(n - 1, Math.max(0, x)), y: Math.min(n - 1, Math.max(0, y)) };
+}
+
+/** The range of tiles covering bounds at a zoom level (inclusive) */
+export function tileRange(bounds: Bounds, z: number): { minX: number; maxX: number; minY: number; maxY: number } {
+  const topLeft = lonLatToTile(bounds.west, bounds.north, z);
+  const bottomRight = lonLatToTile(bounds.east, bounds.south, z);
+  return { minX: topLeft.x, maxX: bottomRight.x, minY: topLeft.y, maxY: bottomRight.y };
+}
+
+/** Number of tiles covering bounds at each zoom level */
+export function countTiles(bounds: Bounds, zoomLevels: number[]): number {
+  return zoomLevels.reduce((total, z) => {
+    const { minX, maxX, minY, maxY } = tileRange(bounds, z);
+    return total + (maxX - minX + 1) * (maxY - minY + 1);
+  }, 0);
+}
+
+export function boundsIntersect(a: Bounds, b: Bounds): boolean {
+  return a.west <= b.east && a.east >= b.west && a.south <= b.north && a.north >= b.south;
+}
+
+/**
+ * Downloaded chart tiles in IndexedDB, for offline use. A tile can belong to
+ * several downloaded regions that overlap; it is deleted with the last of them.
+ * Downloaded tiles are never evicted: the user decides what to keep (R15).
+ */
+export class TileCacheService {
+  async getTile(source: string, z: number, x: number, y: number): Promise<Blob | null> {
+    return (await db.chartTiles.get(tileKey(source, z, x, y)))?.data ?? null;
   }
 
-  // Get tile from cache
-  async getTile(z: number, x: number, y: number): Promise<Blob | null> {
-    const key = this.getTileKey(z, x, y);
-    const tile = await db.chartTiles.get(key);
-    
-    if (tile) {
-      // Update timestamp to implement LRU
-      await db.chartTiles.update(key, { timestamp: new Date() });
-      return tile.data;
-    }
-    
-    return null;
+  async getGlyphs(fontstack: string, range: string): Promise<Blob | null> {
+    return (await db.chartTiles.get(glyphKey(fontstack, range)))?.data ?? null;
   }
 
-  // Store tile in cache
-  async putTile(
-    z: number, 
-    x: number, 
-    y: number, 
-    data: Blob, 
-    format: 'vector' | 'raster' = 'vector',
-    region?: string
-  ): Promise<void> {
-    const key = this.getTileKey(z, x, y);
-    
-    const tile: ChartTile = {
-      key,
-      z,
-      x,
-      y,
-      data,
-      format,
-      timestamp: new Date(),
-      region
-    };
-
-    // Check if we need to evict old tiles
-    const currentSize = await this.getStorageSize();
-    const newTileSize = data.size;
-
-    if (currentSize + newTileSize > this.MAX_CACHE_SIZE_BYTES) {
-      // Evict oldest tiles to make room (evict 10% of cache)
-      const tilesToEvict = Math.ceil(await db.chartTiles.count() * 0.1);
-      await this.evictOldest(tilesToEvict);
-    }
-
-    // Add or update tile
-    await db.chartTiles.put(tile);
+  async hasTile(source: string, z: number, x: number, y: number): Promise<boolean> {
+    return (await db.chartTiles.where('key').equals(tileKey(source, z, x, y)).count()) > 0;
   }
 
-  // Check if tile exists in cache
-  async hasTile(z: number, x: number, y: number): Promise<boolean> {
-    const key = this.getTileKey(z, x, y);
-    const count = await db.chartTiles.where('key').equals(key).count();
-    return count > 0;
+  /** Keys among `keys` that are already stored */
+  async existingKeys(keys: string[]): Promise<Set<string>> {
+    const found = await db.chartTiles.where('key').anyOf(keys).primaryKeys();
+    return new Set(found);
   }
 
-  // Clear tiles within geographic bounds
-  async clearRegion(bounds: Bounds, zoomLevels?: number[]): Promise<number> {
-    let tiles: ChartTile[];
-
-    if (zoomLevels && zoomLevels.length > 0) {
-      // Get tiles for specific zoom levels
-      tiles = await db.chartTiles
-        .where('z')
-        .anyOf(zoomLevels)
-        .toArray();
-    } else {
-      // Get all tiles
-      tiles = await db.chartTiles.toArray();
-    }
-
-    // Filter tiles within bounds
-    const tilesToDelete = tiles.filter(tile => {
-      const tileCoords = this.tileToLatLon(tile.x, tile.y, tile.z);
-      return (
-        tileCoords.lat >= bounds.south &&
-        tileCoords.lat <= bounds.north &&
-        tileCoords.lon >= bounds.west &&
-        tileCoords.lon <= bounds.east
-      );
+  /**
+   * Store tiles for a region in one transaction. A tile that is already stored
+   * (for another region) keeps its data and gets this region added.
+   */
+  async putTiles(entries: TileEntry[], regionId: string): Promise<void> {
+    if (entries.length === 0) return;
+    const keyed = entries.map((entry) => ({
+      ...entry,
+      key: entry.key ?? tileKey(entry.source, entry.z, entry.x, entry.y),
+    }));
+    await db.transaction('rw', db.chartTiles, async () => {
+      const existing = await db.chartTiles.bulkGet(keyed.map((entry) => entry.key));
+      const now = new Date();
+      const rows: ChartTile[] = keyed.map((entry, i) => {
+        const old = existing[i];
+        const regions = old ? Array.from(new Set([...old.regions, regionId])) : [regionId];
+        return {
+          key: entry.key,
+          source: entry.source,
+          z: entry.z,
+          x: entry.x,
+          y: entry.y,
+          data: entry.data,
+          format: entry.format,
+          timestamp: now,
+          regions,
+        };
+      });
+      await db.chartTiles.bulkPut(rows);
     });
-
-    // Delete tiles
-    const keys = tilesToDelete.map(tile => tile.key);
-    await db.chartTiles.bulkDelete(keys);
-
-    return tilesToDelete.length;
   }
 
-  // Clear tiles by region identifier
-  async clearRegionByName(regionName: string): Promise<number> {
-    const tiles = await db.chartTiles
-      .where('region')
-      .equals(regionName)
-      .toArray();
-
+  /** Add a region to tiles that are already stored, without downloading them again */
+  async addRegionToTiles(keys: string[], regionId: string): Promise<void> {
+    if (keys.length === 0) return;
     await db.chartTiles
-      .where('region')
-      .equals(regionName)
-      .delete();
-
-    return tiles.length;
+      .where('key')
+      .anyOf(keys)
+      .modify((tile) => {
+        if (!tile.regions.includes(regionId)) tile.regions.push(regionId);
+      });
   }
 
-  // Clear all tiles
+  /** Bytes and number of tiles held by a region (shared tiles count for each region) */
+  async regionUsage(regionId: string): Promise<{ tileCount: number; sizeBytes: number }> {
+    let tileCount = 0;
+    let sizeBytes = 0;
+    await db.chartTiles
+      .where('regions')
+      .equals(regionId)
+      .each((tile) => {
+        tileCount++;
+        sizeBytes += tile.data.size;
+      });
+    return { tileCount, sizeBytes };
+  }
+
+  /** Remove a region: tiles only it holds are deleted, shared tiles stay. Returns tiles deleted. */
+  async deleteRegion(regionId: string): Promise<number> {
+    let deleted = 0;
+    await db.transaction('rw', db.chartTiles, db.chartRegions, async () => {
+      const onlyThisRegion: string[] = [];
+      await db.chartTiles
+        .where('regions')
+        .equals(regionId)
+        .modify((tile) => {
+          tile.regions = tile.regions.filter((region) => region !== regionId);
+          if (tile.regions.length === 0) onlyThisRegion.push(tile.key);
+        });
+      await db.chartTiles.bulkDelete(onlyThisRegion);
+      await db.chartRegions.delete(regionId);
+      deleted = onlyThisRegion.length;
+    });
+    return deleted;
+  }
+
   async clearAll(): Promise<void> {
-    await db.chartTiles.clear();
+    await db.transaction('rw', db.chartTiles, db.chartRegions, async () => {
+      await db.chartTiles.clear();
+      await db.chartRegions.clear();
+    });
   }
 
-  // Get cache statistics
   async getStats(): Promise<TileCacheStats> {
-    const tiles = await db.chartTiles.toArray();
-    
-    if (tiles.length === 0) {
-      return {
-        totalTiles: 0,
-        totalSize: 0,
-        oldestTile: null,
-        newestTile: null
-      };
-    }
-
-    const totalSize = tiles.reduce((sum, tile) => sum + tile.data.size, 0);
-    const timestamps = tiles.map(tile => tile.timestamp.getTime());
-    const oldestTile = new Date(Math.min(...timestamps));
-    const newestTile = new Date(Math.max(...timestamps));
-
+    let totalTiles = 0;
+    let totalSize = 0;
+    let oldest = Infinity;
+    let newest = -Infinity;
+    await db.chartTiles.each((tile) => {
+      totalTiles++;
+      totalSize += tile.data.size;
+      const time = tile.timestamp.getTime();
+      oldest = Math.min(oldest, time);
+      newest = Math.max(newest, time);
+    });
     return {
-      totalTiles: tiles.length,
+      totalTiles,
       totalSize,
-      oldestTile,
-      newestTile
+      oldestTile: totalTiles ? new Date(oldest) : null,
+      newestTile: totalTiles ? new Date(newest) : null,
     };
   }
 
-  // Evict oldest tiles (LRU eviction)
-  async evictOldest(count: number): Promise<number> {
-    const oldestTiles = await db.chartTiles
-      .orderBy('timestamp')
-      .limit(count)
-      .toArray();
-
-    const keys = oldestTiles.map(tile => tile.key);
-    await db.chartTiles.bulkDelete(keys);
-
-    return oldestTiles.length;
-  }
-
-  // Get total storage size in bytes
   async getStorageSize(): Promise<number> {
-    const tiles = await db.chartTiles.toArray();
-    return tiles.reduce((sum, tile) => sum + tile.data.size, 0);
+    return (await this.getStats()).totalSize;
   }
 
-  // Get tiles for a specific region
-  async getTilesByRegion(regionName: string): Promise<ChartTile[]> {
-    return await db.chartTiles
-      .where('region')
-      .equals(regionName)
-      .toArray();
+  // Downloaded regions
+
+  async saveRegion(region: ChartRegionRecord): Promise<void> {
+    await db.chartRegions.put(region);
   }
 
-  // Get tiles for specific zoom levels
-  async getTilesByZoom(zoomLevels: number[]): Promise<ChartTile[]> {
-    return await db.chartTiles
-      .where('z')
-      .anyOf(zoomLevels)
-      .toArray();
+  async getRegions(): Promise<ChartRegionRecord[]> {
+    return db.chartRegions.orderBy('downloadedAt').toArray();
   }
 
-  // Convert tile coordinates to lat/lon (center of tile)
-  private tileToLatLon(x: number, y: number, z: number): { lat: number; lon: number } {
-    const n = Math.pow(2, z);
-    const lon = (x / n) * 360 - 180;
-    const lat = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
-    return { lat, lon };
+  async getRegion(regionId: string): Promise<ChartRegionRecord | undefined> {
+    return db.chartRegions.get(regionId);
   }
 
-  // Convert lat/lon to tile coordinates
-  private latLonToTile(lat: number, lon: number, z: number): { x: number; y: number } {
-    const n = Math.pow(2, z);
-    const x = Math.floor(((lon + 180) / 360) * n);
-    const y = Math.floor(
-      ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * n
-    );
-    return { x, y };
-  }
-
-  // Get all tiles within bounds for specific zoom levels
-  async getTilesInBounds(bounds: Bounds, zoomLevels: number[]): Promise<ChartTile[]> {
-    const tiles: ChartTile[] = [];
-
-    for (const z of zoomLevels) {
-      const topLeft = this.latLonToTile(bounds.north, bounds.west, z);
-      const bottomRight = this.latLonToTile(bounds.south, bounds.east, z);
-
-      for (let x = topLeft.x; x <= bottomRight.x; x++) {
-        for (let y = topLeft.y; y <= bottomRight.y; y++) {
-          const tile = await db.chartTiles.get(this.getTileKey(z, x, y));
-          if (tile) {
-            tiles.push(tile);
-          }
-        }
-      }
-    }
-
-    return tiles;
-  }
-
-  // Check storage quota and available space
-  async checkStorageQuota(): Promise<{
-    usage: number;
-    quota: number;
-    available: number;
-    percentUsed: number;
-  }> {
+  /** How much the browser lets this origin store, and how much is used */
+  async checkStorageQuota(): Promise<StorageQuota> {
     if ('storage' in navigator && 'estimate' in navigator.storage) {
       const estimate = await navigator.storage.estimate();
       const usage = estimate.usage || 0;
       const quota = estimate.quota || 0;
-      const available = quota - usage;
-      const percentUsed = quota > 0 ? (usage / quota) * 100 : 0;
-
-      return { usage, quota, available, percentUsed };
+      return {
+        usage,
+        quota,
+        available: Math.max(0, quota - usage),
+        percentUsed: quota > 0 ? (usage / quota) * 100 : 0,
+      };
     }
+    const usage = await this.getStorageSize();
+    return { usage, quota: 0, available: Infinity, percentUsed: 0 };
+  }
 
-    // Fallback if storage API not available
-    const cacheSize = await this.getStorageSize();
-    return {
-      usage: cacheSize,
-      quota: this.MAX_CACHE_SIZE_BYTES,
-      available: this.MAX_CACHE_SIZE_BYTES - cacheSize,
-      percentUsed: (cacheSize / this.MAX_CACHE_SIZE_BYTES) * 100
-    };
+  /** Ask the browser not to evict our storage under pressure; true when granted */
+  async requestPersistentStorage(): Promise<boolean> {
+    if ('storage' in navigator && 'persist' in navigator.storage) {
+      try {
+        return (await navigator.storage.persisted()) || (await navigator.storage.persist());
+      } catch {
+        return false;
+      }
+    }
+    return false;
   }
 }
 

@@ -1,4 +1,5 @@
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl';
+import type { ChartRegionManifest } from '@/services/chartCatalog';
 
 /**
  * A MapLibre style for ENC vector tiles built by tools/enc-pipeline, loosely
@@ -274,4 +275,11 @@ export function createEncLayers(
       paint: { 'text-color': ENC_COLORS.label, 'text-halo-color': ENC_COLORS.halo, 'text-halo-width': 1.2 },
     },
   ];
+}
+
+/** Attribution for a chart region: publisher, licence and edition */
+export function regionAttribution(region: ChartRegionManifest): string {
+  const kind = region.official ? 'ENC' : 'depth data (advisory)';
+  const edition = region.editionDate ? `, edition ${region.editionDate}` : '';
+  return `${region.source.publisher} ${kind}, ${region.source.licence}${edition}`;
 }

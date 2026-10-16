@@ -112,13 +112,13 @@ The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`
 - [x] **OpenSeaMap seamark overlay (R1.4):** buoys, beacons and lights, inland and coastal, with attribution and a visible "not for navigation" disclaimer. Agree bulk-download use with the OpenSeaMap team, or mirror the tiles. *Done: raster overlay from z9 and an always-visible disclaimer; the bulk-download agreement or mirror is still open, see [`docs/chart-sources.md`](docs/chart-sources.md).*
 - [x] **Rijkswaterstaat inland ENCs (CC-0) as vector tiles:** an S-57 → GDAL → tippecanoe → PMTiles pipeline, an S-52-like style (depth areas, contours, hazards) and per-region archives with their edition date. *Done: [`tools/enc-pipeline`](tools/enc-pipeline/README.md) (Docker); archives go on the `charts` release and are deployed to `/charts/`. **Owner action:** create the `charts` release and upload the archives.*
 - [ ] **Spike: coastal depth data.** Official Dutch coastal ENCs are commercial, and there is no budget. Check free bathymetry (EMODnet Bathymetry, Rijkswaterstaat coastal surveys / "vaklodingen") for licence, resolution and update frequency, then turn the best one into depth contours. Coastal depths are advisory only.
-- [ ] **Serve downloaded tiles to the map** through MapLibre's `addProtocol` (PMTiles and `TileCache` in IndexedDB). Today the downloaded tiles are never read.
-- [ ] Fix the service-worker caching rules so they match the URLs the map really requests.
-- [ ] Download glyphs, sprites and the style document as well, so an offline map has labels and icons.
+- [x] **Serve downloaded tiles to the map** through MapLibre's `addProtocol` (PMTiles and `TileCache` in IndexedDB). Today the downloaded tiles are never read. *Done: every tile and glyph goes through `opensail://` (`tileProtocol.ts`): IndexedDB first, then the network.*
+- [x] Fix the service-worker caching rules so they match the URLs the map really requests. *Done: the SW no longer caches tiles (IndexedDB holds downloads), caches the chart catalog and TileJSON, and leaves `/charts/` archives alone.*
+- [x] Download glyphs, sprites and the style document as well, so an offline map has labels and icons. *Done: glyph ranges are downloaded with each region; the style is built in code (in the precached bundle) and uses no sprites.*
 - [ ] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online.
 - [ ] Use depth contours and hazards for route hazard warnings (R2.5): official for inland waters, marked advisory on the coast.
-- [ ] End-to-end test: download a region, go offline, reload, and pan and zoom within that region.
-- [ ] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists).
+- [x] End-to-end test: download a region, go offline, reload, and pan and zoom within that region. *Done: `offline.spec.ts`.*
+- [x] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists). *Done: `ConnectionStatus` on the chart; the test is real now.*
 
 **Done when:** in aeroplane mode, a downloaded region shows the full nautical chart and every navigation feature still works.
 

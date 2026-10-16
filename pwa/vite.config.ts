@@ -40,55 +40,21 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+        // Chart tiles and label glyphs are NOT cached here: the map loads them
+        // through the opensail:// protocol, which serves downloaded regions from
+        // IndexedDB (src/components/chart/tileProtocol.ts). Caching them here too
+        // would store every tile twice. PMTiles archives under /charts/ are read
+        // with range requests, which the Cache API can't store either.
+        navigateFallbackDenylist: [/\/charts\//],
         runtimeCaching: [
           {
-            // App shell - cache first
-            urlPattern: /^https:\/\/.*\.(js|css|html)$/,
-            handler: 'CacheFirst',
+            // Chart catalog - network first, so the download panel still lists
+            // the ENC regions after the app was last online
+            urlPattern: ({ url }) => url.pathname.endsWith('/charts/index.json'),
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'app-shell',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          },
-          {
-            // Base map vector tiles and label fonts (.pbf) - cache first with network fallback
-            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*\.pbf$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'chart-vector-tiles',
-              expiration: {
-                maxEntries: 5000,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              plugins: [
-                {
-                  cacheWillUpdate: async ({ response }) => {
-                    // Only cache successful responses
-                    if (response && response.status === 200) {
-                      return response;
-                    }
-                    return null;
-                  },
-                },
-              ],
-            }
-          },
-          {
-            // OpenSeaMap seamark tiles (transparent PNGs) - cache first
-            urlPattern: /^https:\/\/tiles\.openseamap\.org\/seamark\/.*\.png$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'chart-seamarks',
-              expiration: {
-                maxEntries: 5000,
-                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
-              },
+              cacheName: 'chart-catalog',
+              networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [200] }
             }
           },

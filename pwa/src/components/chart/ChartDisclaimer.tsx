@@ -12,7 +12,7 @@ export const ChartDisclaimer: React.FC = () => {
     <div
       role="note"
       aria-label="Chart disclaimer"
-      className="absolute bottom-2 left-2 z-10 max-w-xs rounded bg-amber-50/95 border border-amber-400 px-2 py-1 text-xs text-amber-900 shadow"
+      className="max-w-xs rounded bg-amber-50/95 border border-amber-400 px-2 py-1 text-xs text-amber-900 shadow"
     >
       <button
         type="button"

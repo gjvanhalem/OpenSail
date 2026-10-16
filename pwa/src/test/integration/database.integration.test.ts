@@ -1,3 +1,4 @@
+import { tileCache, type TileEntry } from '@/database/services/TileCache';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db } from '@/database/db';
 import { routeRepository } from '@/database/repositories/RouteRepository';
@@ -304,65 +305,43 @@ describe('IndexedDB Integration Tests', () => {
   });
 
   describe('Chart Tile Caching', () => {
-    it('should store and retrieve chart tiles', async () => {
-      const tileData = new Blob(['test tile data'], { type: 'application/x-protobuf' });
-      
-      await db.chartTiles.add({
-        key: '10-512-384',
-        z: 10,
-        x: 512,
-        y: 384,
-        data: tileData,
-        format: 'vector',
-        timestamp: new Date(),
-        region: 'test-region',
-      });
-
-      const tile = await db.chartTiles.get('10-512-384');
-      expect(tile).toBeDefined();
-      expect(tile?.z).toBe(10);
-      expect(tile?.format).toBe('vector');
+    const tile = (source: string, x: number, text: string): TileEntry => ({
+      source,
+      z: 10,
+      x,
+      y: 384,
+      data: new Blob([text], { type: 'application/x-protobuf' }),
+      format: 'vector',
     });
 
-    it('should clear tiles by region', async () => {
-      await db.chartTiles.bulkAdd([
-        {
-          key: '10-512-384',
-          z: 10,
-          x: 512,
-          y: 384,
-          data: new Blob(['data1']),
-          format: 'vector' as const,
-          timestamp: new Date(),
-          region: 'region-a',
-        },
-        {
-          key: '10-513-384',
-          z: 10,
-          x: 513,
-          y: 384,
-          data: new Blob(['data2']),
-          format: 'vector' as const,
-          timestamp: new Date(),
-          region: 'region-a',
-        },
-        {
-          key: '10-514-384',
-          z: 10,
-          x: 514,
-          y: 384,
-          data: new Blob(['data3']),
-          format: 'vector' as const,
-          timestamp: new Date(),
-          region: 'region-b',
-        },
+    it('stores and retrieves tiles per source', async () => {
+      await tileCache.putTiles([tile('base', 512, 'base'), tile('enc-nl', 512, 'enc')], 'region-a');
+
+      // (fake-indexeddb doesn't keep Blob methods, so only check the tiles are there)
+      expect(await tileCache.getTile('base', 10, 512, 384)).not.toBeNull();
+      expect(await tileCache.getTile('enc-nl', 10, 512, 384)).not.toBeNull();
+      expect(await tileCache.getTile('seamarks', 10, 512, 384)).toBeNull();
+      expect((await db.chartTiles.get('base/10/512/384'))?.regions).toEqual(['region-a']);
+    });
+
+    it('keeps tiles that an overlapping region still needs when a region is deleted', async () => {
+      await tileCache.putTiles([tile('base', 512, 'a'), tile('base', 513, 'shared')], 'region-a');
+      await tileCache.putTiles([tile('base', 513, 'shared'), tile('base', 514, 'b')], 'region-b');
+
+      expect(await tileCache.deleteRegion('region-a')).toBe(1);
+
+      const remaining = (await db.chartTiles.toArray()).map((t) => [t.key, t.regions]);
+      expect(remaining).toEqual([
+        ['base/10/513/384', ['region-b']],
+        ['base/10/514/384', ['region-b']],
       ]);
+      expect((await tileCache.regionUsage('region-b')).tileCount).toBe(2);
+    });
 
-      await db.chartTiles.where('region').equals('region-a').delete();
-
-      const remaining = await db.chartTiles.toArray();
-      expect(remaining).toHaveLength(1);
-      expect(remaining[0].region).toBe('region-b');
+    it('drops the old Mapbox tiles when upgrading the schema', async () => {
+      // Version 3 changed the key format; the upgrade clears the table
+      expect(db.verno).toBeGreaterThanOrEqual(3);
+      expect(db.chartTiles.schema.idxByName.regions?.multi).toBe(true);
     });
   });
 

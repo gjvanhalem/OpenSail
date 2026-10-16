@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/test';
+import { test, expect, serveChartFixtures } from './fixtures/test';
 import type { Page } from '@playwright/test';
 
 // Wait until the service worker is active, so a reload is answered from the precache
@@ -30,9 +30,7 @@ test.describe('Offline Functionality', () => {
     await expect(page.getByRole('heading', { name: 'Routes' })).toBeVisible();
   });
 
-  // ROADMAP.md Phase 3 (Nautical charts & real offline mode): the app has no
-  // online/offline status indicator yet.
-  test.fixme('should show offline indicator when network is unavailable', async ({ page, context }) => {
+  test('should show offline indicator when network is unavailable', async ({ page, context }) => {
     await page.goto('/');
     await waitForServiceWorker(page);
 
@@ -43,8 +41,12 @@ test.describe('Offline Functionality', () => {
     await page.reload();
 
     // Should show offline indicator or message
-    const offlineIndicator = page.getByText(/offline|no connection/i);
+    const offlineIndicator = page.getByRole('status').filter({ hasText: /offline|no connection/i });
     await expect(offlineIndicator).toBeVisible({ timeout: 5000 });
+
+    // And it goes away when the connection comes back
+    await context.setOffline(false);
+    await expect(page.getByRole('status').filter({ hasText: /offline/i })).toBeHidden();
   });
 
   test('should access cached routes when offline', async ({ page, context }) => {
@@ -88,5 +90,66 @@ test.describe('Offline Functionality', () => {
     // Should show indication that data will sync later
     const syncMessage = page.getByText(/sync|queue|later/i);
     await expect(syncMessage).toBeVisible({ timeout: 5000 });
+  });
+
+  test('a downloaded region works offline: reload, pan and zoom (R5.1, R5.2)', async ({ page, context }) => {
+    test.slow();
+    await serveChartFixtures(context);
+    await page.goto('/chart');
+    await waitForServiceWorker(page);
+    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
+
+    // Frame Stavoren, where the ENC fixture has depth areas
+    const showStavoren = (zoom: number) =>
+      page.evaluate((z) => window.__OPENSAIL_MAP__!.jumpTo({ center: [5.3, 52.88], zoom: z }), zoom);
+    await showStavoren(12);
+
+    // Download the visible area at zoom levels 11 to 13
+    await page.getByRole('button', { name: 'Offline Charts' }).click();
+    await page.getByRole('button', { name: 'Select Region on Map' }).click();
+    await page.getByRole('button', { name: 'Select This Area' }).click();
+    await page.getByLabel('Region Name').fill('Stavoren');
+    for (const level of [8, 9, 10, 14]) {
+      await page.getByRole('button', { name: `Zoom level ${level}`, exact: true }).click();
+    }
+    await expect(page.getByTestId('download-includes')).toContainText('Stavoren (e2e fixture)');
+    await page.getByRole('button', { name: 'Start Download' }).click();
+    await expect(page.getByTestId('cached-region').filter({ hasText: 'Stavoren' })).toBeVisible({ timeout: 30000 });
+    await page.getByRole('button', { name: '✕' }).click();
+
+    // Offline, after a reload, the app still starts and the chart comes from IndexedDB
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole('status').filter({ hasText: /offline/i })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__OPENSAIL_MAP__ !== undefined)).toBe(true);
+    await showStavoren(12);
+
+    const depthAreas = () =>
+      page.evaluate(
+        () =>
+          window.__OPENSAIL_MAP__!.querySourceFeatures('enc-e2e-stavoren', { sourceLayer: 'depare' }).length
+      );
+    await expect.poll(depthAreas, { timeout: 15000 }).toBeGreaterThan(0);
+    const servedFromCache = () => page.evaluate(() => window.__OPENSAIL_TILE_STATS__!.fromCache);
+    expect(await servedFromCache()).toBeGreaterThan(0);
+
+    // Pan within the region
+    const canvas = await page.locator('.maplibregl-canvas').boundingBox();
+    if (!canvas) throw new Error('map not on screen');
+    const before = await page.evaluate(() => window.__OPENSAIL_MAP__!.getCenter().toArray());
+    await page.mouse.move(canvas.x + canvas.width / 2 + 100, canvas.y + canvas.height / 2 + 80);
+    await page.mouse.down();
+    await page.mouse.move(canvas.x + canvas.width / 2 + 40, canvas.y + canvas.height / 2 + 40, { steps: 5 });
+    await page.mouse.up();
+    await expect
+      .poll(() => page.evaluate(() => window.__OPENSAIL_MAP__!.getCenter().toArray()))
+      .not.toEqual(before);
+
+    // Zoom in to the most detailed downloaded level, still with depth data
+    const cachedBeforeZoom = await servedFromCache();
+    await page.locator('.maplibregl-ctrl-zoom-in').click();
+    await expect.poll(() => page.evaluate(() => Math.round(window.__OPENSAIL_MAP__!.getZoom()))).toBe(13);
+    await expect.poll(servedFromCache, { timeout: 15000 }).toBeGreaterThan(cachedBeforeZoom);
+    await expect.poll(depthAreas, { timeout: 15000 }).toBeGreaterThan(0);
   });
 });

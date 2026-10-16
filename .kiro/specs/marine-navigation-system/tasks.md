@@ -208,7 +208,11 @@ The protocol parsers, services, database, and UI components exist but are not co
 - [ ] 31.4 Spike: free coastal depth data (EMODnet Bathymetry, Rijkswaterstaat vaklodingen)
   - _Requirements: 2.5_
 
-- [ ] 31.5 Real offline mode: serve downloaded tiles through `addProtocol`, fix service-worker caching, download glyphs and style, online/offline indicator
+- [x] 31.5 Real offline mode: serve downloaded tiles through `addProtocol`, fix service-worker caching, download glyphs and style, online/offline indicator
+  - `opensail://` protocol (`tileProtocol.ts`): IndexedDB first, network while online, empty tile offline
+  - Downloads: base map, seamark and ENC tiles (cut from the PMTiles archive) and glyphs; overlapping regions share tiles
+  - Dexie v3: tiles keyed by source, `chartRegions` table with each region's ENC manifests
+  - `ConnectionStatus` indicator; e2e: download, offline, reload, pan, zoom
   - _Requirements: 5.1, 5.2_
 
 - [ ] 31.6 Chart management: downloaded regions, storage use and quota, deletion, edition dates, update check

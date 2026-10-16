@@ -8,12 +8,14 @@ describe('createBaseMapStyle', () => {
     expect(validateStyleMin(createBaseMapStyle({ seamarks: false }))).toEqual([]);
   });
 
-  it('uses the OpenFreeMap base map without a token', () => {
+  it('loads the base map and glyphs through the opensail:// protocol, without a token', () => {
     const style = createBaseMapStyle();
     expect(style.sources[BASE_MAP_SOURCE]).toMatchObject({
       type: 'vector',
-      url: 'https://tiles.openfreemap.org/planet',
+      tiles: ['opensail://base/{z}/{x}/{y}'],
+      maxzoom: 14,
     });
+    expect(style.glyphs).toBe('opensail://glyphs/{fontstack}/{range}');
     expect(JSON.stringify(style)).not.toMatch(/mapbox|access_token/);
   });
 
@@ -21,7 +23,7 @@ describe('createBaseMapStyle', () => {
     const style = createBaseMapStyle();
     expect(style.sources[SEAMARK_SOURCE]).toMatchObject({
       type: 'raster',
-      tiles: ['https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'],
+      tiles: ['opensail://seamarks/{z}/{x}/{y}'],
     });
     expect((style.sources[SEAMARK_SOURCE] as { attribution: string }).attribution).toMatch(/OpenSeaMap/);
     const last = style.layers[style.layers.length - 1];

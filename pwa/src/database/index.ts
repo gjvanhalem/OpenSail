@@ -11,6 +11,7 @@ export type {
   AISTarget,
   LogbookEntry,
   ChartTile,
+  ChartRegionRecord,
   Setting
 } from './db';
 
@@ -27,4 +28,4 @@ export type { Repository } from './repositories';
 
 // Export tile cache service
 export { tileCache } from './services/TileCache';
-export type { TileCache, Bounds, TileCacheStats } from './services/TileCache';
+export type { TileCacheService, Bounds, TileCacheStats, TileEntry, StorageQuota } from './services/TileCache';
