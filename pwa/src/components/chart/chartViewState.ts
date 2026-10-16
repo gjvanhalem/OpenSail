@@ -1,6 +1,9 @@
 import type { ChartRotation, Position } from '@/models';
 import type { Viewport } from './ChartView';
 
+/** Where a chart opens without a vessel position: the IJsselmeer */
+export const DEFAULT_CHART_VIEW = { latitude: 52.7, longitude: 5.3, zoom: 9 } as const;
+
 export interface ChartViewOptions {
   /** Keep the vessel in the center of the chart */
   followVessel: boolean;

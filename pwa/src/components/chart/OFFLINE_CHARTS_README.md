@@ -20,7 +20,7 @@ UI component for selecting a region to download based on the current map viewpor
 **Usage:**
 1. User pans and zooms to frame the desired area
 2. Clicks "Select This Area" to confirm
-3. Region bounds are calculated from viewport
+3. The region is the map's visible area (MapLibre `getBounds()`, passed up through ChartView's `onBoundsChange`)
 
 ## Services
 

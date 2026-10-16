@@ -15,6 +15,8 @@ import { useChartCatalog } from './useChartCatalog';
 import { registerTileProtocol } from './tileProtocol';
 import { ConnectionStatus } from './ConnectionStatus';
 import { ChartUpdateNotice } from './ChartUpdateNotice';
+import { lngLatBoundsToBounds } from './mapBounds';
+import type { Bounds } from '@/database/services/TileCache';
 
 // Before any map loads its style: every tile and glyph goes through opensail://
 registerTileProtocol();
@@ -42,6 +44,11 @@ export interface ChartViewProps {
   viewState?: Viewport;
   /** Called on every camera change (each animation frame while moving) */
   onMove?: (viewport: Viewport) => void;
+  /**
+   * Called with the map's visible area whenever it changes while the map stands
+   * still (after a move or resize), so a download covers exactly what is on screen
+   */
+  onBoundsChange?: (bounds: Bounds) => void;
   /** Called when the user starts dragging or rotating the map */
   onUserPan?: () => void;
   /** Let the user rotate the map. Off when the chart orientation sets the bearing. */
@@ -70,6 +77,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
   bearing = 0,
   viewState,
   onMove,
+  onBoundsChange,
   onUserPan,
   rotatable = true,
   onClick,
@@ -109,9 +117,38 @@ export const ChartView: React.FC<ChartViewProps> = ({
     attribution?.removeAttribute('open');
   }, []);
 
-  const handleRender = useCallback((evt: MapEvent) => {
-    if (window.__OPENSAIL_MAP__ !== evt.target) window.__OPENSAIL_MAP__ = evt.target;
-  }, []);
+  // A controlled map only shows its new view once the parent re-renders, so
+  // the bounds at moveend can still be the old ones: check again on every
+  // render while the map stands still, and report only when they change
+  const reportedBounds = useRef<Bounds | null>(null);
+  const reportBounds = useCallback(
+    (map: MapLibreMap) => {
+      if (!onBoundsChange) return;
+      const bounds = lngLatBoundsToBounds(map.getBounds());
+      const last = reportedBounds.current;
+      if (
+        last &&
+        last.north === bounds.north &&
+        last.south === bounds.south &&
+        last.east === bounds.east &&
+        last.west === bounds.west
+      ) {
+        return;
+      }
+      reportedBounds.current = bounds;
+      onBoundsChange(bounds);
+    },
+    [onBoundsChange]
+  );
+  const handleSettled = useCallback((evt: MapEvent) => reportBounds(evt.target), [reportBounds]);
+
+  const handleRender = useCallback(
+    (evt: MapEvent) => {
+      if (window.__OPENSAIL_MAP__ !== evt.target) window.__OPENSAIL_MAP__ = evt.target;
+      if (!evt.target.isMoving()) reportBounds(evt.target);
+    },
+    [reportBounds]
+  );
 
   useEffect(
     () => () => {
@@ -150,6 +187,8 @@ export const ChartView: React.FC<ChartViewProps> = ({
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
         onMove={viewState || onMove ? handleMove : undefined}
+        onMoveEnd={onBoundsChange ? handleSettled : undefined}
+        onResize={onBoundsChange ? handleSettled : undefined}
         onDragStart={onUserPan ? handleUserPan : undefined}
         onRotateStart={onUserPan ? handleUserPan : undefined}
         dragRotate={rotatable}
