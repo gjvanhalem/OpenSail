@@ -221,7 +221,11 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Storage use, quota and persistent-storage status; the 50 GB of R15.5 depends on the browser's quota (see docs/chart-sources.md)
   - _Requirements: 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 31.7 Route hazard warnings from inland depth data (official) and coastal depth data (advisory)
+- [x] 31.7 Route hazard warnings from inland depth data (official) and coastal depth data (advisory)
+  - `utils/routeHazards.ts`: shallow stretches below the safety depth (the depth alert's minimum), hazards within 50 m unless deep enough, restricted areas, legs without chart data
+  - `routeHazardService.ts` reads the ENC tiles through the chart's protocol, so it works offline for downloaded regions
+  - Warnings from non-official data (`official: false`, the coastal depth region) are advisory and one step less severe
+  - Warning triangles on the Routes page chart and a list next to the planner and route summary
   - _Requirements: 2.5_
 
 ## CRITICAL TASKS (Must Complete First)

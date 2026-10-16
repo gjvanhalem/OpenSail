@@ -23,3 +23,4 @@ export { createEncLayers, DEFAULT_ENC_DEPTHS, ENC_COLORS, ENC_LAYER_PREFIX, encS
 export type { EncDepthSettings } from './encStyle';
 export { ChartRegionList } from './ChartRegionList';
 export { ChartUpdateNotice } from './ChartUpdateNotice';
+export { RouteHazardLayer } from './RouteHazardLayer';

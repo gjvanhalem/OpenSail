@@ -95,7 +95,7 @@ Spec tasks 24 and 25. Requirements R2, R9.
 - [x] Route summary (R2.4): total distance, ETA and a list of course changes.
 - [x] Track colours (R9.3) and converting a track into a route (R9.5).
 - [x] Stress tests: a route with 50+ waypoints (R2.1), 100 hours of track data (R9.2), and 10+ routes stored offline (R5.3).
-- [ ] *Depends on Phase 3:* hazard and shallow-water warnings (R2.5) need depth data from the chart source. For now `routeValidation.ts` only has TODO placeholders.
+- [x] *Depends on Phase 3:* hazard and shallow-water warnings (R2.5) need depth data from the chart source. *Done in Phase 3: `routeValidation.ts`'s checks now use the ENC data.*
 
 **Done when:** a simulated passage over a 5-waypoint route shows correct cross-track error and ETA and switches waypoints automatically.
 
@@ -116,7 +116,7 @@ The chart source was decided on 2026-10-15; see [`docs/chart-source-decision.md`
 - [x] Fix the service-worker caching rules so they match the URLs the map really requests. *Done: the SW no longer caches tiles (IndexedDB holds downloads), caches the chart catalog and TileJSON, and leaves `/charts/` archives alone.*
 - [x] Download glyphs, sprites and the style document as well, so an offline map has labels and icons. *Done: glyph ranges are downloaded with each region; the style is built in code (in the precached bundle) and uses no sprites.*
 - [x] Chart management (R15): a list of downloaded regions, storage use and quota, deletion, edition dates, and checking for updates when online. *Done: region list with editions and age, inline delete, update check on start and when coming online, "Update" re-downloads ENC tiles; see [`docs/chart-sources.md`](docs/chart-sources.md#chart-management-r15).*
-- [ ] Use depth contours and hazards for route hazard warnings (R2.5): official for inland waters, marked advisory on the coast.
+- [x] Use depth contours and hazards for route hazard warnings (R2.5): official for inland waters, marked advisory on the coast. *Done: `routeHazardService.ts` checks each leg against the ENC tiles (offline too): shallow water below the safety depth, hazards within 50 m, restricted areas, stretches without chart data; warnings from non-official data are advisory. Shown on the Routes page chart and in a list.*
 - [x] End-to-end test: download a region, go offline, reload, and pan and zoom within that region. *Done: `offline.spec.ts`.*
 - [x] Online/offline status indicator in the app (the e2e test in `offline.spec.ts` is `test.fixme` until this exists). *Done: `ConnectionStatus` on the chart; the test is real now.*
 

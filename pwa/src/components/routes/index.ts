@@ -6,3 +6,6 @@ export type { RoutePlannerUIProps } from './RoutePlannerUI';
 export type { WaypointEditorProps } from './WaypointEditor';
 export { RouteNavigationControl } from './RouteNavigationControl';
 export { RouteSummary } from './RouteSummary';
+export { RouteHazardList } from './RouteHazardList';
+export { useRouteHazards, DEFAULT_SAFETY_DEPTH } from './useRouteHazards';
+export type { RouteHazardState } from './useRouteHazards';
