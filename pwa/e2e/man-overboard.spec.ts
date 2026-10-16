@@ -106,6 +106,17 @@ test.describe('Man overboard', () => {
     await expect(page.getByTestId('mob-bearing')).toHaveText('180°');
   });
 
+  test("doesn't cover the chart's not-for-navigation note", async ({ page }) => {
+    await page.goto('/chart');
+    const note = page.getByRole('button', { name: /Not for navigation/ });
+    const noteBox = (await note.boundingBox())!;
+    const mobBox = (await mobButton(page).boundingBox())!;
+    // The MOB button sits fully above the note
+    expect(mobBox.y + mobBox.height).toBeLessThanOrEqual(noteBox.y);
+    // ...so the note can still be opened (a covered button fails this click)
+    await note.click({ trial: true });
+  });
+
   test('stays on screen in fullscreen mode and survives a reload', async ({ page }) => {
     await startStub(page, '52.1', '4.2');
     await expect(page.getByTestId('position-readout')).toHaveText(SPOT_READOUT);
