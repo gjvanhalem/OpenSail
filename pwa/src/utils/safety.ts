@@ -1,5 +1,5 @@
 import type { Position, Route } from '@/models';
-import { angleDifference, calculateDistance } from './calculations';
+import { angleDifference, calculateDestination, calculateDistance } from './calculations';
 import { calculateRouteGuidance } from './routeGuidance';
 
 /**
@@ -227,4 +227,18 @@ export function checkAnchor(
   check.gpsLost = lost;
 
   return { check, events };
+}
+
+/**
+ * The anchor-watch circle as a closed GeoJSON ring of [longitude, latitude]
+ * points, `radiusM` metres from `center`, for drawing on the chart (R8.3).
+ */
+export function circleRing(center: Position, radiusM: number, steps = 64): [number, number][] {
+  const ring: [number, number][] = [];
+  for (let i = 0; i < steps; i++) {
+    const point = calculateDestination(center, (360 * i) / steps, radiusM / METRES_PER_NM);
+    ring.push([point.longitude, point.latitude]);
+  }
+  ring.push(ring[0]);
+  return ring;
 }

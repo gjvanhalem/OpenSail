@@ -144,15 +144,15 @@ The protocol parsers, services, database, and UI components exist but are not co
   - Allow manual notes
   - _Requirements: 13.3_
 
-- [ ] 28. Implement safety features
-- [ ] 28.1 Add MOB (Man Overboard) function
+- [x] 28. Implement safety features
+- [x] 28.1 Add MOB (Man Overboard) function
   - Add MOB button to UI
   - Capture position immediately
   - Display MOB marker on map
   - Show bearing and distance to MOB
   - _Requirements: 12.1, 12.2, 12.3, 12.4_
 
-- [ ] 28.2 Implement anchor watch
+- [x] 28.2 Implement anchor watch
   - Add anchor watch activation UI
   - Monitor position against radius
   - Trigger alarm when dragging

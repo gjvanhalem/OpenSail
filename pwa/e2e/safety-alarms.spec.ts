@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /**
  * The shared alarm system (Phase 4): a Web Audio siren, a full-screen alert
