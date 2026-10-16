@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /**
  * Anchor watch (R8) driven by the NMEA 0183 protocol stub: drop anchor, swing
@@ -23,6 +24,15 @@ async function moveTo(page: Page, latitude: string) {
   await page.getByLabel('Latitude (°)').fill(latitude);
 }
 
+/** Whether the chart has a style layer with this id */
+const mapHasLayer = (page: Page, id: string) =>
+  page.evaluate((id) => window.__OPENSAIL_MAP__?.getLayer(id) !== undefined, id);
+
+const circleColour = (page: Page) =>
+  page.evaluate(() =>
+    window.__OPENSAIL_MAP__?.getPaintProperty('anchor-watch-circle-line', 'line-color')
+  );
+
 const panel = (page: Page) => page.getByRole('region', { name: 'Anchor watch' });
 const status = (page: Page) => page.getByTestId('anchor-status');
 const overlay = (page: Page) => page.getByRole('alertdialog');
@@ -40,6 +50,13 @@ test.describe('Anchor watch', () => {
     await startStub(page);
     await dropAnchor(page, '30');
     await expect(page.getByTestId('anchor-distance')).toHaveText('0 m / 30 m');
+
+    // The circle and the anchor on the chart (R8.3)
+    await page.click('a[href="/chart"]');
+    await expect(page.getByTestId('anchor-marker')).toHaveAttribute('data-dragging', 'false');
+    await expect.poll(() => mapHasLayer(page, 'anchor-watch-circle-fill')).toBe(true);
+    await expect.poll(() => circleColour(page)).toBe('#2563eb');
+    await page.click('a[href="/instruments"]');
     await expect(page.locator('html')).toHaveAttribute('data-wake-lock', /^(held|denied|unsupported)$/);
 
     // Swinging 22 m from the anchor: inside, no alarm
@@ -58,6 +75,11 @@ test.describe('Anchor watch', () => {
     await overlay(page).getByRole('button', { name: 'Silence' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-alarm-sound', 'off');
     await expect(status(page)).toHaveText('DRAGGING');
+    // The circle turns red on the chart
+    await page.click('a[href="/chart"]');
+    await expect(page.getByTestId('anchor-marker')).toHaveAttribute('data-dragging', 'true');
+    await expect.poll(() => circleColour(page)).toBe('#dc2626');
+    await page.click('a[href="/instruments"]');
 
     // Re-anchored (back at the anchor)
     await moveTo(page, '52.2');
@@ -117,6 +139,9 @@ test.describe('Anchor watch', () => {
 
     await panel(page).getByRole('button', { name: 'Raise anchor (stop watch)' }).click();
     await panel(page).getByRole('button', { name: 'Tap again to stop the watch' }).click();
+    await page.click('a[href="/chart"]');
+    await expect(page.getByTestId('anchor-marker')).toHaveCount(0);
+    await expect.poll(() => mapHasLayer(page, 'anchor-watch-circle-fill')).toBe(false);
     await expect(page.getByRole('button', { name: 'Drop anchor here' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-wake-lock', 'off');
   });

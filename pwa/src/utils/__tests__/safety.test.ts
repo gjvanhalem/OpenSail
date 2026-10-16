@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { Position } from '@/models';
+import { calculateDistance } from '../calculations';
 import {
+  circleRing,
   clampAnchorRadius,
   mobFix,
   mobGuidance,
@@ -68,5 +70,23 @@ describe('clampAnchorRadius', () => {
     expect(clampAnchorRadius(42.4)).toBe(42);
     expect(clampAnchorRadius(800)).toBe(500);
     expect(clampAnchorRadius(Number.NaN)).toBe(10);
+  });
+});
+
+describe('circleRing', () => {
+  it('is a closed ring of points at the radius from the anchor (R8.3)', () => {
+    const anchor = at(52, 4);
+    const ring = circleRing(anchor, 50, 32);
+    expect(ring).toHaveLength(33);
+    expect(ring[32]).toEqual(ring[0]);
+    for (const [longitude, latitude] of ring) {
+      const metres = calculateDistance(anchor, at(latitude, longitude)) * METRES_PER_NM;
+      expect(metres).toBeCloseTo(50, 1);
+    }
+    // First point due north, a quarter round due east
+    expect(ring[0][0]).toBeCloseTo(4, 9);
+    expect(ring[0][1]).toBeGreaterThan(52);
+    expect(ring[8][1]).toBeCloseTo(52, 6);
+    expect(ring[8][0]).toBeGreaterThan(4);
   });
 });

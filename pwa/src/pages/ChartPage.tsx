@@ -18,6 +18,7 @@ import {
 } from '@/components/chart';
 import { RouteNavigationControl } from '@/components/routes';
 import { NavigationStatus } from '@/components/NavigationStatus';
+import { SafetyMapLayers } from '@/components/safety';
 import { activeLegStart } from '@/utils/routeGuidance';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { RootState } from '@/store';
@@ -201,6 +202,7 @@ export const ChartPage: React.FC = () => {
           visible={showAIS}
           onTargetSelect={handleTargetSelect}
         />
+        <SafetyMapLayers />
         {navigation.position && (
           <VesselMarker
             position={navigation.position}

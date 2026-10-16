@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures/test';
+import type { Page } from '@playwright/test';
 
 /**
  * Man overboard (R12) driven by the NMEA 0183 protocol stub: one tap records
@@ -52,6 +53,10 @@ async function waitForEvent(page: Page, type: string) {
     .toBeGreaterThan(0);
 }
 
+/** Whether the chart has a style layer with this id */
+const mapHasLayer = (page: Page, id: string) =>
+  page.evaluate((id) => window.__OPENSAIL_MAP__?.getLayer(id) !== undefined, id);
+
 const mobButton = (page: Page) => page.getByRole('button', { name: 'Man overboard', exact: true });
 const panel = (page: Page) => page.getByRole('region', { name: 'Man overboard' });
 const html = (page: Page) => page.locator('html');
@@ -80,12 +85,16 @@ test.describe('Man overboard', () => {
     await expect(panel(page)).toBeVisible();
     await expect(html(page)).toHaveAttribute('data-wake-lock', /^(held|denied|unsupported)$/);
     await expect(page.getByTestId('mob-distance')).toHaveText('0 m');
+    // The spot on the chart (R12.2)
+    await expect(page.getByTestId('mob-marker')).toBeVisible();
 
     // Sailed on 0.002° north (222 m) heading east: the spot is astern to starboard
     await setStub(page, { 'Latitude (°)': '52.102', 'Heading (° true)': '90' });
     await expect(page.getByTestId('mob-bearing')).toHaveText('180°');
     await expect(page.getByTestId('mob-distance')).toHaveText(/^22[23] m$/);
     await expect(page.getByTestId('mob-turn')).toHaveText('Turn starboard 90°');
+    // ...with a line from the boat back to it
+    await expect.poll(() => mapHasLayer(page, 'mob-line')).toBe(true);
 
     // Further away: shown in nautical miles
     await setStub(page, { 'Latitude (°)': '52.12', 'Longitude (°)': '4.2' });
