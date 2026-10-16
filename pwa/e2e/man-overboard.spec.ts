@@ -53,9 +53,18 @@ async function waitForEvent(page: Page, type: string) {
     .toBeGreaterThan(0);
 }
 
-/** Whether the chart has a style layer with this id */
+/**
+ * Whether the chart has a style layer with this id. Right after navigating
+ * to the chart the map exists before its style does, and MapLibre throws then.
+ */
 const mapHasLayer = (page: Page, id: string) =>
-  page.evaluate((id) => window.__OPENSAIL_MAP__?.getLayer(id) !== undefined, id);
+  page.evaluate((id) => {
+    try {
+      return window.__OPENSAIL_MAP__?.getLayer(id) !== undefined;
+    } catch {
+      return false;
+    }
+  }, id);
 
 const mobButton = (page: Page) => page.getByRole('button', { name: 'Man overboard', exact: true });
 const panel = (page: Page) => page.getByRole('region', { name: 'Man overboard' });

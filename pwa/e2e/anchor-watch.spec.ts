@@ -24,14 +24,27 @@ async function moveTo(page: Page, latitude: string) {
   await page.getByLabel('Latitude (°)').fill(latitude);
 }
 
-/** Whether the chart has a style layer with this id */
+/**
+ * Whether the chart has a style layer with this id. Right after navigating
+ * to the chart the map exists before its style does, and MapLibre throws then.
+ */
 const mapHasLayer = (page: Page, id: string) =>
-  page.evaluate((id) => window.__OPENSAIL_MAP__?.getLayer(id) !== undefined, id);
+  page.evaluate((id) => {
+    try {
+      return window.__OPENSAIL_MAP__?.getLayer(id) !== undefined;
+    } catch {
+      return false;
+    }
+  }, id);
 
 const circleColour = (page: Page) =>
-  page.evaluate(() =>
-    window.__OPENSAIL_MAP__?.getPaintProperty('anchor-watch-circle-line', 'line-color')
-  );
+  page.evaluate(() => {
+    try {
+      return window.__OPENSAIL_MAP__?.getPaintProperty('anchor-watch-circle-line', 'line-color');
+    } catch {
+      return undefined;
+    }
+  });
 
 const panel = (page: Page) => page.getByRole('region', { name: 'Anchor watch' });
 const status = (page: Page) => page.getByTestId('anchor-status');
