@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import Map, {
   NavigationControl,
   type MapEvent,
@@ -88,6 +88,28 @@ export const ChartView: React.FC<ChartViewProps> = ({
 }) => {
   const mapRef = useRef<MapRef>(null);
 
+  // MapLibre starts a drag only once the pointer has moved a few pixels, and a
+  // new view before that (the vessel moving while the chart follows it) jumps
+  // the camera, which cancels the gesture. So the view is held from the moment
+  // a pointer goes down until it is released or the map starts moving.
+  const [heldViewState, setHeldViewState] = useState<Viewport | null>(null);
+  const shownViewState = heldViewState ?? viewState;
+
+  const handlePointerDown = useCallback(() => {
+    if (viewState) setHeldViewState(viewState);
+  }, [viewState]);
+  const releaseView = useCallback(() => setHeldViewState(null), []);
+
+  useEffect(() => {
+    if (!heldViewState) return;
+    window.addEventListener('pointerup', releaseView);
+    window.addEventListener('pointercancel', releaseView);
+    return () => {
+      window.removeEventListener('pointerup', releaseView);
+      window.removeEventListener('pointercancel', releaseView);
+    };
+  }, [heldViewState, releaseView]);
+
   const handleMove = useCallback(
     (evt: ViewStateChangeEvent) => {
       // Not debounced: a controlled map must get its new view every frame,
@@ -170,11 +192,11 @@ export const ChartView: React.FC<ChartViewProps> = ({
   const mapStyle = useMemo(() => createBaseMapStyle({ seamarks: showSeamarks }), [showSeamarks]);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" onPointerDownCapture={handlePointerDown}>
       <Map
         ref={mapRef}
-        {...(viewState
-          ? { ...viewState }
+        {...(shownViewState
+          ? { ...shownViewState }
           : {
               initialViewState: {
                 longitude: center[0],
@@ -187,6 +209,7 @@ export const ChartView: React.FC<ChartViewProps> = ({
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
         onMove={viewState || onMove ? handleMove : undefined}
+        onMoveStart={heldViewState ? releaseView : undefined}
         onMoveEnd={onBoundsChange ? handleSettled : undefined}
         onResize={onBoundsChange ? handleSettled : undefined}
         onDragStart={onUserPan ? handleUserPan : undefined}

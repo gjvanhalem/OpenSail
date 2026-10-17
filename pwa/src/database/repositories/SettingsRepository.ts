@@ -151,10 +151,13 @@ export class SettingsRepository {
 
   // Initialize settings with defaults if not present
   async initialize(): Promise<void> {
-    const count = await db.settings.count();
-    if (count === 0) {
-      await this.setMany(DEFAULT_SETTINGS);
-    }
+    // One transaction, so a setting saved in between can't be overwritten by the defaults
+    await db.transaction('rw', db.settings, async () => {
+      const count = await db.settings.count();
+      if (count === 0) {
+        await this.setMany(DEFAULT_SETTINGS);
+      }
+    });
   }
 }
 
