@@ -23,7 +23,10 @@ export class NMEA0183Parser {
     MWV: NMEA0183Parser.parseMWV,
     VHW: NMEA0183Parser.parseVHW,
     HDG: NMEA0183Parser.parseHDG,
+    HDM: NMEA0183Parser.parseHDM,
     HDT: NMEA0183Parser.parseHDT,
+    RSA: NMEA0183Parser.parseRSA,
+    XDR: NMEA0183Parser.parseXDR,
     VDM: NMEA0183Parser.parseVDM,
     VDO: NMEA0183Parser.parseVDO
   };
@@ -158,10 +161,20 @@ export class NMEA0183Parser {
     // Course is empty when the vessel is not moving
     const speedKnots = NMEA0183Parser.optionalNumber(fields[6]);
     const course = NMEA0183Parser.optionalNumber(fields[7]);
+    // Magnetic variation, east positive, when the receiver sends it
+    const variationValue = NMEA0183Parser.optionalNumber(fields[9]);
+    const variation =
+      variationValue === undefined ? undefined : variationValue * (fields[10]?.startsWith('W') ? -1 : 1);
 
     return {
       type: InstrumentDataType.GPS,
-      value: { position, speedKnots, course, valid: fields[1] === 'A' },
+      value: {
+        position,
+        speedKnots,
+        course,
+        valid: fields[1] === 'A',
+        ...(variation !== undefined && { variation }),
+      },
       unit: '',
       timestamp: Date.now(),
       source: 'nmea0183'
@@ -299,11 +312,72 @@ export class NMEA0183Parser {
     // $--HDG,heading,deviation,E|W,variation,E|W (west is negative)
     const heading = parseFloat(fields[0]);
     const deviation = (parseFloat(fields[1]) || 0) * (fields[2] === 'W' ? -1 : 1);
-    const variation = (parseFloat(fields[3]) || 0) * (fields[4] === 'W' ? -1 : 1);
+    // An empty variation is unknown, not zero: the magnetic variation setting fills it in
+    const variationValue = NMEA0183Parser.optionalNumber(fields[3]);
+    const variation =
+      variationValue === undefined ? undefined : variationValue * (fields[4] === 'W' ? -1 : 1);
 
     return {
       type: InstrumentDataType.Heading,
-      value: { heading, deviation, variation },
+      value: { heading, deviation, ...(variation !== undefined && { variation }) },
+      unit: 'deg',
+      timestamp: Date.now(),
+      source: 'nmea0183'
+    };
+  }
+
+  // $--HDM,heading,M: magnetic heading without deviation or variation (pypilot sends $APHDM)
+  private static parseHDM(fields: string[]): InstrumentData | null {
+    const heading = NMEA0183Parser.optionalNumber(fields[0]);
+    if (heading === undefined) return null;
+    return {
+      type: InstrumentDataType.Heading,
+      value: { heading, reference: 'magnetic' },
+      unit: 'deg',
+      timestamp: Date.now(),
+      source: 'nmea0183'
+    };
+  }
+
+  // $--RSA,starboard,A|V,port,A|V: rudder angle, starboard (or single) rudder first;
+  // negative is to port
+  private static parseRSA(fields: string[]): InstrumentData | null {
+    const starboard = NMEA0183Parser.optionalNumber(fields[0]);
+    const port = NMEA0183Parser.optionalNumber(fields[2]);
+    const angle =
+      starboard !== undefined && fields[1] === 'A'
+        ? starboard
+        : port !== undefined && fields[3] === 'A'
+          ? port
+          : undefined;
+    if (angle === undefined) return null;
+    return {
+      type: InstrumentDataType.Rudder,
+      value: { angle },
+      unit: 'deg',
+      timestamp: Date.now(),
+      source: 'nmea0183'
+    };
+  }
+
+  // $--XDR,type,value,unit,name,... in groups of four. Only the angular
+  // measurements for heel (ROLL/HEEL) and pitch (PTCH/PITCH) are used, as
+  // pypilot sends them: $APXDR,A,1.2,D,PTCH,A,-3.4,D,ROLL
+  private static parseXDR(fields: string[]): InstrumentData | null {
+    let heel: number | undefined;
+    let pitch: number | undefined;
+    for (let i = 0; i < fields.length; i += 4) {
+      const [type, rawValue, unit, name = ''] = fields.slice(i, i + 4);
+      const value = NMEA0183Parser.optionalNumber(rawValue);
+      if (type !== 'A' || unit !== 'D' || value === undefined) continue;
+      const transducer = name.toUpperCase();
+      if (transducer === 'ROLL' || transducer === 'HEEL') heel = value;
+      else if (transducer === 'PTCH' || transducer === 'PITCH') pitch = value;
+    }
+    if (heel === undefined && pitch === undefined) return null;
+    return {
+      type: InstrumentDataType.Attitude,
+      value: { ...(heel !== undefined && { heel }), ...(pitch !== undefined && { pitch }) },
       unit: 'deg',
       timestamp: Date.now(),
       source: 'nmea0183'

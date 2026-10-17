@@ -161,7 +161,11 @@ export const InstrumentDataType = {
   Speed: 'speed',
   Heading: 'heading',
   Temperature: 'temperature',
-  AIS: 'ais'
+  AIS: 'ais',
+  /** Rudder angle, degrees, starboard positive */
+  Rudder: 'rudder',
+  /** Heel (roll, starboard down positive) and pitch (bow up positive), degrees */
+  Attitude: 'attitude'
 } as const;
 
 export type InstrumentDataType = typeof InstrumentDataType[keyof typeof InstrumentDataType];

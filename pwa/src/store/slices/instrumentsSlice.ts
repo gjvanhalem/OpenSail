@@ -26,6 +26,12 @@ export interface InstrumentsState {
   windDirection: number | null;
   waterSpeed: number | null;
   waterTemperature: number | null;
+  /** Degrees, starboard positive */
+  rudderAngle: number | null;
+  /** Degrees, starboard down positive */
+  heel: number | null;
+  /** Degrees, bow up positive */
+  pitch: number | null;
   isReceivingData: boolean;
 }
 
@@ -38,6 +44,9 @@ const initialState: InstrumentsState = {
   windDirection: null,
   waterSpeed: null,
   waterTemperature: null,
+  rudderAngle: null,
+  heel: null,
+  pitch: null,
   isReceivingData: false,
 };
 
@@ -97,6 +106,9 @@ const instrumentsSlice = createSlice({
       if (reading.windSpeed !== undefined) state.windSpeed = reading.windSpeed;
       if (reading.windDirection !== undefined) state.windDirection = reading.windDirection;
       if (reading.waterTemperature !== undefined) state.waterTemperature = reading.waterTemperature;
+      if (reading.rudderAngle !== undefined) state.rudderAngle = reading.rudderAngle;
+      if (reading.heel !== undefined) state.heel = reading.heel;
+      if (reading.pitch !== undefined) state.pitch = reading.pitch;
       
       state.isReceivingData = true;
       

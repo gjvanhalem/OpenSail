@@ -132,7 +132,7 @@ OpenSail is designed to work completely offline once you've downloaded the neces
 
 ## Connecting Instruments
 
-OpenSail can connect to marine instruments via USB or Bluetooth to display real-time navigation data.
+OpenSail can connect to marine instruments via USB, Bluetooth or Wi-Fi to display real-time navigation data.
 
 ### Supported Protocols
 
@@ -172,6 +172,21 @@ OpenSail can connect to marine instruments via USB or Bluetooth to display real-
 3. **Configure Protocol**:
    - Select the protocol
    - Data should start flowing immediately
+
+### Wi-Fi Connection (instruments and autopilots on the boat's Wi-Fi)
+
+Browsers can't open the TCP or UDP connection most Wi-Fi gateways use, so OpenSail connects over WebSocket. On a laptop, the small **OpenSail bridge** relays the gateway's data. See [`tools/opensail-bridge`](../tools/opensail-bridge/README.md).
+
+**Pcnautic autopilot** (NMEA 0183 on 192.168.14.1, TCP port 20220):
+
+1. Join the autopilot's Wi-Fi network (`pcnautic_AP`).
+2. Start the bridge on the laptop: `node tools/opensail-bridge/bridge.mjs`
+3. In OpenSail, open Instruments, choose **Wi-Fi**, keep the address `ws://localhost:10110` and click **Connect over Wi-Fi**.
+4. Set your **magnetic variation** in Settings > Navigation Sources. The autopilot sends a magnetic heading, and OpenSail shows true heading. In the Netherlands the variation is about 2° east.
+
+The autopilot sends heading, rudder angle, heel and pitch (and wind, if a wind sensor is connected to it), but no position or depth. Keep the laptop's GPS on. If the Wi-Fi drops, OpenSail reconnects by itself.
+
+A gateway that offers WebSocket itself can be entered directly as its `ws://` or `wss://` address. Phones can't run the bridge, so on a phone a TCP-only gateway won't connect from the browser.
 
 ### Troubleshooting Connections
 

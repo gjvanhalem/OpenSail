@@ -67,9 +67,13 @@ function isMagnetic(reference: unknown): boolean {
  *   a magnetic heading (HDG, SeaTalk, PGN 127250 magnetic) is corrected with
  *   deviation and variation. { rateOfTurn } carries no heading.
  * Magnetic course over ground is ignored, since it can't be made true without
- * a known variation.
+ * a known variation. A magnetic heading without its own variation (HDM, HDG
+ * with an empty variation field) uses `magneticVariation` (degrees, east positive).
  */
-export function normalizeNavigationData(data: InstrumentData): NavigationReading {
+export function normalizeNavigationData(
+  data: InstrumentData,
+  magneticVariation = 0
+): NavigationReading {
   const obj = fields(data.value);
   if (!obj) return {};
 
@@ -114,7 +118,7 @@ export function normalizeNavigationData(data: InstrumentData): NavigationReading
       if (obj.reference === 'true') return { heading: normalizeAngle(heading) };
       // Magnetic sensor heading: true = magnetic + deviation + variation (east positive)
       const deviation = num(obj.deviation) ?? 0;
-      const variation = num(obj.variation) ?? 0;
+      const variation = num(obj.variation) ?? magneticVariation;
       return { heading: normalizeAngle(heading + deviation + variation) };
     }
 

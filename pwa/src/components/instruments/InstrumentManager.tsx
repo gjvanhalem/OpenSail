@@ -2,8 +2,8 @@
  * InstrumentManager - UI for managing instrument connections
  * 
  * Provides interface for connecting to marine instruments via USB (Web Serial API),
- * Bluetooth, or the built-in instrument simulator, and displays connection status
- * and received data.
+ * Bluetooth, Wi-Fi (WebSocket, directly or through the OpenSail bridge) or the
+ * built-in instrument simulator, and displays connection status and received data.
  */
 
 import { useState, useRef } from 'react';
@@ -22,8 +22,10 @@ import {
   SerialConnection,
   BluetoothConnection,
   StubConnection,
+  WebSocketConnection,
   connectionRegistry,
 } from '@/services/connections';
+import { updateSetting } from '@/store/slices/settingsSlice';
 import { StubControls } from './StubControls';
 import { InstrumentDataService } from '@/services/InstrumentDataService';
 import { useFeatureSupport } from '@/hooks/useCompatibility';
@@ -47,12 +49,16 @@ export function InstrumentManager() {
   
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolType>('NMEA0183');
   const [error, setError] = useState<string | null>(null);
+  const savedWifiUrl = useAppSelector((state) => state.settings.settings.instrumentWebSocketUrl);
+  const [wifiUrl, setWifiUrl] = useState<string | null>(null);
+  // Follow the saved address until the user types their own
+  const wifiAddress = wifiUrl ?? savedWifiUrl;
   
   // Check feature support using compatibility hook
   const isSerialSupported = useFeatureSupport('webSerial');
   const isBluetoothSupported = useFeatureSupport('webBluetooth');
   // The simulator works in every browser, so it is the default without device APIs
-  const [connectionType, setConnectionType] = useState<'serial' | 'bluetooth' | 'stub'>(
+  const [connectionType, setConnectionType] = useState<'serial' | 'bluetooth' | 'network' | 'stub'>(
     isSerialSupported ? 'serial' : 'stub'
   );
   
@@ -71,6 +77,8 @@ export function InstrumentManager() {
         await handleSerialConnect();
       } else if (connectionType === 'bluetooth') {
         await handleBluetoothConnect();
+      } else if (connectionType === 'network') {
+        await handleWifiConnect();
       } else {
         await handleStubConnect();
       }
@@ -182,6 +190,41 @@ export function InstrumentManager() {
 
     // Set as active connection
     dispatch(setActiveConnection(connectionId));
+  };
+
+  const handleWifiConnect = async () => {
+    const connectionId = `network-${Date.now()}`;
+    const url = wifiAddress.trim();
+    const wifiConnection = new WebSocketConnection({ id: connectionId, protocol: selectedProtocol, url });
+
+    wifiConnection.onStatusChange((status: ConnectionStatus, errorMsg?: string) => {
+      dispatch(setConnectionStatus({ id: connectionId, status, errorMessage: errorMsg }));
+    });
+
+    dispatch(addConnection({
+      id: connectionId,
+      type: 'network',
+      protocol: selectedProtocol,
+      status: 'connecting',
+      name: `Wi-Fi ${selectedProtocol} (${url})`,
+      lastDataReceived: null,
+      errorMessage: null
+    }));
+
+    dataServiceRef.current?.wireConnection(wifiConnection, selectedProtocol);
+    try {
+      await wifiConnection.connect();
+    } catch (err) {
+      // Nothing to keep: the address is wrong or nothing answers there
+      dispatch(removeConnection(connectionId));
+      throw err;
+    }
+    connectionRegistry.add(wifiConnection);
+    dispatch(setActiveConnection(connectionId));
+    // Remember the address that worked
+    if (url !== savedWifiUrl) {
+      void dispatch(updateSetting({ key: 'instrumentWebSocketUrl', value: url }));
+    }
   };
 
   const handleStubConnect = async () => {
@@ -297,6 +340,16 @@ export function InstrumentManager() {
                 {!isBluetoothSupported && <span className="block text-xs">(Not supported)</span>}
               </button>
               <button
+                onClick={() => setConnectionType('network')}
+                className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
+                  connectionType === 'network'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Wi-Fi
+              </button>
+              <button
                 onClick={() => setConnectionType('stub')}
                 className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                   connectionType === 'stub'
@@ -308,6 +361,32 @@ export function InstrumentManager() {
               </button>
             </div>
           </div>
+
+          {connectionType === 'network' && (
+            <div>
+              <label htmlFor="wifi-address" className="block text-sm font-medium text-gray-700 mb-2">
+                Address
+              </label>
+              <input
+                id="wifi-address"
+                type="text"
+                inputMode="url"
+                autoComplete="off"
+                spellCheck={false}
+                value={wifiAddress}
+                onChange={(e) => setWifiUrl(e.target.value)}
+                placeholder="ws://localhost:10110"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Browsers can't open the TCP connection most Wi-Fi gateways use. Join the boat's
+                Wi-Fi, start the OpenSail bridge on this device (for a Pcnautic autopilot:{' '}
+                <code>node tools/opensail-bridge/bridge.mjs</code>) and connect to{' '}
+                <code>ws://localhost:10110</code>. A gateway that offers WebSocket itself can be
+                entered directly.
+              </p>
+            </div>
+          )}
 
           {/* Protocol Selection */}
           <div>
@@ -335,7 +414,9 @@ export function InstrumentManager() {
               ? 'Connect to USB Port'
               : connectionType === 'bluetooth'
                 ? 'Connect to Bluetooth Device'
-                : 'Start Simulator'}
+                : connectionType === 'network'
+                  ? 'Connect over Wi-Fi'
+                  : 'Start Simulator'}
           </button>
 
           {/* Error Message */}
@@ -458,6 +539,7 @@ export function InstrumentManager() {
         <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
           <li>USB: Connect your instrument before clicking "Connect to USB Port"</li>
           <li>Bluetooth: Make sure your device is powered on and in pairing mode</li>
+          <li>Wi-Fi: join the boat's Wi-Fi network first; the connection comes back by itself when the Wi-Fi drops</li>
           <li>Select the correct protocol for your instrument</li>
           <li>NMEA 0183 is the most common protocol (4800 baud)</li>
           <li>Simulator: generates real NMEA 0183, NMEA 2000 or SeaTalk data for testing without a boat</li>
