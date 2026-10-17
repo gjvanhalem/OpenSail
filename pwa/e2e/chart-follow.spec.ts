@@ -67,6 +67,27 @@ test.describe('Chart follows the vessel', () => {
     await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
     await expect.poll(() => markerOffsetFromCenter(page)).toBeLessThan(5);
   });
+
+  test('a vessel update between pressing and dragging does not cancel the pan', async ({
+    page,
+  }) => {
+    await startSimulator(page);
+    await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
+
+    const map = await page.locator('.maplibregl-canvas').boundingBox();
+    if (!map) throw new Error('map not on screen');
+    const x = map.x + map.width / 2 + 120;
+    const y = map.y + map.height / 2 + 90;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    // The simulator moves the vessel every second, before the drag starts
+    await page.waitForTimeout(1500);
+    await page.mouse.move(x - 200, y - 150, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(page.getByRole('button', { name: 'Recenter' })).toBeVisible();
+    expect(await markerOffsetFromCenter(page)).toBeGreaterThan(100);
+  });
 });
 
 /** A setting as stored in IndexedDB; reloading before the write lands would lose it */

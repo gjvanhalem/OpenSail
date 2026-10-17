@@ -10,6 +10,11 @@ export interface SettingsState {
   isLoading: boolean;
   error: string | null;
   isInitialized: boolean;
+  /**
+   * Keys changed before the initial load finished. Their new values are already
+   * saved, so they win over the older values the load read.
+   */
+  updatedWhileLoading: (keyof AppSettings)[];
 }
 
 const initialState: SettingsState = {
@@ -46,6 +51,7 @@ const initialState: SettingsState = {
   isLoading: false,
   error: null,
   isInitialized: false,
+  updatedWhileLoading: [],
 };
 
 export interface SettingUpdate {
@@ -59,6 +65,14 @@ function setSettingValue<K extends keyof AppSettings>(
   value: AppSettings[K]
 ): void {
   settings[key] = value;
+}
+
+/** Remembers keys changed before the initial load, so the load doesn't undo them */
+function trackUpdateWhileLoading(state: SettingsState, keys: (keyof AppSettings)[]): void {
+  if (state.isInitialized) return;
+  for (const key of keys) {
+    if (!state.updatedWhileLoading.includes(key)) state.updatedWhileLoading.push(key);
+  }
 }
 
 // Async thunks
@@ -104,6 +118,7 @@ const settingsSlice = createSlice({
       action: PayloadAction<SettingUpdate>
     ) => {
       setSettingValue(state.settings, action.payload.key, action.payload.value);
+      trackUpdateWhileLoading(state, [action.payload.key]);
     },
   },
   extraReducers: (builder) => {
@@ -113,7 +128,12 @@ const settingsSlice = createSlice({
       state.error = null;
     });
     builder.addCase(loadSettings.fulfilled, (state, action) => {
-      state.settings = action.payload;
+      const settings: AppSettings = { ...action.payload };
+      for (const key of state.updatedWhileLoading) {
+        setSettingValue(settings, key, state.settings[key]);
+      }
+      state.settings = settings;
+      state.updatedWhileLoading = [];
       state.isLoading = false;
       state.isInitialized = true;
     });
@@ -125,6 +145,7 @@ const settingsSlice = createSlice({
     // Update single setting
     builder.addCase(updateSetting.fulfilled, (state, action) => {
       setSettingValue(state.settings, action.payload.key, action.payload.value);
+      trackUpdateWhileLoading(state, [action.payload.key]);
     });
     builder.addCase(updateSetting.rejected, (state, action) => {
       state.error = action.error.message || 'Failed to update setting';
@@ -133,6 +154,7 @@ const settingsSlice = createSlice({
     // Update multiple settings
     builder.addCase(updateMultipleSettings.fulfilled, (state, action) => {
       state.settings = { ...state.settings, ...action.payload };
+      trackUpdateWhileLoading(state, Object.keys(action.payload) as (keyof AppSettings)[]);
     });
     builder.addCase(updateMultipleSettings.rejected, (state, action) => {
       state.error = action.error.message || 'Failed to update settings';
