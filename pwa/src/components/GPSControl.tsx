@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getGeolocationService } from '@/services/GeolocationService';
 import { getGPSSimulator, GPSSimulator } from '@/services/GPSSimulator';
+import { getRunningGpsMode, startGpsMode } from '@/services/gpsMode';
 import { errorHandler } from '@/services/ErrorHandler';
+import { updateSetting } from '@/store/slices/settingsSlice';
+import type { GpsMode } from '@/database/repositories/SettingsRepository';
 import { useUnits } from '@/hooks/useUnits';
 import type { NavigationError } from '@/models';
-
-type GPSMode = 'real' | 'simulator' | 'off';
 
 export const GPSControl: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,13 +17,14 @@ export const GPSControl: React.FC = () => {
   const gpsSimulator = getGPSSimulator();
   const predefinedTracks = GPSSimulator.getPredefinedTracks();
 
+  const savedTrack = useAppSelector((state) => state.settings.settings.gpsSimulatorTrack);
+
   // The services are app-wide singletons that keep running when this page
   // closes, so start from whatever is already running
-  const [gpsMode, setGpsMode] = useState<GPSMode>(() =>
-    gpsSimulator.getIsActive() ? 'simulator' : geolocationService.getIsActive() ? 'real' : 'off'
-  );
+  const [gpsMode, setGpsMode] = useState<GpsMode>(getRunningGpsMode);
   const [selectedTrack, setSelectedTrack] = useState(() => {
-    const index = predefinedTracks.findIndex((t) => t.name === gpsSimulator.getTrackName());
+    const name = gpsSimulator.getTrackName() ?? savedTrack;
+    const index = predefinedTracks.findIndex((t) => t.name === name);
     return index >= 0 ? index : 0;
   });
   const [error, setError] = useState<string | null>(null);
@@ -45,49 +47,28 @@ export const GPSControl: React.FC = () => {
     };
   }, [dispatch, geolocationService, gpsSimulator]);
 
-  const handleModeChange = async (mode: GPSMode) => {
+  const handleModeChange = async (mode: GpsMode) => {
     setError(null);
-
-    // Stop current mode
-    if (gpsMode === 'real') {
-      geolocationService.stop();
-    } else if (gpsMode === 'simulator') {
-      gpsSimulator.stop();
+    let running: GpsMode = mode;
+    try {
+      await startGpsMode(mode, predefinedTracks[selectedTrack].name, dispatch);
+    } catch (err) {
+      const fallback = mode === 'real' ? 'Failed to start GPS' : 'Failed to start simulator';
+      setError(err instanceof Error ? err.message : fallback);
+      running = 'off';
     }
-
-    // Start new mode
-    if (mode === 'real') {
-      try {
-        if (!geolocationService.isSupported()) {
-          setError('Geolocation API is not supported in this browser');
-          return;
-        }
-        await geolocationService.start();
-        setGpsMode('real');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to start GPS');
-        setGpsMode('off');
-      }
-    } else if (mode === 'simulator') {
-      try {
-        const track = predefinedTracks[selectedTrack];
-        gpsSimulator.start(track);
-        setGpsMode('simulator');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to start simulator');
-        setGpsMode('off');
-      }
-    } else {
-      setGpsMode('off');
-    }
+    setGpsMode(running);
+    // Saved, so the app resumes this mode after a reload
+    void dispatch(updateSetting({ key: 'gpsMode', value: running }));
   };
 
   const handleTrackChange = (trackIndex: number) => {
     setSelectedTrack(trackIndex);
+    const track = predefinedTracks[trackIndex];
     if (gpsMode === 'simulator') {
-      const track = predefinedTracks[trackIndex];
       gpsSimulator.setTrack(track);
     }
+    void dispatch(updateSetting({ key: 'gpsSimulatorTrack', value: track.name }));
   };
 
   return (
@@ -197,10 +178,11 @@ export const GPSControl: React.FC = () => {
       {/* Simulator Track Selection */}
       {gpsMode === 'simulator' && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label htmlFor="gps-simulation-track" className="block text-sm font-medium text-gray-700">
             Simulation Track
           </label>
           <select
+            id="gps-simulation-track"
             value={selectedTrack}
             onChange={(e) => handleTrackChange(parseInt(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

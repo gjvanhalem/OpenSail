@@ -4,6 +4,8 @@ import { DEFAULT_ALERT_THRESHOLDS, type AlertThresholds } from '@/store/slices/a
 import { DEFAULT_PANEL_LAYOUT, type PanelLayout } from '@/components/instruments/panelLayout';
 import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
+export type GpsMode = 'off' | 'real' | 'simulator';
+
 // Settings type definitions
 export interface AppSettings {
   // Map preferences
@@ -30,6 +32,11 @@ export interface AppSettings {
 
   /** Route navigation: advance to the next waypoint within this distance, nautical miles */
   arrivalRadius: number;
+
+  /** Position source to start with the app: resumed after a reload so the boat never silently loses GPS */
+  gpsMode: GpsMode;
+  /** Simulator track to run when gpsMode is 'simulator' (track name) */
+  gpsSimulatorTrack: string;
   
   // Alarms
   anchorWatchRadius: number;
@@ -72,6 +79,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   headingSource: 'auto',
 
   arrivalRadius: DEFAULT_ARRIVAL_RADIUS_NM,
+
+  gpsMode: 'off',
+  gpsSimulatorTrack: 'Harbor Navigation',
   
   // Alarms
   anchorWatchRadius: 50,
