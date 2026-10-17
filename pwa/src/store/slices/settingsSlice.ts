@@ -31,6 +31,8 @@ const initialState: SettingsState = {
     cogSogSource: 'auto',
     headingSource: 'auto',
     arrivalRadius: DEFAULT_ARRIVAL_RADIUS_NM,
+    gpsMode: 'off',
+    gpsSimulatorTrack: 'Harbor Navigation',
     anchorWatchRadius: 50,
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,

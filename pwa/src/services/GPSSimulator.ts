@@ -10,6 +10,16 @@ export interface SimulatedTrack {
   speed: number; // knots
 }
 
+/** Waypoints from [latitude, longitude] pairs, all on the water */
+function trackPoints(points: Array<[number, number]>): Position[] {
+  return points.map(([latitude, longitude]) => ({
+    latitude,
+    longitude,
+    accuracy: 5,
+    timestamp: Date.now(),
+  }));
+}
+
 export interface GPSSimulatorConfig {
   updateInterval?: number; // milliseconds
   track?: SimulatedTrack;
@@ -224,59 +234,59 @@ export class GPSSimulator {
   }
 
   /**
-   * Create a harbor navigation track
+   * Create a harbor navigation track: out of Stavoren onto the IJsselmeer.
+   * Stavoren is inside the inland ENC area, so the chart shows depths here.
    */
   public static createHarborTrack(): SimulatedTrack {
     return {
       name: 'Harbor Navigation',
-      description: 'Simulated track through a harbor with turns and slow speed',
+      description: 'Out of Stavoren harbour onto the IJsselmeer, with turns and slow speed',
       speed: 3, // 3 knots
-      waypoints: [
-        { latitude: 51.505, longitude: -0.09, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.506, longitude: -0.088, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.507, longitude: -0.087, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.508, longitude: -0.089, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.509, longitude: -0.091, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.51, longitude: -0.09, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.511, longitude: -0.088, accuracy: 5, timestamp: Date.now() },
-      ],
+      waypoints: trackPoints([
+        [52.8872, 5.3570],
+        [52.8869, 5.3545],
+        [52.8865, 5.3537],
+        [52.8862, 5.3528],
+        [52.8858, 5.3500],
+        [52.8835, 5.3440],
+        [52.8790, 5.3380],
+      ]),
     };
   }
 
   /**
-   * Create a coastal navigation track
+   * Create a coastal navigation track: north along the Frisian IJsselmeer coast
    */
   public static createCoastalTrack(): SimulatedTrack {
     return {
       name: 'Coastal Cruise',
-      description: 'Simulated coastal navigation at moderate speed',
+      description: 'Stavoren to Hindeloopen along the Frisian IJsselmeer coast at moderate speed',
       speed: 6, // 6 knots
-      waypoints: [
-        { latitude: 51.5, longitude: -0.1, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.52, longitude: -0.08, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.54, longitude: -0.06, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.56, longitude: -0.04, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.58, longitude: -0.02, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.6, longitude: 0.0, accuracy: 5, timestamp: Date.now() },
-      ],
+      waypoints: trackPoints([
+        [52.8770, 5.3370],
+        [52.8960, 5.3420],
+        [52.9150, 5.3540],
+        [52.9330, 5.3720],
+        [52.9420, 5.3820],
+      ]),
     };
   }
 
   /**
-   * Create an open water passage track
+   * Create an open water passage track: across the IJsselmeer to Enkhuizen
    */
   public static createOpenWaterTrack(): SimulatedTrack {
     return {
       name: 'Open Water Passage',
-      description: 'Simulated open water passage at cruising speed',
+      description: 'Stavoren to Enkhuizen across the IJsselmeer at cruising speed',
       speed: 7.5, // 7.5 knots
-      waypoints: [
-        { latitude: 51.5, longitude: -0.1, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.6, longitude: 0.0, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.7, longitude: 0.1, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.8, longitude: 0.2, accuracy: 5, timestamp: Date.now() },
-        { latitude: 51.9, longitude: 0.3, accuracy: 5, timestamp: Date.now() },
-      ],
+      waypoints: trackPoints([
+        [52.8770, 5.3370],
+        [52.8350, 5.3100],
+        [52.7900, 5.2950],
+        [52.7450, 5.2950],
+        [52.7150, 5.3000],
+      ]),
     };
   }
 }

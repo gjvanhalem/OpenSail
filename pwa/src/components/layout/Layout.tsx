@@ -10,6 +10,7 @@ import { useAlarmOutput } from '@/hooks/useAlarmOutput';
 import { useSafetyMonitor } from '@/hooks/useSafetyMonitor';
 import { AnchorWatchPanel, MobButton, MobPanel } from '@/components/safety';
 import { useRouteNavigation } from '@/hooks/useRouteNavigation';
+import { useGpsAutoStart } from '@/hooks/useGpsAutoStart';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,6 +25,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const safetyWatchActive = useSafetyMonitor();
   useAlarmOutput(safetyWatchActive);
   useRouteNavigation();
+  useGpsAutoStart();
 
   // Handle responsive behavior - close sidebar on mobile by default
   useEffect(() => {

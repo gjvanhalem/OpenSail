@@ -69,6 +69,58 @@ test.describe('Chart follows the vessel', () => {
   });
 });
 
+/** A setting as stored in IndexedDB; reloading before the write lands would lose it */
+function storedSetting(page: Page, key: string): Promise<unknown> {
+  return page.evaluate(
+    (settingKey) =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open('NavigationDB');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const get = open.result.transaction('settings').objectStore('settings').get(settingKey);
+          get.onsuccess = () => {
+            open.result.close();
+            resolve(get.result ? JSON.parse(get.result.value) : undefined);
+          };
+          get.onerror = () => reject(get.error);
+        };
+      }),
+    key
+  );
+}
+
+test.describe('GPS mode after a reload', () => {
+  test('the simulator resumes on the saved track', async ({ page }) => {
+    await page.goto('/settings');
+    await page.getByRole('radio', { name: /Simulator/ }).check();
+    await page.getByLabel('Simulation Track').selectOption('1');
+    await expect(page.getByText('Active', { exact: true })).toBeVisible();
+    await expect.poll(() => storedSetting(page, 'gpsSimulatorTrack')).toBe('Coastal Cruise');
+    await expect.poll(() => storedSetting(page, 'gpsMode')).toBe('simulator');
+
+    await page.goto('/chart');
+    await expect(page.getByTestId('vessel-marker')).toBeVisible();
+
+    await page.goto('/settings');
+    await expect(page.getByText('Active', { exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /Simulator/ })).toBeChecked();
+    await expect(page.getByLabel('Simulation Track')).toHaveValue('1');
+  });
+
+  test('stays off after a reload when it was switched off', async ({ page }) => {
+    await page.goto('/settings');
+    await page.getByRole('radio', { name: /Simulator/ }).check();
+    await expect(page.getByText('Active', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Stop GPS' }).click();
+    await expect(page.getByText('Inactive', { exact: true })).toBeVisible();
+    await expect.poll(() => storedSetting(page, 'gpsMode')).toBe('off');
+
+    await page.reload();
+    await expect(page.getByRole('radio', { name: /Off/ })).toBeChecked();
+    await expect(page.getByText('Inactive', { exact: true })).toBeVisible();
+  });
+});
+
 test.describe('Chart orientation', () => {
   const bearing = (page: Page) => page.evaluate(() => window.__OPENSAIL_MAP__!.getBearing());
 
@@ -104,6 +156,7 @@ test.describe('Chart orientation', () => {
     await headingUp.click();
     // The button updates once the setting is stored
     await expect(headingUp).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => storedSetting(page, 'chartRotation')).toBe('heading-up');
     await page.reload();
     await expect(headingUp).toHaveAttribute('aria-pressed', 'true');
   });
