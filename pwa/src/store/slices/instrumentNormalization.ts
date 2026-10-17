@@ -13,6 +13,12 @@ export interface NormalizedInstrumentReading {
   /** Apparent wind angle relative to the bow, 0-360 clockwise */
   windDirection?: number;
   waterTemperature?: number;
+  /** Rudder angle, degrees, starboard positive */
+  rudderAngle?: number;
+  /** Heel, degrees, starboard down positive */
+  heel?: number;
+  /** Pitch, degrees, bow up positive */
+  pitch?: number;
 }
 
 const MS_TO_KNOTS = 3600 / 1852;
@@ -70,6 +76,7 @@ function isApparentWind(reference: unknown): boolean {
  *   { angle, speed, reference } (PGN 130306), or angle / speed alone (SeaTalk).
  *   Only apparent wind updates the slice, since the wind gauge shows apparent wind.
  * - temperature: number, or { temperature }, converted from the reading's unit.
+ * - rudder: { angle } (RSA); attitude: { heel?, pitch? } (XDR).
  */
 export function normalizeInstrumentData(data: InstrumentData): NormalizedInstrumentReading {
   const value = data.value;
@@ -122,6 +129,20 @@ export function normalizeInstrumentData(data: InstrumentData): NormalizedInstrum
       return temperature === undefined
         ? {}
         : { waterTemperature: temperatureToCelsius(temperature, data.unit) };
+    }
+
+    case InstrumentDataType.Rudder: {
+      const angle = num(obj?.angle);
+      return angle === undefined ? {} : { rudderAngle: angle };
+    }
+
+    case InstrumentDataType.Attitude: {
+      const result: NormalizedInstrumentReading = {};
+      const heel = num(obj?.heel);
+      const pitch = num(obj?.pitch);
+      if (heel !== undefined) result.heel = heel;
+      if (pitch !== undefined) result.pitch = pitch;
+      return result;
     }
 
     default:

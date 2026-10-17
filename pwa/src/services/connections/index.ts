@@ -5,6 +5,8 @@ export { BluetoothConnection } from './BluetoothConnection';
 export type { BluetoothConnectionOptions, BluetoothConnectionStatus } from './BluetoothConnection';
 
 export { StubConnection } from './StubConnection';
+export { WebSocketConnection, blockedWebSocketReason } from './WebSocketConnection';
+export type { WebSocketConnectionOptions } from './WebSocketConnection';
 export type { StubConnectionOptions } from './StubConnection';
 
 export type { InstrumentDataConnection, DataConnectionStatus } from './types';

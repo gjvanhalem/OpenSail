@@ -6,6 +6,9 @@ import type { SerialConnection } from '@/services/connections';
 import type { ProtocolType } from '@/store/slices/instrumentsSlice';
 import type { AppDispatch } from '@/store';
 import { InstrumentDataType } from '@/models';
+import navigationReducer from '@/store/slices/navigationSlice';
+import settingsReducer, { setSettingOptimistic } from '@/store/slices/settingsSlice';
+import { NMEA0183Parser } from '@/protocols';
 
 const MS_TO_KNOTS = 3600 / 1852;
 
@@ -180,5 +183,45 @@ describe('InstrumentDataService → instruments slice', () => {
       expect(state.windSpeed).toBeCloseTo(10 * MS_TO_KNOTS);
       expect(state.windDirection).toBe(90);
     });
+  });
+});
+
+describe('InstrumentDataService: heading from an autopilot (HDM)', () => {
+  function setupWithSettings(magneticVariation: number) {
+    const store = configureStore({
+      reducer: {
+        instruments: instrumentsReducer,
+        navigation: navigationReducer,
+        settings: settingsReducer,
+      },
+    });
+    store.dispatch(setSettingOptimistic({ key: 'magneticVariation', value: magneticVariation }));
+    const service = new InstrumentDataService(store.dispatch as AppDispatch);
+    const connection = new FakeConnection();
+    service.wireConnection(connection as unknown as SerialConnection, 'NMEA0183');
+    const parser = new NMEA0183Parser();
+    const feed = (body: string) => connection.emit(`$${body}*${parser.calculateChecksum(body)}`);
+    return { store, feed };
+  }
+
+  it('turns the magnetic heading true with the variation setting', () => {
+    const { store, feed } = setupWithSettings(2.5);
+    feed('APHDM,100.0,M');
+    expect(store.getState().navigation.heading).toBeCloseTo(102.5);
+  });
+
+  it("prefers an instrument's own variation (RMC) over the setting", () => {
+    const { store, feed } = setupWithSettings(2.5);
+    feed('GPRMC,120000,A,5253.10,N,00521.30,E,5.0,270.0,171026,1.0,W,A');
+    feed('APHDM,100.0,M');
+    expect(store.getState().navigation.heading).toBeCloseTo(99);
+  });
+
+  it('stores rudder angle, heel and pitch', () => {
+    const { store, feed } = setupWithSettings(0);
+    feed('APRSA,-5.2,A,,V');
+    feed('APXDR,A,-1.5,D,PTCH,A,12.3,D,ROLL');
+    const { rudderAngle, heel, pitch } = store.getState().instruments;
+    expect({ rudderAngle, heel, pitch }).toEqual({ rudderAngle: -5.2, heel: 12.3, pitch: -1.5 });
   });
 });

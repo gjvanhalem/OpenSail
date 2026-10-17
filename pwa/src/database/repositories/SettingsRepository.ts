@@ -37,6 +37,15 @@ export interface AppSettings {
   gpsMode: GpsMode;
   /** Simulator track to run when gpsMode is 'simulator' (track name) */
   gpsSimulatorTrack: string;
+
+  /**
+   * Magnetic variation, degrees, east positive. Turns a magnetic heading
+   * (HDM, or HDG without variation) into a true heading when no instrument
+   * sends the variation.
+   */
+  magneticVariation: number;
+  /** Wi-Fi instruments: the WebSocket address of the gateway or the OpenSail bridge */
+  instrumentWebSocketUrl: string;
   
   // Alarms
   anchorWatchRadius: number;
@@ -82,6 +91,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   gpsMode: 'off',
   gpsSimulatorTrack: 'Harbor Navigation',
+  magneticVariation: 0,
+  instrumentWebSocketUrl: 'ws://localhost:10110',
   
   // Alarms
   anchorWatchRadius: 50,

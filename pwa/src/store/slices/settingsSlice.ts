@@ -38,6 +38,8 @@ const initialState: SettingsState = {
     arrivalRadius: DEFAULT_ARRIVAL_RADIUS_NM,
     gpsMode: 'off',
     gpsSimulatorTrack: 'Harbor Navigation',
+    magneticVariation: 0,
+    instrumentWebSocketUrl: 'ws://localhost:10110',
     anchorWatchRadius: 50,
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,

@@ -14,14 +14,16 @@ import {
   normalizeNavigationData,
 } from '@/store/slices/navigationNormalization';
 import type { ProtocolType } from '@/store/slices/instrumentsSlice';
-import type { InstrumentData } from '@/models';
-import type { AppDispatch } from '@/store';
+import { InstrumentDataType, type InstrumentData } from '@/models';
+import type { AppDispatch, RootState } from '@/store';
 
 export class InstrumentDataService {
   private nmea0183Parser: NMEA0183Parser;
   private nmea2000Parser: NMEA2000Parser;
   private seaTalkParser: SeaTalkParser;
   private dispatch: AppDispatch;
+  /** Magnetic variation last sent by an instrument (RMC, HDG), east positive */
+  private instrumentVariation: number | null = null;
 
   constructor(dispatch: AppDispatch) {
     this.dispatch = dispatch;
@@ -152,12 +154,26 @@ export class InstrumentDataService {
   private dispatchInstrumentData(data: InstrumentData): void {
     this.dispatch(addInstrumentData(data));
 
+    // An instrument's own variation beats the setting
+    const value = data.value as { variation?: unknown } | null;
+    if (
+      (data.type === InstrumentDataType.GPS || data.type === InstrumentDataType.Heading) &&
+      typeof value?.variation === 'number' &&
+      Number.isFinite(value.variation)
+    ) {
+      this.instrumentVariation = value.variation;
+    }
+
     // Position, COG/SOG and heading also go to navigation, where the source
     // settings decide whether they win over GPS
-    const navigation = normalizeNavigationData(data);
-    if (hasNavigationValues(navigation)) {
-      this.dispatch(reportNavigation('instrument', navigation));
-    }
+    this.dispatch((dispatch: AppDispatch, getState: () => RootState) => {
+      const settings = (getState() as Partial<RootState>).settings?.settings;
+      const variation = this.instrumentVariation ?? settings?.magneticVariation ?? 0;
+      const navigation = normalizeNavigationData(data, variation);
+      if (hasNavigationValues(navigation)) {
+        dispatch(reportNavigation('instrument', navigation));
+      }
+    });
   }
 
   /**
