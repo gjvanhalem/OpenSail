@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenSail",
+  "version": "0.1.0",
+  "identifier": "nl.g-zeven.opensail",
+  "build": {
+    "frontendDist": "../../pwa/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm --prefix ../pwa run build:native",
+    "beforeDevCommand": "npm --prefix ../pwa run dev -- --mode native"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "title": "OpenSail",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "useHttpsScheme": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "shortDescription": "Marine navigation",
+    "longDescription": "OpenSail: charts, routes, tracks, alarms and instruments for sailing. Not for navigation.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

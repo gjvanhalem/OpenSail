@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The OpenSail window: app events (TCP data) and native HTTP to the charts on GitHub. The tcp_* commands are the app's own and allowed by default.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://github.com/gjvanhalem/opensail-charts/*" },
+        { "url": "https://objects.githubusercontent.com/*" },
+        { "url": "https://release-assets.githubusercontent.com/*" }
+      ]
+    }
+  ]
+}

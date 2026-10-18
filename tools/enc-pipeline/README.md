@@ -64,6 +64,8 @@ The archives are too big for git, so they're attached to a GitHub release and co
 
 To host them somewhere else (a CDN, S3 or R2 bucket), build the app with `VITE_CHART_CATALOG_URL=https://…/index.json`. Archives are looked up next to the catalog. The host has to allow CORS and `Range` requests.
 
+The desktop app (`desktop/`) reads the charts from the public repository [gjvanhalem/opensail-charts](https://github.com/gjvanhalem/opensail-charts) instead: its workflow runs this image for `nl-inland` (looking up the current file id), publishes `nl-inland.pmtiles`, `nl-inland.json` and `index.json` as a release, and the app reads `releases/latest/download/index.json`. GitHub sends no CORS headers there, so only the native apps can use it.
+
 For local development, copy the output to `pwa/public/charts/` (git-ignored).
 
 GitHub Pages limits a site to 1 GB. With the three Dutch regions at about 195 MB that's fine. If it grows, move to a bucket.
