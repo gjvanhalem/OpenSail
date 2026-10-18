@@ -7,6 +7,10 @@ def appVersion = new groovy.json.JsonSlurper().parse(file('../../../pwa/package.
 def versionParts = appVersion.tokenize('.-+')
 def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
 
+// The release key: CI writes it from GitHub secrets on release tags (docs/RELEASING.md).
+// Without it, the release APK is built unsigned (pull requests check that it builds).
+def releaseKeystore = System.getenv('ANDROID_KEYSTORE_FILE')
+
 android {
     namespace = "nl.gzeven.opensail"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -22,6 +26,17 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storeType 'pkcs12'
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         debug {
             // Pull request builds install next to the released app, with their own storage
@@ -33,6 +48,7 @@ android {
         release {
             resValue 'string', 'app_name', 'OpenSail'
             resValue 'string', 'title_activity_main', 'OpenSail'
+            if (releaseKeystore) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

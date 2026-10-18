@@ -1,6 +1,7 @@
 [package]
 name = "opensail-desktop"
-version = "0.1.0"
+# The app's version is pwa/package.json (tauri.conf.json reads it), see docs/RELEASING.md
+version = "0.0.0"
 description = "OpenSail marine navigation for Windows"
 edition = "2021"
 publish = false

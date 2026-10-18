@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "OpenSail",
-  "version": "0.1.0",
+  "version": "../../pwa/package.json",
   "identifier": "nl.g-zeven.opensail",
   "build": {
     "frontendDist": "../../pwa/dist",
