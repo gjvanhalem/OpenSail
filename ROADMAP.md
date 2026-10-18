@@ -219,6 +219,15 @@ Phase 4 (safety) is cheap and high value. It can start right after Phase 1, alon
 
 ---
 
+## Native apps (October 2026)
+
+The main way to use OpenSail becomes a native app; the web version on the Zimablade stays for now. The native apps have no accounts.
+
+- **Windows (Tauri 2), in progress:** [`desktop/`](desktop/README.md). The same web app, plus direct TCP to the autopilot (no bridge) and charts from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. Built and tested in CI only; installers on `desktop-v*` releases. Next: code signing and self-update, USB NMEA through a native serial plugin (WebView2 has no Web Serial port picker), Waddenzee and Zeeland charts once Rijkswaterstaat confirms the licence.
+- **Android (Capacitor), later:** [`docs/native-app-plan.md`](docs/native-app-plan.md). It reuses the app's `NativeTcpConnection` and the platform fetch from the Windows work.
+
+---
+
 ## Decisions needed before or during the work
 
 1. ~~**Chart source (blocks Phase 3).**~~ **Decided 2026-10-15:** Dutch inland waters and coast first, OpenSeaMap seamarks with a disclaimer, Rijkswaterstaat inland ENCs, MapLibre instead of mapbox-gl, no commercial licence. See [`docs/chart-source-decision.md`](docs/chart-source-decision.md#decision).
