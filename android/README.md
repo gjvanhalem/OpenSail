@@ -5,6 +5,7 @@ The OpenSail web app (`../pwa`) as an Android app, built with [Capacitor 8](http
 - **Direct TCP to the instruments.** Instruments › Wi-Fi connects straight to the NMEA server of a Wi-Fi gateway or autopilot, such as the Pcnautic / pypilot autopilot on `192.168.14.1:20220`. No bridge needed.
 - **Charts from GitHub.** The chart catalog and the PMTiles archives come from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases (Rijkswaterstaat inland ENC, CC0-1.0), fetched natively because GitHub sends no CORS headers.
 - **GPS** from the phone or tablet (Android's fused location).
+- **Screen off.** While an anchor watch, man overboard, route, track recording or instrument connection is on, the app keeps running with the screen locked, and alarms ring like an alarm clock.
 
 No accounts: everything stays on the device. Not for navigation.
 
@@ -22,7 +23,8 @@ Android 7 (API 24) or newer. Tested on the emulator in CI with Android 14.
 
 ## First run
 
-- **Location permission.** Settings › GPS › **Real GPS** asks for the location permission. Choose **While using the app** and keep **Precise** on.
+- **Location permission.** Settings › GPS › **Real GPS** asks for the location permission. Choose **While using the app** and keep **Precise** on. That is enough for the screen-off mode: the app counts as in use while its notification shows.
+- **Notifications.** The first anchor watch, route or instrument connection asks to allow notifications. Allow them: the alarms come as notifications when the screen is off.
 - **Charts.** The base map and seamarks load online. For the water, download a region at home over Wi-Fi: Chart › Offline charts › select an area › Download. It's stored in the app and works without internet.
 - **Magnetic variation.** The autopilot sends a magnetic heading (HDM). Set Settings › Magnetic variation (° east, negative for west) so the chart shows true heading. In the Netherlands it's about +2°.
 
@@ -33,6 +35,29 @@ Android 7 (API 24) or newer. Tested on the emulator in CI with Android 14.
 3. Heading (HDM), rudder (RSA), pitch/roll (XDR) and wind (MWV) appear under Received Data and on the chart. The address is remembered once it worked.
 
 The app opens connections to a local address (`192.168.x.x`, `10.x.x.x`, `172.16–31.x.x`) over the Wi-Fi network, also when Android prefers mobile data because the boat's Wi-Fi has no internet. When the Wi-Fi drops, the app reconnects by itself (after 1 s, 2 s, 4 s … up to 15 s), and it closes a link that sends nothing for 30 s. OpenSail only reads: it sends nothing to the autopilot.
+
+## With the screen off
+
+As soon as an **anchor watch**, a **man overboard**, a **route**, a **track recording** or an **instrument connection** is on, a permanent notification shows "OpenSail is running: Anchor watch, Instruments on". While it shows, GPS, the autopilot's data and the anchor check keep running with the screen locked. It goes away when the last of them stops. Swiping OpenSail away from the recent apps stops everything.
+
+**Alarms** (anchor dragging, man overboard, no GPS on the anchor watch, shallow water and other instrument alerts) ring like an alarm clock, with the alarm volume, until you open the app or tap **Silence** on the notification. They light up the screen over the lock screen. While OpenSail is on screen, the app's own alarm overlay and siren take over.
+
+**Battery optimisation:** Android, and Samsung, Xiaomi and Huawei in particular, may still stop apps in the background to save battery. Before relying on the anchor watch overnight:
+
+1. Settings › Apps › OpenSail › Battery › **Unrestricted** (or "Don't optimise").
+2. Samsung: also Settings › Battery › Background usage limits: OpenSail must not be in "Sleeping apps" or "Deep sleeping apps".
+3. Test it at home: drop anchor with a 20 m circle, lock the screen, walk 50 m away and wait for the alarm.
+
+Running in the background uses noticeably more battery (GPS and Wi-Fi stay on). Keep the phone or tablet on a charger for a night at anchor.
+
+## Testing on the boat (checklist)
+
+1. Install the APK, open it, Settings › GPS › Real GPS: position appears on the chart.
+2. Join `pcnautic_AP`, Instruments › Wi-Fi › Connect: heading, rudder and heel appear. The "OpenSail is running: Instruments on" notification shows.
+3. Switch Wi-Fi off and on: the app reconnects by itself.
+4. Drop anchor, lock the screen for a few minutes, unlock: the anchor watch is still running and its log has no gaps.
+5. Drop anchor with a small circle, lock the screen and move away: the alarm rings and lights the screen. Silence it from the notification.
+6. Chart › Offline charts: download a region at home, then check it shows with mobile data off.
 
 ## What works how (Android WebView)
 
@@ -53,7 +78,7 @@ The Android SDK and JDK aren't needed on the dev laptop: CI builds and tests eve
 
 - Kotlin unit tests (`native/app/src/test`: the TCP sockets against a local server);
 - the debug APK, downloadable as the `opensail-android-debug` artifact. It installs **next to** the released app as "OpenSail (test)", with its own storage;
-- the smoke test (`smoke/smoke.mjs`) on an emulator.
+- the smoke test (`smoke/smoke.mjs`) on a Pixel 6 emulator: TCP, charts, GPS, and the screen-off anchor alarm.
 
 Releases: see [docs/RELEASING.md](../docs/RELEASING.md).
 
@@ -79,7 +104,8 @@ Then `./gradlew assembleDebug` in `native/`, or open `native/` in Android Studio
 |---|---|
 | Capacitor config | `capacitor.config.json`: app id `nl.gzeven.opensail`, `webDir` is `../pwa/dist` (built by `npm run build:native`), the Android project in `native/` |
 | TCP sockets | `native/app/src/main/java/nl/gzeven/opensail/tcp/`: `TcpSockets.kt` (plain JVM, unit tested) and `TcpPlugin.kt` (the `OpenSailTcp` plugin: `connect({id, host, port})`, `write({id, data})`, `disconnect({id})`; events `tcp-data` `{id, data}` and `tcp-closed` `{id, error}`, the same as the Windows app's Rust commands) |
-| The app's side | `pwa/src/platform/`: `platform.ts` tells Tauri, Capacitor and the browser apart; `nativeTcp.ts`, `platformFetch.ts` and `geolocation.ts` pick the implementation. Features don't check the platform themselves. |
+| Screen off | `native/app/src/main/java/nl/gzeven/opensail/background/`: `NavigationService.kt` (foreground service, types location and connectedDevice, holds a CPU and a Wi-Fi lock) and `BackgroundPlugin.kt` (the `OpenSailBackground` plugin: `keepRunning({activities})`, `showAlarm({id, title, text})`, `clearAlarm({id})`, event `alarmsSilenced`; `AlarmBook.kt` decides which alarms are shown, unit tested). The page side: `pwa/src/services/backgroundMode.ts`, mounted by `useBackgroundMode` in the layout. |
+| The app's side | `pwa/src/platform/`: `platform.ts` tells Tauri, Capacitor and the browser apart; `nativeTcp.ts`, `platformFetch.ts`, `geolocation.ts` and `background.ts` pick the implementation (in the browser and on Windows, `background.ts` does nothing). Features don't check the platform themselves. |
 | Version | `pwa/package.json`, read by `native/app/build.gradle` (versionCode = major × 10000 + minor × 100 + patch) |
 | Native build flag | `pwa/.env.native`: `VITE_NATIVE_APP=true` (no service worker, no accounts) and `VITE_CHART_CATALOG_URL` |
 

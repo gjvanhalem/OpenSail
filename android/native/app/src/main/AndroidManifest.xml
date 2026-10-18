@@ -24,6 +24,12 @@
 
         </activity>
 
+        <!-- Keeps GPS, the instrument link and the anchor check running with the screen off -->
+        <service
+            android:name=".background.NavigationService"
+            android:exported="false"
+            android:foregroundServiceType="location|connectedDevice" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -44,6 +50,15 @@
     <!-- GPS (@capacitor/geolocation) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Running in the background (NavigationService) and alarm notifications (BackgroundPlugin) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Android 14 asks one of these for a connectedDevice service; the Wi-Fi link to the autopilot -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Tablets without GPS still install it: position can come from the instruments -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>

@@ -6,8 +6,12 @@
 //     and that it reconnects after the server drops the link;
 //   - reads the chart catalog and a byte range of the archive through native HTTP;
 //   - reads the emulator's GPS position through @capacitor/geolocation;
-//   - checks the chart draws tiles, and that IndexedDB and the Wi-Fi address survive a restart.
+//   - checks the chart draws tiles;
+//   - drops anchor with the emulator's GPS, checks the foreground service runs, locks the screen,
+//     moves the boat out of the circle and expects the anchor alarm as a notification;
+//   - checks that IndexedDB and the Wi-Fi address survive a restart.
 // Usage: node smoke/smoke.mjs <path to the debug APK> [output folder]
+import { execFileSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { _android as android } from 'playwright-core';
@@ -64,6 +68,12 @@ await device.installApk(apk);
 // The permission dialog can't be clicked through the WebView: grant it beforehand
 await shell(`pm grant ${PKG} android.permission.ACCESS_FINE_LOCATION`);
 await shell(`pm grant ${PKG} android.permission.ACCESS_COARSE_LOCATION`);
+await shell(`pm grant ${PKG} android.permission.POST_NOTIFICATIONS`);
+
+/** Set the emulator's GPS (the emulator console, through adb on the runner) */
+function gpsFix({ latitude, longitude }) {
+  execFileSync('adb', ['-s', device.serial(), 'emu', 'geo', 'fix', String(longitude), String(latitude)]);
+}
 report('Android', `${await shell('getprop ro.build.version.release')} (API ${await shell('getprop ro.build.version.sdk')}), ${await shell('wm size')}`);
 
 async function launch() {
@@ -249,6 +259,39 @@ try {
   // Base map, seamarks and the ENC from the GitHub release, through the opensail:// protocol
   const tiles = await page.evaluate(() => window.__OPENSAIL_TILE_STATS__);
   report('Chart tiles loaded', tiles, tiles?.fromNetwork > 0, true);
+
+  // The background: anchor watch with the phone's own GPS, then the screen goes off
+  await go(page, '/settings');
+  await page.locator('input[name="gpsMode"][value="real"]').check();
+  gpsFix(GPS);
+  await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  await page.getByRole('button', { name: /Anchor Watch$/ }).click();
+  const anchorPanel = page.getByRole('region', { name: 'Anchor watch' });
+  await anchorPanel.getByLabel('Anchor watch radius (m)').fill('30');
+  await anchorPanel.getByLabel('Anchor watch radius (m)').press('Enter');
+  await anchorPanel.getByRole('button', { name: 'Drop anchor here' }).click();
+  await page.getByTestId('anchor-status').getByText('Holding').waitFor({ timeout: 30000 });
+  await screenshot(page, 'anchor-watch');
+  const services = await shell(`dumpsys activity services ${PKG}`);
+  const foreground = /NavigationService/.test(services) && /isForeground=true/.test(services);
+  const runningText = (await shell('dumpsys notification --noredact')).match(/OpenSail is running[\s\S]{0,400}?android\.text=String \(([^)]*)\)/)?.[1];
+  report('Foreground service with notification', `${foreground ? 'running' : 'not running'}: ${runningText ?? 'no notification'}`, foreground, true);
+
+  await shell('input keyevent KEYCODE_HOME');
+  await shell('input keyevent KEYCODE_SLEEP');
+  await sleep(5000);
+  // The boat drifts 200 m north while the screen is off
+  let alarm = null;
+  for (let i = 0; i < 30 && !alarm; i++) {
+    gpsFix({ latitude: GPS.latitude + 0.0018, longitude: GPS.longitude });
+    await sleep(2000);
+    const notifications = await shell('dumpsys notification --noredact');
+    alarm = notifications.match(/android\.text=String \((ANCHOR DRAGGING[^)]*)\)/)?.[1] ?? null;
+  }
+  report('Screen off: anchor alarm as a notification', alarm ?? 'no alarm notification within 60 s', alarm !== null, true);
+  await device.screenshot({ path: `${out}/screen-off-alarm.png` }).catch(() => {});
+  await shell('input keyevent KEYCODE_WAKEUP');
+  gpsFix(GPS);
 
   page = await launch();
   const kept = await page.evaluate(

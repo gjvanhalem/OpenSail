@@ -4,7 +4,7 @@
  * desktop/) and Android (Capacitor, android/).
  *
  * This is the one place that tells them apart. Features ask for a capability
- * (platformFetch, loadNativeTcp, platformGeolocation) and the
+ * (platformFetch, loadNativeTcp, platformGeolocation, platformBackground) and the
  * modules in this folder pick the implementation.
  */
 
