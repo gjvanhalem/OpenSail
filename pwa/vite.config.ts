@@ -45,7 +45,9 @@ export default defineConfig({
         // IndexedDB (src/components/chart/tileProtocol.ts). Caching them here too
         // would store every tile twice. PMTiles archives under /charts/ are read
         // with range requests, which the Cache API can't store either.
-        navigateFallbackDenylist: [/\/charts\//],
+        // The account pages (sign in, setup, invite links) and the API come from the
+        // OpenSail server, never from the cached app
+        navigateFallbackDenylist: [/\/charts\//, /^\/(login|setup|invite|api)([/?]|$)/],
         runtimeCaching: [
           {
             // Chart catalog - network first, so the download panel still lists

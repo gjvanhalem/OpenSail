@@ -9,6 +9,7 @@ import { CompatibilityWarning } from './components/CompatibilityWarning';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { chartCacheLoader } from './services/ChartCacheLoader';
 import { loadSettings } from './store/slices/settingsSlice';
+import { loadAccount } from './services/account';
 import './App.css';
 
 // Lazy load page components for code splitting
@@ -41,6 +42,8 @@ function AppContent() {
   useEffect(() => {
     chartCacheLoader.loadCachedRegions(dispatch);
     dispatch(loadSettings());
+    // Who is signed in; a signed-out browser goes to the sign-in page
+    void loadAccount();
   }, [dispatch]);
 
   return (

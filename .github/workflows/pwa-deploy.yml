@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - 'pwa/**'
+      - 'server/**'
       - 'tools/opensail-bridge/**'
       - '.github/workflows/pwa-deploy.yml'
   # Any base branch, so stacked PRs get normal checks too
   pull_request:
     paths:
       - 'pwa/**'
+      - 'server/**'
       - 'tools/opensail-bridge/**'
       - '.github/workflows/pwa-deploy.yml'
   workflow_dispatch:
@@ -37,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: pwa/package-lock.json
       
@@ -64,6 +66,11 @@ jobs:
       - name: Test the OpenSail bridge
         run: node --test tools/opensail-bridge/bridge.test.mjs
 
+      - name: Type check and test the OpenSail server (accounts)
+        run: |
+          pwa/node_modules/.bin/tsc -p server/tsconfig.json
+          node --test server/server.test.ts
+
       - name: Install Playwright browsers
         run: |
           cd pwa
@@ -77,7 +84,7 @@ jobs:
       - name: Run E2E tests
         run: |
           cd pwa
-          npm run test:e2e:chromium
+          npx playwright test --project=chromium --project=accounts
       
       - name: Upload test results
         if: always()

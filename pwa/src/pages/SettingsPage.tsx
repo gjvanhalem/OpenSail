@@ -5,6 +5,7 @@ import type { AppSettings } from '@/database/repositories/SettingsRepository';
 import { CompatibilityInfo } from '@/components/CompatibilityInfo';
 import { GPSControl } from '@/components/GPSControl';
 import { NavigationSourceSettings } from '@/components/NavigationSourceSettings';
+import { AccountSettings } from '@/components/account/AccountSettings';
 import { InstrumentAlertSettings } from '@/components/InstrumentAlertSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
 import { useUnits } from '@/hooks/useUnits';
@@ -58,6 +59,8 @@ export const SettingsPage: React.FC = () => {
             </span>
           )}
         </div>
+
+        <AccountSettings />
 
         {/* Map Preferences Section */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
