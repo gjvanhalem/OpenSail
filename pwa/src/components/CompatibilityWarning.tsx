@@ -5,6 +5,7 @@ import {
   getRecommendedBrowser,
   isSecureContext,
 } from '../utils/featureDetection';
+import { NATIVE_BUILD } from '../platform/platform';
 
 // Remembers that the user dismissed the (non-critical) warnings, so the
 // banner does not cover the navigation bar on every visit
@@ -36,6 +37,10 @@ interface CompatibilityIssues {
 }
 
 function computeCompatibilityIssues(): CompatibilityIssues {
+  // The Windows and Android apps aren't browsers: advice to switch browser doesn't apply, and
+  // what they offer instead of Web Serial or Bluetooth (direct TCP) is part of the app
+  if (NATIVE_BUILD) return { warnings: [], criticalIssues: [] };
+
   const features = getFeatureSupport();
   const browserInfo = getBrowserInfo();
   const newWarnings: string[] = [];

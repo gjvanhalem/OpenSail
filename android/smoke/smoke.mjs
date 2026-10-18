@@ -72,8 +72,19 @@ async function launch() {
   await shell(`am start -W -n ${PKG}/nl.gzeven.opensail.MainActivity`);
   const webView = await device.webView({ pkg: PKG }, { timeout: 60000 });
   const page = await webView.page();
-  await page.waitForSelector('a[href="/instruments"]', { timeout: 60000 });
+  await page.waitForSelector('a[href="/instruments"]', { state: 'attached', timeout: 60000 });
   return page;
+}
+
+/** Go to a page through the navigation bar, or through the menu on a phone-sized screen */
+async function go(page, path) {
+  const link = page.locator(`nav a[href="${path}"]`).first();
+  if (!(await link.isVisible())) {
+    await page.getByRole('button', { name: 'Toggle mobile menu' }).click();
+    await page.locator(`#mobile-menu a[href="${path}"]`).click();
+  } else {
+    await link.click();
+  }
 }
 
 async function screenshot(page, name) {
@@ -202,7 +213,7 @@ try {
   );
 
   // Instruments over Wi-Fi: plain TCP from Kotlin, no bridge
-  await page.click('a[href="/instruments"]');
+  await go(page, '/instruments');
   await page.getByRole('button', { name: 'Wi-Fi', exact: true }).click();
   const defaults = [await page.inputValue('#wifi-host'), await page.inputValue('#wifi-port')];
   report('Wi-Fi defaults', defaults.join(':'), defaults.join(':') === '192.168.14.1:20220', true);
@@ -223,7 +234,7 @@ try {
   for (let i = 0; i < 30 && accepted === before; i++) await sleep(500);
   report('TCP instruments: reconnects after a drop', `${accepted - before} new connection(s)`, accepted > before, true);
 
-  await page.click('a[href="/chart"]');
+  await go(page, '/chart');
   await sleep(10000);
   await screenshot(page, 'chart');
   // Base map, seamarks and the ENC from the GitHub release, through the opensail:// protocol
@@ -244,7 +255,7 @@ try {
       })
   );
   report('IndexedDB survives a restart', kept, kept === 'kept', true);
-  await page.click('a[href="/instruments"]');
+  await go(page, '/instruments');
   await page.getByRole('button', { name: 'Wi-Fi', exact: true }).click();
   const tcpHostKept = `${await page.inputValue('#wifi-host')}:${await page.inputValue('#wifi-port')}`;
   report('Wi-Fi address remembered', tcpHostKept, tcpHostKept === `${TCP_HOST}:${tcpPort}`, true);
