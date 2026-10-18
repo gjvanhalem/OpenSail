@@ -65,25 +65,19 @@ async function launch() {
   }
   if (!browser) {
     const state = app.exitCode === null ? 'still running' : `exited with ${app.exitCode}`;
-    const processes = (() => {
+    const lines = (command, match) => {
       try {
-        return execSync('tasklist /FI "IMAGENAME eq msedgewebview2.exe" /FI "IMAGENAME eq opensail-desktop.exe"', { encoding: 'utf8' });
+        return execSync(command, { encoding: 'utf8' })
+          .split(/\r?\n/)
+          .filter((line) => match.test(line))
+          .join('\n');
       } catch (error) {
         return String(error);
       }
-    })();
-    const listening = (() => {
-      try {
-        return execSync('netstat -ano -p tcp', { encoding: 'utf8' }).split('
-').filter((line) => line.includes('LISTENING')).join('
-');
-      } catch (error) {
-        return String(error);
-      }
-    })();
-    console.log(`App ${state}
-${processes}
-${listening}`);
+    };
+    console.log(`App ${state}`);
+    console.log(lines('tasklist', /msedgewebview2|opensail/i));
+    console.log(lines('netstat -ano -p tcp', /LISTENING/));
     app.kill();
     throw new Error(`The app did not open a WebView2 DevTools port within 60 s (app ${state})`);
   }
