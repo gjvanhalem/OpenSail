@@ -39,7 +39,8 @@ async fn tcp_disconnect(sockets: State<'_, Sockets>, id: String) -> Result<(), S
 }
 
 /// wry's own WebView2 arguments, which setting additional_browser_args replaces
-const WEBVIEW2_DEFAULT_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
+const WEBVIEW2_DEFAULT_ARGS: &str =
+    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
 
 /// The window from tauri.conf.json ("create": false). With OPENSAIL_DEVTOOLS_PORT set, WebView2
 /// opens its DevTools port for the smoke test (desktop/smoke); WebView2 ignores
