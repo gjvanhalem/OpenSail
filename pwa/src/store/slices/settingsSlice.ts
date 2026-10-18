@@ -40,6 +40,8 @@ const initialState: SettingsState = {
     gpsSimulatorTrack: 'Harbor Navigation',
     magneticVariation: 0,
     instrumentWebSocketUrl: 'ws://localhost:10110',
+    instrumentTcpHost: '192.168.14.1',
+    instrumentTcpPort: 20220,
     anchorWatchRadius: 50,
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,

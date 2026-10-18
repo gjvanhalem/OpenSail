@@ -2,8 +2,9 @@
  * InstrumentManager - UI for managing instrument connections
  * 
  * Provides interface for connecting to marine instruments via USB (Web Serial API),
- * Bluetooth, Wi-Fi (WebSocket, directly or through the OpenSail bridge) or the
- * built-in instrument simulator, and displays connection status and received data.
+ * Bluetooth, Wi-Fi (WebSocket, directly or through the OpenSail bridge; plain TCP
+ * in the desktop app) or the built-in instrument simulator, and displays
+ * connection status and received data.
  */
 
 import { useState, useRef } from 'react';
@@ -23,6 +24,7 @@ import {
   BluetoothConnection,
   StubConnection,
   WebSocketConnection,
+  NativeTcpConnection,
   connectionRegistry,
 } from '@/services/connections';
 import { updateSetting } from '@/store/slices/settingsSlice';
@@ -53,6 +55,14 @@ export function InstrumentManager() {
   const [wifiUrl, setWifiUrl] = useState<string | null>(null);
   // Follow the saved address until the user types their own
   const wifiAddress = wifiUrl ?? savedWifiUrl;
+  // The desktop app opens TCP itself: host and port instead of a WebSocket address
+  const [nativeTcp] = useState(() => NativeTcpConnection.isSupported());
+  const savedTcpHost = useAppSelector((state) => state.settings.settings.instrumentTcpHost);
+  const savedTcpPort = useAppSelector((state) => state.settings.settings.instrumentTcpPort);
+  const [tcpHostInput, setTcpHostInput] = useState<string | null>(null);
+  const [tcpPortInput, setTcpPortInput] = useState<string | null>(null);
+  const tcpHost = tcpHostInput ?? savedTcpHost;
+  const tcpPort = tcpPortInput ?? String(savedTcpPort);
   
   // Check feature support using compatibility hook
   const isSerialSupported = useFeatureSupport('webSerial');
@@ -78,7 +88,7 @@ export function InstrumentManager() {
       } else if (connectionType === 'bluetooth') {
         await handleBluetoothConnect();
       } else if (connectionType === 'network') {
-        await handleWifiConnect();
+        await (nativeTcp ? handleTcpConnect() : handleWifiConnect());
       } else {
         await handleStubConnect();
       }
@@ -227,6 +237,41 @@ export function InstrumentManager() {
     }
   };
 
+  const handleTcpConnect = async () => {
+    const connectionId = `network-${Date.now()}`;
+    const host = tcpHost.trim();
+    const port = Number(tcpPort);
+    // Read-only, like the bridge: nothing is sent to the autopilot
+    const tcpConnection = new NativeTcpConnection({ id: connectionId, protocol: selectedProtocol, host, port });
+
+    tcpConnection.onStatusChange((status: ConnectionStatus, errorMsg?: string) => {
+      dispatch(setConnectionStatus({ id: connectionId, status, errorMessage: errorMsg }));
+    });
+
+    dispatch(addConnection({
+      id: connectionId,
+      type: 'network',
+      protocol: selectedProtocol,
+      status: 'connecting',
+      name: `Wi-Fi ${selectedProtocol} (${tcpConnection.address})`,
+      lastDataReceived: null,
+      errorMessage: null
+    }));
+
+    dataServiceRef.current?.wireConnection(tcpConnection, selectedProtocol);
+    try {
+      await tcpConnection.connect();
+    } catch (err) {
+      dispatch(removeConnection(connectionId));
+      throw err;
+    }
+    connectionRegistry.add(tcpConnection);
+    dispatch(setActiveConnection(connectionId));
+    // Remember the address that worked
+    if (host !== savedTcpHost) void dispatch(updateSetting({ key: 'instrumentTcpHost', value: host }));
+    if (port !== savedTcpPort) void dispatch(updateSetting({ key: 'instrumentTcpPort', value: port }));
+  };
+
   const handleStubConnect = async () => {
     const connectionId = `stub-${Date.now()}`;
     const stubConnection = new StubConnection({ id: connectionId, protocol: selectedProtocol });
@@ -362,7 +407,51 @@ export function InstrumentManager() {
             </div>
           </div>
 
-          {connectionType === 'network' && (
+          {connectionType === 'network' && nativeTcp && (
+            <div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label htmlFor="wifi-host" className="block text-sm font-medium text-gray-700 mb-2">
+                    Host
+                  </label>
+                  <input
+                    id="wifi-host"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={tcpHost}
+                    onChange={(e) => setTcpHostInput(e.target.value)}
+                    placeholder="192.168.14.1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="w-28">
+                  <label htmlFor="wifi-port" className="block text-sm font-medium text-gray-700 mb-2">
+                    Port
+                  </label>
+                  <input
+                    id="wifi-port"
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={tcpPort}
+                    onChange={(e) => setTcpPortInput(e.target.value)}
+                    placeholder="20220"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                The NMEA 0183 server (TCP) of a Wi-Fi gateway or autopilot. For the Pcnautic
+                autopilot: join its Wi-Fi (<code>pcnautic_AP</code>) and connect to{' '}
+                <code>192.168.14.1</code> port <code>20220</code>. OpenSail only reads; it sends
+                nothing to the autopilot.
+              </p>
+            </div>
+          )}
+
+          {connectionType === 'network' && !nativeTcp && (
             <div>
               <label htmlFor="wifi-address" className="block text-sm font-medium text-gray-700 mb-2">
                 Address

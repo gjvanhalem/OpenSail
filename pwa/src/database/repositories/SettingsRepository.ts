@@ -46,6 +46,9 @@ export interface AppSettings {
   magneticVariation: number;
   /** Wi-Fi instruments: the WebSocket address of the gateway or the OpenSail bridge */
   instrumentWebSocketUrl: string;
+  /** Wi-Fi instruments in the desktop app: the TCP NMEA server, by default the Pcnautic / pypilot autopilot */
+  instrumentTcpHost: string;
+  instrumentTcpPort: number;
   
   // Alarms
   anchorWatchRadius: number;
@@ -93,6 +96,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gpsSimulatorTrack: 'Harbor Navigation',
   magneticVariation: 0,
   instrumentWebSocketUrl: 'ws://localhost:10110',
+  instrumentTcpHost: '192.168.14.1',
+  instrumentTcpPort: 20220,
   
   // Alarms
   anchorWatchRadius: 50,

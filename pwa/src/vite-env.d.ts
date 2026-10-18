@@ -1,6 +1,13 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
 
+interface ImportMetaEnv {
+  /** 'tauri' in the desktop app's build (.env.native) */
+  readonly VITE_NATIVE_APP?: string;
+  /** Chart catalog (index.json) on another host; archives are next to it */
+  readonly VITE_CHART_CATALOG_URL?: string;
+}
+
 // Web Serial API types
 interface SerialPort {
   readonly readable: ReadableStream<Uint8Array> | null;

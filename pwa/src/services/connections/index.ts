@@ -7,6 +7,8 @@ export type { BluetoothConnectionOptions, BluetoothConnectionStatus } from './Bl
 export { StubConnection } from './StubConnection';
 export { WebSocketConnection, blockedWebSocketReason } from './WebSocketConnection';
 export type { WebSocketConnectionOptions } from './WebSocketConnection';
+export { NativeTcpConnection } from './NativeTcpConnection';
+export type { NativeTcpConnectionOptions } from './NativeTcpConnection';
 export type { StubConnectionOptions } from './StubConnection';
 
 export type { InstrumentDataConnection, DataConnectionStatus } from './types';

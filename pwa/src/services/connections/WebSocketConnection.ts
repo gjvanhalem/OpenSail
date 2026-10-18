@@ -1,5 +1,6 @@
 import type { ProtocolType } from '@/store/slices/instrumentsSlice';
 import type { DataConnectionStatus, InstrumentDataConnection } from './types';
+import { Backoff, LineSplitter, reconnectMessage } from './lineStream';
 
 export interface WebSocketConnectionOptions {
   id: string;
@@ -59,13 +60,11 @@ export class WebSocketConnection implements InstrumentDataConnection {
 
   private readonly WebSocketImpl: typeof WebSocket;
   private readonly pageProtocol: string;
-  private readonly initialDelay: number;
-  private readonly maxDelay: number;
-  private delay: number;
+  private readonly backoff: Backoff;
   private socket: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private wanted = false;
-  private buffer = '';
+  private readonly lines = new LineSplitter();
   private dataCallback: ((data: string) => void) | null = null;
   private statusCallback: ((status: DataConnectionStatus, error?: string) => void) | null = null;
 
@@ -75,9 +74,7 @@ export class WebSocketConnection implements InstrumentDataConnection {
     this.url = options.url.trim();
     this.WebSocketImpl = options.WebSocketImpl ?? WebSocket;
     this.pageProtocol = options.pageProtocol ?? window.location.protocol;
-    this.initialDelay = options.reconnectDelayMs ?? 1000;
-    this.maxDelay = options.maxReconnectDelayMs ?? 15000;
-    this.delay = this.initialDelay;
+    this.backoff = new Backoff(options.reconnectDelayMs ?? 1000, options.maxReconnectDelayMs ?? 15000);
   }
 
   /** WebSocket works in every browser */
@@ -96,7 +93,7 @@ export class WebSocketConnection implements InstrumentDataConnection {
       throw new Error(blocked);
     }
     this.wanted = true;
-    this.delay = this.initialDelay;
+    this.backoff.reset();
     await new Promise<void>((resolve, reject) => this.open(resolve, reject));
   }
 
@@ -109,7 +106,7 @@ export class WebSocketConnection implements InstrumentDataConnection {
     const socket = this.socket;
     this.socket = null;
     socket?.close();
-    this.buffer = '';
+    this.lines.reset();
     this.updateStatus('disconnected');
   }
 
@@ -146,7 +143,7 @@ export class WebSocketConnection implements InstrumentDataConnection {
 
     socket.onopen = () => {
       opened = true;
-      this.delay = this.initialDelay;
+      this.backoff.reset();
       this.updateStatus('connected');
       onFirstOpen?.();
     };
@@ -160,7 +157,7 @@ export class WebSocketConnection implements InstrumentDataConnection {
     socket.onclose = () => {
       if (this.socket !== socket) return; // replaced or disconnected on purpose
       this.socket = null;
-      this.buffer = '';
+      this.lines.reset();
       if (!opened && onFirstFail) {
         // The very first attempt failed: report it instead of retrying quietly
         this.wanted = false;
@@ -177,27 +174,16 @@ export class WebSocketConnection implements InstrumentDataConnection {
   }
 
   private scheduleReconnect(): void {
-    this.updateStatus('connecting', `Connection lost, reconnecting in ${Math.round(this.delay / 1000)} s`);
+    const delay = this.backoff.next();
+    this.updateStatus('connecting', reconnectMessage(delay));
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       if (this.wanted) this.open();
-    }, this.delay);
-    this.delay = Math.min(this.delay * 2, this.maxDelay);
+    }, delay);
   }
 
   private receive(text: string): void {
-    this.buffer += text;
-    const lines = this.buffer.split(/\r?\n/);
-    this.buffer = lines.pop() ?? '';
-    // A message without a line end is one complete sentence, as some gateways send them
-    if (this.buffer && /^[$!].*\*[0-9A-Fa-f]{2}$/.test(this.buffer.trim())) {
-      lines.push(this.buffer);
-      this.buffer = '';
-    }
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed) this.dataCallback?.(trimmed);
-    }
+    for (const line of this.lines.push(text)) this.dataCallback?.(line);
   }
 
   private updateStatus(status: DataConnectionStatus, error?: string): void {
