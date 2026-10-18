@@ -1,0 +1,51 @@
+# OpenSail on the Zimablade, reachable over HTTPS through the Cloudflare Tunnel.
+# Setup: see DEPLOY.md. Put this file in /DATA/AppData/opensail.
+name: opensail
+services:
+  opensail:
+    # Built by GitHub Actions (.github/workflows/image.yml)
+    image: ${OPENSAIL_IMAGE:-ghcr.io/gjvanhalem/opensail:latest}
+    restart: unless-stopped
+    # 8080 and 9090 are taken on this box. The tunnel points at http://192.168.1.178:9091
+    ports:
+      - '9091:8080'
+    volumes:
+      # Chart archives (PMTiles) and their index.json, built by the `charts` tool below
+      - ./charts:/charts:ro
+
+  # Builds the Rijkswaterstaat inland charts into ./charts. Not a running service: start it by hand,
+  # e.g. docker compose run --rm charts nl-inland 4789373346 "Nederland (excl. Zeeland, Waddenzee)"
+  charts:
+    image: ${OPENSAIL_PIPELINE_IMAGE:-ghcr.io/gjvanhalem/opensail-enc-pipeline:latest}
+    profiles: ['tools']
+    volumes:
+      - ./charts:/work/out
+
+  # Automatic updates: every 15 minutes, fetch a newer opensail image and restart it if it changed.
+  # Only touches this project's container and removes only the image it replaced.
+  # ($$ = a literal $ for the shell, not for compose.)
+  updater:
+    image: docker:27-cli
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/project:ro
+    working_dir: /project
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        image="$${OPENSAIL_IMAGE:-ghcr.io/gjvanhalem/opensail:latest}"
+        while true; do
+          old=$$(docker image inspect --format '{{.Id}}' "$$image" 2>/dev/null)
+          if docker compose pull --quiet opensail; then
+            docker compose up --detach opensail
+            new=$$(docker image inspect --format '{{.Id}}' "$$image" 2>/dev/null)
+            if [ -n "$$old" ] && [ "$$old" != "$$new" ]; then
+              echo "$$(date -Iseconds) updated opensail"
+              docker image rm "$$old" >/dev/null 2>&1 || true
+            fi
+          fi
+          sleep 900
+        done
+    environment:
+      - OPENSAIL_IMAGE=${OPENSAIL_IMAGE:-ghcr.io/gjvanhalem/opensail:latest}

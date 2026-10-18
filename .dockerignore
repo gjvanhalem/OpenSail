@@ -1,0 +1,13 @@
+**/node_modules
+.git
+.claude
+.idea
+.vscode
+pwa/dist
+pwa/dev-dist
+pwa/public/charts
+pwa/playwright-report
+pwa/test-results
+pwa/performance-reports
+pwa/.env
+tools/enc-pipeline/out
