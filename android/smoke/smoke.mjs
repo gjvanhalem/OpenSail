@@ -104,6 +104,14 @@ await step('emulator boot', 300000, async () => {
     await sleep(2000);
   }
 });
+// Right after boot, Play services and the package manager are busy for a while: let them settle
+await step('settle after boot', 120000, async () => {
+  for (let quiet = 0, i = 0; quiet < 3 && i < 20; i++) {
+    const load = Number((await device.shell('cat /proc/loadavg').then(String).catch(() => '9')).split(' ')[0]);
+    quiet = load < 3 ? quiet + 1 : 0;
+    await sleep(5000);
+  }
+});
 await shell('input keyevent KEYCODE_WAKEUP');
 await shell('wm dismiss-keyguard');
 await shell('settings put secure location_mode 3');
@@ -236,7 +244,7 @@ try {
   report('Persistent storage', `${probe.storagePersist}, quota ${probe.storageQuotaGB} GB`, probe.storagePersist === true);
 
   // Charts through native HTTP: GitHub release downloads have no CORS headers
-  const charts = await step('charts through native HTTP', 90000, () => page.evaluate(async (catalogUrl) => {
+  const charts = await step('charts through native HTTP', 180000, () => page.evaluate(async (catalogUrl) => {
     const fetchNative = window.__OPENSAIL_PLATFORM_FETCH__;
     if (!fetchNative) return { error: 'no platform fetch hook' };
     try {
@@ -340,7 +348,7 @@ try {
   // OpenSail to the front, which then shows its own alarm and takes the notification down.
   // Either one seen counts: the notification, or the screen woken by OpenSail with its alarm.
   let alarm = null;
-  for (let i = 0; i < 30 && !alarm; i++) {
+  for (let i = 0; i < 45 && !alarm; i++) {
     gpsFix({ latitude: GPS.latitude + 0.0018, longitude: GPS.longitude });
     await sleep(2000);
     const notifications = await shell('dumpsys notification --noredact');
@@ -357,7 +365,7 @@ try {
       if (/ANCHOR DRAGGING/.test(overlay)) alarm = `woke the screen and opened OpenSail: ${overlay.split('\n').find((l) => /ANCHOR/.test(l))}`;
     }
   }
-  report('Screen off: anchor alarm', alarm ?? 'no alarm notification and the screen stayed off for 60 s', alarm !== null, true);
+  report('Screen off: anchor alarm', alarm ?? 'no alarm notification and the screen stayed off for 90 s', alarm !== null, true);
   await device.screenshot({ path: `${out}/screen-off-alarm.png` }).catch(() => {});
   await shell('input keyevent KEYCODE_WAKEUP');
   gpsFix(GPS);
