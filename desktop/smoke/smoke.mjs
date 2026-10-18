@@ -52,7 +52,7 @@ const tcpPort = server.address().port;
 
 async function launch() {
   const app = spawn(exe, [], {
-    env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}` },
+    env: { ...process.env, OPENSAIL_DEVTOOLS_PORT: String(CDP_PORT) },
     stdio: 'inherit',
   });
   let browser;
