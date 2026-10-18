@@ -1,17 +1,18 @@
 name: Desktop app
 # OpenSail for Windows (desktop/, Tauri 2). Rust only runs here, not on the dev laptop.
-# Pull requests and main: check, test and build the installer. Tags desktop-v*: also publish it.
+# Pull requests and main: check, test and build the installer (artifact opensail-desktop-windows).
+# Release tags v*: release.yml calls this workflow and publishes the installer (docs/RELEASING.md).
 on:
   pull_request:
     paths: ['desktop/**', 'pwa/**', '.github/workflows/desktop.yml']
   push:
     branches: [main]
     paths: ['desktop/**', 'pwa/**', '.github/workflows/desktop.yml']
-    tags: ['desktop-v*']
   workflow_dispatch:
+  workflow_call:
 
 permissions:
-  contents: write # to attach the installer to a release on desktop-v* tags
+  contents: read
 
 concurrency:
   group: desktop-${{ github.ref }}
@@ -61,13 +62,6 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Tag matches the app version
-        if: startsWith(github.ref, 'refs/tags/desktop-v')
-        shell: bash
-        run: |
-          VERSION=$(node -p 'require("./src-tauri/tauri.conf.json").version')
-          [ "desktop-v$VERSION" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME but tauri.conf.json has $VERSION"; exit 1; }
-
       - run: npm ci
         working-directory: pwa
       - run: npm ci
@@ -78,14 +72,7 @@ jobs:
         with:
           name: opensail-desktop-windows
           path: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
-      - if: startsWith(github.ref, 'refs/tags/desktop-v')
-        uses: softprops/action-gh-release@v2
-        with:
-          name: OpenSail for Windows ${{ github.ref_name }}
-          body: |
-            Windows installer for OpenSail. Not signed yet: Windows SmartScreen warns on first run ("More info" → "Run anyway").
-            See desktop/README.md for install and connecting to the autopilot. Not for navigation.
-          files: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
 
       # The installer brings WebView2 along on machines without it; the runner needs it to start the app
       - name: WebView2 runtime

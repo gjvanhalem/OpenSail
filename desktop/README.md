@@ -9,7 +9,7 @@ No accounts: everything stays on this computer. Not for navigation.
 
 ## Install
 
-1. Download `OpenSail_<version>_x64-setup.exe` from the newest [`desktop-v*` release](https://github.com/gjvanhalem/OpenSail/releases).
+1. Download `OpenSail_<version>_x64-setup.exe` from the newest [OpenSail release](https://github.com/gjvanhalem/OpenSail/releases) (`v*`; the first Windows release was `desktop-v0.1.0`).
 2. Run it. The installer isn't signed yet, so Windows SmartScreen warns: click **More info** → **Run anyway**. It installs for your user only (no administrator rights) and adds OpenSail to the Start menu.
 3. Updates: install the newer setup over the old one. Routes, tracks, settings and downloaded charts are kept.
 
@@ -52,17 +52,7 @@ Measured on the CI runner (WebView2 154, October 2026):
 Rust isn't needed on the dev laptop: CI builds and tests everything ([`.github/workflows/desktop.yml`](../.github/workflows/desktop.yml)):
 
 - Every pull request that touches `desktop/` or `pwa/`, and main: `cargo fmt --check`, `cargo clippy`, `cargo test` (the TCP code in `src-tauri/src/tcp.rs`), the installer (downloadable as the `opensail-desktop-windows` artifact) and the smoke test (`smoke/smoke.mjs`).
-- A tag `desktop-v<version>` also publishes the installer as a GitHub release. The tag must match `version` in `src-tauri/tauri.conf.json` (keep `package.json` and `Cargo.toml` the same).
-
-To release: bump the version in those three files, merge, then
-
-```bash
-git tag desktop-v0.1.1
-```
-
-```bash
-git push origin desktop-v0.1.1
-```
+- A release tag `v<version>` builds the installer and the Android APK and publishes both in one GitHub release. The version is `pwa/package.json`, shared with the Android app: see [docs/RELEASING.md](../docs/RELEASING.md).
 
 With Rust installed, locally: `npm ci` in `pwa/` and here, then `npm run build` (or `npx tauri dev`, which uses `npm run dev -- --mode native` in `pwa/`).
 
@@ -70,11 +60,11 @@ With Rust installed, locally: `npm ci` in `pwa/` and here, then `npm run build` 
 
 | Part | Where |
 |---|---|
-| Window, commands, plugins | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json` (`frontendDist` is `../../pwa/dist`, built by `npm run build:native`) |
+| Window, commands, plugins | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json` (`frontendDist` is `../../pwa/dist`, built by `npm run build:native`; `version` is read from `../../pwa/package.json`) |
 | TCP sockets | `src-tauri/src/tcp.rs`: `tcp_connect(id, host, port)`, `tcp_write(id, data)`, `tcp_disconnect(id)`; events `tcp-data` `{id, data}` and `tcp-closed` `{id, error}` |
 | HTTP without CORS | `tauri-plugin-http`, allowed for the opensail-charts release only (`src-tauri/capabilities/default.json`) |
-| The app's side | `pwa/src/platform/` (`isTauri`, `platformFetch`, `FetchRangeSource`) and `pwa/src/services/connections/NativeTcpConnection.ts` |
-| Native build flag | `pwa/.env.native`: `VITE_NATIVE_APP=tauri` (no service worker, no accounts) and `VITE_CHART_CATALOG_URL` |
+| The app's side | `pwa/src/platform/` (`nativePlatform`, `nativeTcp`, `platformFetch`, `FetchRangeSource`) and `pwa/src/services/connections/NativeTcpConnection.ts` |
+| Native build flag | `pwa/.env.native`: `VITE_NATIVE_APP=true` (no service worker, no accounts) and `VITE_CHART_CATALOG_URL`, the same build as the [Android app](../android/README.md) |
 
 The app is served from `https://tauri.localhost`. Don't change that (`useHttpsScheme`): IndexedDB belongs to the origin, so a different one starts with empty storage.
 
