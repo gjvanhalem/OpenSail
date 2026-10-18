@@ -94,8 +94,8 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          # A phone: the smoke test uses the phone layout (navigation behind the menu)
-          profile: pixel_6
+          # The default device: a small phone screen (320 x 640), so the smoke test uses the phone
+          # layout (navigation behind the menu). Larger profiles are too slow with software rendering.
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: android

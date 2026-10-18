@@ -64,16 +64,24 @@ await device.installApk(apk);
 // The permission dialog can't be clicked through the WebView: grant it beforehand
 await shell(`pm grant ${PKG} android.permission.ACCESS_FINE_LOCATION`);
 await shell(`pm grant ${PKG} android.permission.ACCESS_COARSE_LOCATION`);
-report('Android', `${await shell('getprop ro.build.version.release')} (API ${await shell('getprop ro.build.version.sdk')})`);
-report('Network', await shell('dumpsys connectivity | grep -m1 -o "NetworkAgentInfo{[^}]*}" || true'));
+report('Android', `${await shell('getprop ro.build.version.release')} (API ${await shell('getprop ro.build.version.sdk')}), ${await shell('wm size')}`);
 
 async function launch() {
   await shell(`am force-stop ${PKG}`);
   await shell(`am start -W -n ${PKG}/nl.gzeven.opensail.MainActivity`);
-  const webView = await device.webView({ pkg: PKG }, { timeout: 60000 });
-  const page = await webView.page();
-  await page.waitForSelector('a[href="/instruments"]', { state: 'attached', timeout: 60000 });
-  return page;
+  // A slow emulator may recreate the activity (and its WebView) while it starts: try again then
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const webView = await device.webView({ pkg: PKG }, { timeout: 60000 });
+      const page = await webView.page();
+      await page.waitForSelector('a[href="/instruments"]', { state: 'attached', timeout: 60000 });
+      return page;
+    } catch (error) {
+      if (attempt === 3 || !/closed/.test(String(error))) throw error;
+      console.log(`WebView went away while starting (${attempt}), trying again`);
+      await sleep(3000);
+    }
+  }
 }
 
 /** Go to a page through the navigation bar, or through the menu on a phone-sized screen */
