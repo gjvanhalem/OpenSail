@@ -33,6 +33,36 @@ function report(name, value, ok = true, hard = false) {
   console.log(`${ok ? 'ok  ' : hard ? 'FAIL' : 'note'} ${name}: ${typeof value === 'string' ? value : JSON.stringify(value)}`);
 }
 
+/** Run one step with its own time limit, so a hang fails fast and names the step */
+let currentStep = 'start';
+async function step(name, ms, fn) {
+  currentStep = name;
+  let timer;
+  try {
+    return await Promise.race([
+      fn(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${name}: no result within ${ms / 1000} s`)), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function writeResults() {
+  const table = ['| | Check | Result |', '|---|---|---|', ...results.map((r) => `| ${r.mark} | ${r.name} | \`${r.value.replaceAll('|', '/')}\` |`)].join('\n');
+  writeFileSync(`${out}/results.md`, `${table}\n`);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Android smoke test (emulator)\n\n${table}\n`);
+}
+
+// Last resort: never run into the job's timeout without saying where it got stuck
+setTimeout(() => {
+  report('Smoke test', `stuck in step "${currentStep}" (15 min in total)`, false, true);
+  writeResults();
+  process.exit(1);
+}, 15 * 60 * 1000).unref();
+
 function nmea(body) {
   let sum = 0;
   for (const c of body) sum ^= c.charCodeAt(0);
@@ -62,9 +92,23 @@ const TCP_HOST = '10.0.2.2';
 const [device] = await android.devices();
 if (!device) throw new Error('No Android device or emulator found (adb devices)');
 console.log(`Device: ${device.model()} ${device.serial()}`);
-const shell = async (command) => (await device.shell(command)).toString().trim();
+const shell = (command, ms = 30000) =>
+  step(`adb shell ${command.split(' ').slice(0, 3).join(' ')}`, ms, async () => (await device.shell(command)).toString().trim());
 
-await device.installApk(apk);
+// Fully booted, package manager up, screen on and unlocked, location on
+await step('emulator boot', 300000, async () => {
+  for (;;) {
+    const booted = await device.shell('getprop sys.boot_completed').then(String).catch(() => '');
+    const packages = await device.shell('pm path android').then(String).catch(() => '');
+    if (booted.trim() === '1' && packages.includes('package:')) return;
+    await sleep(2000);
+  }
+});
+await shell('input keyevent KEYCODE_WAKEUP');
+await shell('wm dismiss-keyguard');
+await shell('settings put secure location_mode 3');
+
+await step('install the APK', 180000, () => device.installApk(apk));
 // The permission dialog can't be clicked through the WebView: grant it beforehand
 await shell(`pm grant ${PKG} android.permission.ACCESS_FINE_LOCATION`);
 await shell(`pm grant ${PKG} android.permission.ACCESS_COARSE_LOCATION`);
@@ -76,20 +120,27 @@ function gpsFix({ latitude, longitude }) {
 }
 report('Android', `${await shell('getprop ro.build.version.release')} (API ${await shell('getprop ro.build.version.sdk')}), ${await shell('wm size')}`);
 
+/**
+ * Start the app and attach to its WebView. A slow emulator may recreate the activity or take
+ * long before the WebView is debuggable: then start the app again, up to three times.
+ */
 async function launch() {
-  await shell(`am force-stop ${PKG}`);
-  await shell(`am start -W -n ${PKG}/nl.gzeven.opensail.MainActivity`);
-  // A slow emulator may recreate the activity (and its WebView) while it starts: try again then
   for (let attempt = 1; ; attempt++) {
     try {
-      const webView = await device.webView({ pkg: PKG }, { timeout: 60000 });
-      const page = await webView.page();
-      await page.waitForSelector('a[href="/instruments"]', { state: 'attached', timeout: 60000 });
-      return page;
+      return await step(`start the app (attempt ${attempt})`, 150000, async () => {
+        await shell(`am force-stop ${PKG}`);
+        await shell(`am start -W -n ${PKG}/nl.gzeven.opensail.MainActivity`, 60000);
+        const webView = await device.webView({ pkg: PKG }, { timeout: 60000 });
+        const page = await webView.page();
+        await page.waitForSelector('a[href="/instruments"]', { state: 'attached', timeout: 60000 });
+        page.setDefaultTimeout(30000);
+        return page;
+      });
     } catch (error) {
-      if (attempt === 3 || !/closed/.test(String(error))) throw error;
-      console.log(`WebView went away while starting (${attempt}), trying again`);
-      await sleep(3000);
+      if (attempt === 3) throw error;
+      console.log(`App start ${attempt} failed (${String(error).split('\n')[0]}), starting it again`);
+      await device.screenshot({ path: `${out}/start-attempt-${attempt}.png` }).catch(() => {});
+      await sleep(5000);
     }
   }
 }
@@ -115,7 +166,7 @@ let page;
 try {
   page = await launch();
 
-  const probe = await page.evaluate(async () => {
+  const probe = await step('browser features', 60000, () => page.evaluate(async () => {
     const r = {};
     const attempt = async (fn) => {
       try {
@@ -170,7 +221,7 @@ try {
         })
     );
     return r;
-  });
+  }));
 
   report('Origin', probe.origin, probe.origin === 'https://localhost', true);
   report('Secure context', probe.secureContext, probe.secureContext === true, true);
@@ -185,7 +236,7 @@ try {
   report('Persistent storage', `${probe.storagePersist}, quota ${probe.storageQuotaGB} GB`, probe.storagePersist === true);
 
   // Charts through native HTTP: GitHub release downloads have no CORS headers
-  const charts = await page.evaluate(async (catalogUrl) => {
+  const charts = await step('charts through native HTTP', 90000, () => page.evaluate(async (catalogUrl) => {
     const fetchNative = window.__OPENSAIL_PLATFORM_FETCH__;
     if (!fetchNative) return { error: 'no platform fetch hook' };
     try {
@@ -202,7 +253,7 @@ try {
     } catch (error) {
       return { error: String(error) };
     }
-  }, CATALOG);
+  }, CATALOG));
   report(
     'Chart catalog + byte range (native HTTP)',
     charts,
@@ -211,7 +262,7 @@ try {
   );
 
   // GPS through @capacitor/geolocation (the emulator's fix is set in the workflow)
-  const position = await page.evaluate(
+  const position = await step('GPS', 60000, () => page.evaluate(
     () =>
       new Promise((resolve) => {
         const geo = window.__OPENSAIL_GEOLOCATION__?.();
@@ -223,7 +274,7 @@ try {
           { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
         );
       })
-  );
+  ));
   report(
     'GPS (@capacitor/geolocation)',
     position,
@@ -232,6 +283,7 @@ try {
   );
 
   // Instruments over Wi-Fi: plain TCP from Kotlin, no bridge
+  currentStep = 'TCP instruments';
   await go(page, '/instruments');
   await page.getByRole('button', { name: 'Wi-Fi', exact: true }).click();
   const defaults = [await page.inputValue('#wifi-host'), await page.inputValue('#wifi-port')];
@@ -253,14 +305,16 @@ try {
   for (let i = 0; i < 30 && accepted === before; i++) await sleep(500);
   report('TCP instruments: reconnects after a drop', `${accepted - before} new connection(s)`, accepted > before, true);
 
+  currentStep = 'chart';
   await go(page, '/chart');
   await sleep(10000);
   await screenshot(page, 'chart');
   // Base map, seamarks and the ENC from the GitHub release, through the opensail:// protocol
-  const tiles = await page.evaluate(() => window.__OPENSAIL_TILE_STATS__);
+  const tiles = await step('chart tiles', 20000, () => page.evaluate(() => window.__OPENSAIL_TILE_STATS__));
   report('Chart tiles loaded', tiles, tiles?.fromNetwork > 0, true);
 
   // The background: anchor watch with the phone's own GPS, then the screen goes off
+  currentStep = 'anchor watch';
   await go(page, '/settings');
   await page.locator('input[name="gpsMode"][value="real"]').check();
   gpsFix(GPS);
@@ -281,6 +335,7 @@ try {
   await shell('input keyevent KEYCODE_SLEEP');
   await sleep(5000);
   // The boat drifts 200 m north while the screen is off
+  currentStep = 'screen off';
   let alarm = null;
   for (let i = 0; i < 30 && !alarm; i++) {
     gpsFix({ latitude: GPS.latitude + 0.0018, longitude: GPS.longitude });
@@ -294,7 +349,7 @@ try {
   gpsFix(GPS);
 
   page = await launch();
-  const kept = await page.evaluate(
+  const kept = await step('storage after a restart', 30000, () => page.evaluate(
     () =>
       new Promise((resolve) => {
         const open = indexedDB.open('opensail-smoke', 1);
@@ -305,22 +360,22 @@ try {
         };
         open.onerror = () => resolve(String(open.error));
       })
-  );
+  ));
   report('IndexedDB survives a restart', kept, kept === 'kept', true);
   await go(page, '/instruments');
   await page.getByRole('button', { name: 'Wi-Fi', exact: true }).click();
   const tcpHostKept = `${await page.inputValue('#wifi-host')}:${await page.inputValue('#wifi-port')}`;
   report('Wi-Fi address remembered', tcpHostKept, tcpHostKept === `${TCP_HOST}:${tcpPort}`, true);
 } catch (error) {
-  report('Smoke test', String(error?.stack ?? error), false, true);
-  if (page) await screenshot(page, 'failure');
-  else await device.screenshot({ path: `${out}/failure-screen.png` }).catch(() => {});
+  report('Smoke test', `step "${currentStep}": ${String(error?.stack ?? error)}`, false, true);
+  await Promise.race([
+    page ? screenshot(page, 'failure') : device.screenshot({ path: `${out}/failure-screen.png` }).catch(() => {}),
+    sleep(20000),
+  ]);
 } finally {
-  await device.close().catch(() => {});
+  await Promise.race([device.close(), sleep(10000)]).catch(() => {});
   server.close();
 }
 
-const table = ['| | Check | Result |', '|---|---|---|', ...results.map((r) => `| ${r.mark} | ${r.name} | \`${r.value.replaceAll('|', '/')}\` |`)].join('\n');
-writeFileSync(`${out}/results.md`, `${table}\n`);
-if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Android smoke test (emulator)\n\n${table}\n`);
+writeResults();
 process.exit(failed ? 1 : 0);

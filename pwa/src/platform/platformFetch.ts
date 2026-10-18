@@ -10,6 +10,8 @@ export interface CapacitorHttpApi {
     headers?: Record<string, string>;
     data?: string;
     responseType?: 'arraybuffer';
+    connectTimeout?: number;
+    readTimeout?: number;
   }): Promise<{ data: unknown; status: number; headers: Record<string, string>; url: string }>;
 }
 
@@ -43,6 +45,9 @@ export function capacitorFetch(http: CapacitorHttpApi): FetchFunction {
       headers,
       data: body,
       responseType: 'arraybuffer',
+      // Without these, a request on a dead connection (the boat's Wi-Fi) never ends
+      connectTimeout: 15000,
+      readTimeout: 30000,
     });
     if (signal?.aborted) throw abortError();
 

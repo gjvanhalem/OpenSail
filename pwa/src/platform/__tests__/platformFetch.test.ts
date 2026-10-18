@@ -153,6 +153,8 @@ describe('capacitorFetch (Android)', () => {
       method: 'GET',
       headers: { range: 'bytes=10-12' },
       responseType: 'arraybuffer',
+      connectTimeout: 15000,
+      readTimeout: 30000,
     }));
     expect(response.status).toBe(206);
     expect(response.headers.get('content-range')).toBe('bytes 10-12/100');
