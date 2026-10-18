@@ -42,7 +42,11 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
         .manage(Sockets::default())
-        .invoke_handler(tauri::generate_handler![tcp_connect, tcp_write, tcp_disconnect])
+        .invoke_handler(tauri::generate_handler![
+            tcp_connect,
+            tcp_write,
+            tcp_disconnect
+        ])
         .run(tauri::generate_context!())
         .expect("error while running OpenSail");
 }

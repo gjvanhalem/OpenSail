@@ -78,9 +78,18 @@ impl Sockets {
                 }
             };
             all.0.lock().await.remove(&reader_id);
-            emit(TcpEvent::Closed(ClosedEvent { id: reader_id, error }));
+            emit(TcpEvent::Closed(ClosedEvent {
+                id: reader_id,
+                error,
+            }));
         });
-        if let Some(old) = sockets.insert(id, Socket { writer, reader: task }) {
+        if let Some(old) = sockets.insert(
+            id,
+            Socket {
+                writer,
+                reader: task,
+            },
+        ) {
             old.reader.abort();
         }
         Ok(())
@@ -88,8 +97,14 @@ impl Sockets {
 
     pub async fn write(&self, id: &str, data: &str) -> Result<(), String> {
         let mut sockets = self.0.lock().await;
-        let socket = sockets.get_mut(id).ok_or_else(|| "not connected".to_string())?;
-        socket.writer.write_all(data.as_bytes()).await.map_err(|error| error.to_string())
+        let socket = sockets
+            .get_mut(id)
+            .ok_or_else(|| "not connected".to_string())?;
+        socket
+            .writer
+            .write_all(data.as_bytes())
+            .await
+            .map_err(|error| error.to_string())
     }
 
     /// Close a socket. No `Closed` event follows: the page asked for it.
@@ -131,7 +146,10 @@ mod tests {
     }
 
     async fn next(rx: &mut UnboundedReceiver<TcpEvent>) -> TcpEvent {
-        tokio::time::timeout(Duration::from_secs(5), rx.recv()).await.unwrap().unwrap()
+        tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .unwrap()
+            .unwrap()
     }
 
     /// The data events up to `len` bytes, joined
@@ -158,7 +176,13 @@ mod tests {
         assert_eq!(read_text(&mut rx, sentences.len()).await, sentences);
 
         drop(peer);
-        assert_eq!(next(&mut rx).await, TcpEvent::Closed(ClosedEvent { id: "wifi#1".into(), error: None }));
+        assert_eq!(
+            next(&mut rx).await,
+            TcpEvent::Closed(ClosedEvent {
+                id: "wifi#1".into(),
+                error: None
+            })
+        );
         assert!(!sockets.is_open("wifi#1").await);
     }
 
@@ -173,7 +197,10 @@ mod tests {
         let mut buffer = [0u8; 16];
         peer.read_exact(&mut buffer).await.unwrap();
         assert_eq!(&buffer, b"$GPAPB,test*00\r\n");
-        assert_eq!(sockets.write("other", "x").await, Err("not connected".into()));
+        assert_eq!(
+            sockets.write("other", "x").await,
+            Err("not connected".into())
+        );
     }
 
     #[tokio::test]
@@ -187,7 +214,9 @@ mod tests {
         assert!(!sockets.is_open("wifi#1").await);
         // The autopilot sees the socket close
         let mut buffer = [0u8; 1];
-        let read = tokio::time::timeout(Duration::from_secs(5), peer.read(&mut buffer)).await.unwrap();
+        let read = tokio::time::timeout(Duration::from_secs(5), peer.read(&mut buffer))
+            .await
+            .unwrap();
         assert!(matches!(read, Ok(0) | Err(_)));
         // The reader was stopped, so it sends nothing more
         let after = tokio::time::timeout(Duration::from_millis(200), rx.recv()).await;
@@ -199,7 +228,9 @@ mod tests {
         let (listener, port) = listener().await;
         drop(listener);
         let sockets = Sockets::default();
-        let result = sockets.connect("wifi#1".into(), "127.0.0.1", port, |_| {}).await;
+        let result = sockets
+            .connect("wifi#1".into(), "127.0.0.1", port, |_| {})
+            .await;
         assert!(result.is_err());
         assert!(!sockets.is_open("wifi#1").await);
     }

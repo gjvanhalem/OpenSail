@@ -87,6 +87,19 @@ jobs:
             See desktop/README.md for install and connecting to the autopilot. Not for navigation.
           files: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
 
+      # The installer brings WebView2 along on machines without it; the runner needs it to start the app
+      - name: WebView2 runtime
+        shell: pwsh
+        run: |
+          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $version = (Get-ItemProperty -Path $key -ErrorAction SilentlyContinue).pv
+          if (-not $version) {
+            Write-Host 'WebView2 runtime missing, installing it'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile "$env:RUNNER_TEMP\webview2.exe"
+            Start-Process "$env:RUNNER_TEMP\webview2.exe" -ArgumentList '/silent','/install' -Wait
+            $version = (Get-ItemProperty -Path $key -ErrorAction SilentlyContinue).pv
+          }
+          Write-Host "WebView2 runtime: $version"
       # Start the built app and drive it over WebView2's DevTools port (desktop/smoke)
       - name: Smoke test
         run: npm run smoke -- smoke-output

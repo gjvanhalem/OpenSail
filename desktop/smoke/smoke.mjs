@@ -6,7 +6,7 @@
 //   - reports what WebView2 offers: geolocation, Web Serial, Web Bluetooth, Web Audio,
 //     wake lock, storage persistence, and whether IndexedDB survives a restart.
 // Usage: node smoke/smoke.mjs <path to opensail-desktop.exe> [output folder]
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { chromium } from 'playwright-core';
@@ -63,7 +63,30 @@ async function launch() {
       await sleep(1000);
     }
   }
-  if (!browser) throw new Error('The app did not open a WebView2 DevTools port within 60 s');
+  if (!browser) {
+    const state = app.exitCode === null ? 'still running' : `exited with ${app.exitCode}`;
+    const processes = (() => {
+      try {
+        return execSync('tasklist /FI "IMAGENAME eq msedgewebview2.exe" /FI "IMAGENAME eq opensail-desktop.exe"', { encoding: 'utf8' });
+      } catch (error) {
+        return String(error);
+      }
+    })();
+    const listening = (() => {
+      try {
+        return execSync('netstat -ano -p tcp', { encoding: 'utf8' }).split('
+').filter((line) => line.includes('LISTENING')).join('
+');
+      } catch (error) {
+        return String(error);
+      }
+    })();
+    console.log(`App ${state}
+${processes}
+${listening}`);
+    app.kill();
+    throw new Error(`The app did not open a WebView2 DevTools port within 60 s (app ${state})`);
+  }
   const context = browser.contexts()[0];
   const page = context.pages()[0] ?? (await context.waitForEvent('page'));
   await page.waitForSelector('a[href="/instruments"]', { timeout: 60000 });
