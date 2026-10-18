@@ -5,7 +5,7 @@
 
 mod tcp;
 
-use tauri::{AppHandle, Emitter, Manager, State, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, State, WebviewWindowBuilder};
 use tcp::{Sockets, TcpEvent};
 
 /// Open a TCP socket. Its data arrives as `tcp-data` events, its end as `tcp-closed`.
