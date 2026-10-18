@@ -37,3 +37,12 @@ export function isTauri(): boolean {
 export function isCapacitor(): boolean {
   return nativePlatform() === 'capacitor';
 }
+
+/**
+ * A Capacitor plugin loaded on demand. Capacitor's plugin objects are proxies that answer every
+ * property, `then` too, so a Promise must never resolve to one (awaiting it calls a native
+ * method "then" that doesn't exist): wrap it.
+ */
+export interface LoadedPlugin<T> {
+  plugin: T;
+}

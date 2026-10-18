@@ -1,4 +1,4 @@
-import { NATIVE_BUILD, nativePlatform } from './platform';
+import { NATIVE_BUILD, nativePlatform, type LoadedPlugin } from './platform';
 import type { GeolocationPlugin, Position as CapacitorPosition } from '@capacitor/geolocation';
 
 /**
@@ -48,7 +48,7 @@ export function toGeolocationPosition(position: CapacitorPosition): GeolocationP
 }
 
 /** navigator.geolocation's API on top of the Capacitor plugin, which is asynchronous and loaded on first use */
-export function capacitorGeolocation(load: () => Promise<GeolocationPlugin>): PlatformGeolocation {
+export function capacitorGeolocation(load: () => Promise<LoadedPlugin<GeolocationPlugin>>): PlatformGeolocation {
   let nextId = 1;
   /** Our watch ids → the plugin's, once watchPosition answered */
   const watches = new Map<number, Promise<string | null>>();
@@ -62,7 +62,7 @@ export function capacitorGeolocation(load: () => Promise<GeolocationPlugin>): Pl
     watchPosition(success, error, options) {
       const id = nextId++;
       const pluginId = load()
-        .then((plugin) =>
+        .then(({ plugin }) =>
           plugin.watchPosition(pluginOptions(options), (position, err) => {
             if (!watches.has(id)) return;
             if (err || !position) error?.(toPositionError(err));
@@ -81,13 +81,13 @@ export function capacitorGeolocation(load: () => Promise<GeolocationPlugin>): Pl
       const pluginId = watches.get(id);
       watches.delete(id);
       void pluginId?.then(async (callbackId) => {
-        if (callbackId) await (await load()).clearWatch({ id: callbackId });
+        if (callbackId) await (await load()).plugin.clearWatch({ id: callbackId });
       });
     },
 
     getCurrentPosition(success, error, options) {
       load()
-        .then((plugin) => plugin.getCurrentPosition(pluginOptions(options)))
+        .then(({ plugin }) => plugin.getCurrentPosition(pluginOptions(options)))
         .then((position) => success(toGeolocationPosition(position)))
         .catch((err: unknown) => error?.(toPositionError(err)));
     },
@@ -99,7 +99,7 @@ let capacitor: PlatformGeolocation | null = null;
 /** The location source of the platform this page runs on, or null without one */
 export function platformGeolocation(): PlatformGeolocation | null {
   if (nativePlatform() === 'capacitor') {
-    capacitor ??= capacitorGeolocation(() => import('@capacitor/geolocation').then(({ Geolocation }) => Geolocation));
+    capacitor ??= capacitorGeolocation(() => import('@capacitor/geolocation').then(({ Geolocation }) => ({ plugin: Geolocation })));
     return capacitor;
   }
   if (typeof navigator !== 'undefined' && 'geolocation' in navigator) return navigator.geolocation;

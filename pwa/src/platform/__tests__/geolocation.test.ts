@@ -64,7 +64,7 @@ describe('platformGeolocation', () => {
 describe('capacitorGeolocation', () => {
   it('watches the position and reports the course over ground as heading', async () => {
     const { plugin, callbacks } = fakePlugin();
-    const geo = capacitorGeolocation(async () => plugin);
+    const geo = capacitorGeolocation(async () => ({ plugin }));
     const positions: GeolocationPosition[] = [];
     const id = geo.watchPosition((p) => positions.push(p), () => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     await flush();
@@ -81,7 +81,7 @@ describe('capacitorGeolocation', () => {
 
   it('falls back to heading without a course, and to null', async () => {
     const { plugin, callbacks } = fakePlugin();
-    const geo = capacitorGeolocation(async () => plugin);
+    const geo = capacitorGeolocation(async () => ({ plugin }));
     const headings: (number | null)[] = [];
     geo.watchPosition((p) => headings.push(p.coords.heading), () => {});
     await flush();
@@ -92,7 +92,7 @@ describe('capacitorGeolocation', () => {
 
   it('stops a watch that is cleared before the plugin answered', async () => {
     const { plugin, callbacks } = fakePlugin();
-    const geo = capacitorGeolocation(async () => plugin);
+    const geo = capacitorGeolocation(async () => ({ plugin }));
     const success = vi.fn();
     const id = geo.watchPosition(success, () => {});
     geo.clearWatch(id);
@@ -104,7 +104,7 @@ describe('capacitorGeolocation', () => {
 
   it('reports a denied permission like the browser does', async () => {
     const { plugin, callbacks } = fakePlugin();
-    const geo = capacitorGeolocation(async () => plugin);
+    const geo = capacitorGeolocation(async () => ({ plugin }));
     const errors: GeolocationPositionError[] = [];
     geo.watchPosition(() => {}, (e) => errors.push(e));
     await flush();
@@ -125,10 +125,24 @@ describe('capacitorGeolocation', () => {
 
   it('reads the position once', async () => {
     const { plugin } = fakePlugin();
-    const geo = capacitorGeolocation(async () => plugin);
+    const geo = capacitorGeolocation(async () => ({ plugin }));
     const position = await new Promise<GeolocationPosition>((resolve, reject) => geo.getCurrentPosition(resolve, reject));
     expect(position.coords.latitude).toBe(52.88);
     expect(JSON.parse(JSON.stringify(position)).coords.longitude).toBe(5.36);
+  });
+
+  it('never lets a Promise resolve to the plugin, which is a proxy that answers `then` too', async () => {
+    const { plugin } = fakePlugin();
+    // Like Capacitor's registerPlugin: every property is a native method, so `then` "exists"
+    const proxy = new Proxy(plugin, {
+      get: (target, key) =>
+        key in target
+          ? target[key as keyof typeof target]
+          : () => Promise.reject(new Error(`"Geolocation.${String(key)}()" is not implemented on android`)),
+    });
+    const geo = capacitorGeolocation(async () => ({ plugin: proxy }));
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => geo.getCurrentPosition(resolve, reject));
+    expect(position.coords.latitude).toBe(52.88);
   });
 
   it('maps error messages to codes', () => {

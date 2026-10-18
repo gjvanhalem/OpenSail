@@ -206,6 +206,7 @@ try {
       new Promise((resolve) => {
         const geo = window.__OPENSAIL_GEOLOCATION__?.();
         if (!geo) return resolve({ error: 'no geolocation hook' });
+        setTimeout(() => resolve({ error: 'no answer within 45 s' }), 45000);
         geo.getCurrentPosition(
           (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
           (e) => resolve({ error: `${e.code} ${e.message}` }),
