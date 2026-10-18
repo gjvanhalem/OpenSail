@@ -7,11 +7,10 @@
 //   - reads the chart catalog and a byte range of the archive through native HTTP;
 //   - reads the emulator's GPS position through @capacitor/geolocation;
 //   - checks the chart draws tiles;
-//   - drops anchor with the emulator's GPS, checks the foreground service runs, locks the screen,
-//     moves the boat out of the circle and expects the anchor alarm as a notification;
+//   - drops anchor on the position from the instruments, checks the foreground service runs, locks
+//     the screen, moves the boat out of the circle and expects the anchor alarm;
 //   - checks that IndexedDB and the Wi-Fi address survive a restart.
 // Usage: node smoke/smoke.mjs <path to the debug APK> [output folder]
-import { execFileSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { _android as android } from 'playwright-core';
@@ -69,14 +68,29 @@ function nmea(body) {
   return `$${body}*${sum.toString(16).toUpperCase().padStart(2, '0')}\r\n`;
 }
 
-// A TCP NMEA server like the autopilot's: heading, rudder and attitude five times a second
+/** RMC: the boat's position, as a GPS on the instrument network sends it */
+function rmc({ latitude, longitude }) {
+  const now = new Date();
+  const two = (n) => String(n).padStart(2, '0');
+  const minutes = (degrees) => ((degrees % 1) * 60).toFixed(4).padStart(7, '0');
+  const time = `${two(now.getUTCHours())}${two(now.getUTCMinutes())}${two(now.getUTCSeconds())}.00`;
+  const date = `${two(now.getUTCDate())}${two(now.getUTCMonth() + 1)}${two(now.getUTCFullYear() % 100)}`;
+  const lat = `${two(Math.floor(latitude))}${minutes(latitude)}`;
+  const lon = `${String(Math.floor(longitude)).padStart(3, '0')}${minutes(longitude)}`;
+  return nmea(`GPRMC,${time},A,${lat},N,${lon},E,0.0,0.0,${date},,,A`);
+}
+
+// Where the instruments say the boat is: the screen-off check moves it
+const boat = { ...GPS };
+
+// A TCP NMEA server like the autopilot's: heading, rudder, attitude and position five times a second
 const sockets = new Set();
 let accepted = 0;
 const server = net.createServer((socket) => {
   accepted++;
   sockets.add(socket);
   const timer = setInterval(() => {
-    socket.write(nmea('APHDM,100.0,M') + nmea('APRSA,-5.0,A,,V') + nmea('APXDR,A,-1.0,D,PTCH,A,8.0,D,ROLL'));
+    socket.write(nmea('APHDM,100.0,M') + nmea('APRSA,-5.0,A,,V') + nmea('APXDR,A,-1.0,D,PTCH,A,8.0,D,ROLL') + rmc(boat));
   }, 200);
   socket.on('close', () => {
     clearInterval(timer);
@@ -122,10 +136,6 @@ await shell(`pm grant ${PKG} android.permission.ACCESS_FINE_LOCATION`);
 await shell(`pm grant ${PKG} android.permission.ACCESS_COARSE_LOCATION`);
 await shell(`pm grant ${PKG} android.permission.POST_NOTIFICATIONS`);
 
-/** Set the emulator's GPS (the emulator console, through adb on the runner) */
-function gpsFix({ latitude, longitude }) {
-  execFileSync('adb', ['-s', device.serial(), 'emu', 'geo', 'fix', String(longitude), String(latitude)]);
-}
 report('Android', `${await shell('getprop ro.build.version.release')} (API ${await shell('getprop ro.build.version.sdk')}), ${await shell('wm size')}`);
 
 /**
@@ -321,11 +331,9 @@ try {
   const tiles = await step('chart tiles', 20000, () => page.evaluate(() => window.__OPENSAIL_TILE_STATS__));
   report('Chart tiles loaded', tiles, tiles?.fromNetwork > 0, true);
 
-  // The background: anchor watch with the phone's own GPS, then the screen goes off
+  // The background: anchor watch on the position from the instruments (the TCP link), then the
+  // screen goes off. Not the emulator's GPS: its Play services sometimes freeze on the runner.
   currentStep = 'anchor watch';
-  await go(page, '/settings');
-  await page.locator('input[name="gpsMode"][value="real"]').check();
-  gpsFix(GPS);
   await page.getByRole('button', { name: 'Toggle sidebar' }).click();
   await page.getByRole('button', { name: /Anchor Watch$/ }).click();
   const anchorPanel = page.getByRole('region', { name: 'Anchor watch' });
@@ -342,14 +350,14 @@ try {
   await shell('input keyevent KEYCODE_HOME');
   await shell('input keyevent KEYCODE_SLEEP');
   await sleep(5000);
-  // The boat drifts 200 m north while the screen is off
+  // The boat drifts 200 m north while the screen is off: the instruments report it over TCP
   currentStep = 'screen off';
   // The alarm shows as a notification whose full-screen intent wakes the screen and brings
   // OpenSail to the front, which then shows its own alarm and takes the notification down.
   // Either one seen counts: the notification, or the screen woken by OpenSail with its alarm.
   let alarm = null;
+  boat.latitude = GPS.latitude + 0.0018;
   for (let i = 0; i < 45 && !alarm; i++) {
-    gpsFix({ latitude: GPS.latitude + 0.0018, longitude: GPS.longitude });
     await sleep(2000);
     const notifications = await shell('dumpsys notification --noredact');
     const text = notifications.match(/android\.text=String \((ANCHOR DRAGGING[^)]*)\)/)?.[1];
@@ -368,7 +376,6 @@ try {
   report('Screen off: anchor alarm', alarm ?? 'no alarm notification and the screen stayed off for 90 s', alarm !== null, true);
   await device.screenshot({ path: `${out}/screen-off-alarm.png` }).catch(() => {});
   await shell('input keyevent KEYCODE_WAKEUP');
-  gpsFix(GPS);
 
   page = await launch();
   const kept = await step('storage after a restart', 30000, () => page.evaluate(
