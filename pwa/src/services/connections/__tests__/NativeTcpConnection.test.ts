@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NativeTcpConnection, type TauriApi } from '../NativeTcpConnection';
+import { NativeTcpConnection } from '../NativeTcpConnection';
+import { tauriTcp, type TauriApi } from '@/platform/nativeTcp';
 
 /** The desktop app's Rust side (tcp_connect / tcp_write / tcp_disconnect and its events), driven by hand */
 class FakeTauri implements TauriApi {
@@ -62,7 +63,7 @@ function connection(options: { allowWrites?: boolean; host?: string; port?: numb
     allowWrites: options.allowWrites,
     reconnectDelayMs: 1000,
     maxReconnectDelayMs: 4000,
-    tauri,
+    tcp: tauriTcp(tauri),
   });
   const lines: string[] = [];
   const statuses: string[] = [];
@@ -194,19 +195,5 @@ describe('NativeTcpConnection', () => {
     const { conn } = connection();
     await conn.connect();
     await expect(conn.connect()).rejects.toThrow('Already connected');
-  });
-
-  it('loads the Tauri API by itself in the desktop app', async () => {
-    const invoke = vi.fn(async () => undefined);
-    const listen = vi.fn(async () => () => {});
-    vi.doMock('@tauri-apps/api/core', () => ({ invoke }));
-    vi.doMock('@tauri-apps/api/event', () => ({ listen }));
-    const conn = new NativeTcpConnection({ id: 'wifi', protocol: 'NMEA0183', host: '192.168.14.1', port: 20220 });
-    await conn.connect();
-    expect(listen).toHaveBeenCalledWith('tcp-data', expect.any(Function));
-    expect(listen).toHaveBeenCalledWith('tcp-closed', expect.any(Function));
-    expect(invoke).toHaveBeenCalledWith('tcp_connect', { id: 'wifi#1', host: '192.168.14.1', port: 20220 });
-    vi.doUnmock('@tauri-apps/api/core');
-    vi.doUnmock('@tauri-apps/api/event');
   });
 });

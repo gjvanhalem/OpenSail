@@ -1,0 +1,11 @@
+{
+  "appId": "nl.gzeven.opensail",
+  "appName": "OpenSail",
+  "webDir": "../pwa/dist",
+  "android": {
+    "path": "native"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

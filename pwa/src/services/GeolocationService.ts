@@ -4,6 +4,7 @@ import { reportNavigation, setGPSActive } from '@/store/slices/navigationSlice';
 import type { NavigationReading } from '@/store/slices/navigationNormalization';
 import { MS_TO_KNOTS } from '@/utils/constants';
 import type { AppDispatch } from '@/store';
+import { platformGeolocation } from '@/platform/geolocation';
 
 export interface GeolocationServiceConfig {
   enableHighAccuracy?: boolean;
@@ -47,7 +48,7 @@ export class GeolocationService {
    * Check if Geolocation API is supported
    */
   public isSupported(): boolean {
-    return 'geolocation' in navigator;
+    return platformGeolocation() !== null;
   }
 
   /**
@@ -76,7 +77,7 @@ export class GeolocationService {
 
     // Request permission and start watching
     try {
-      this.watchId = navigator.geolocation.watchPosition(
+      this.watchId = platformGeolocation()!.watchPosition(
         this.handlePosition.bind(this),
         this.handleGeolocationError.bind(this),
         {
@@ -106,7 +107,7 @@ export class GeolocationService {
    */
   public stop(): void {
     if (this.watchId !== null) {
-      navigator.geolocation.clearWatch(this.watchId);
+      platformGeolocation()?.clearWatch(this.watchId);
       this.watchId = null;
     }
 
@@ -131,7 +132,7 @@ export class GeolocationService {
     }
 
     return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
+      platformGeolocation()!.getCurrentPosition(
         (geoPosition) => {
           const position = this.convertToPosition(geoPosition);
           resolve(position);

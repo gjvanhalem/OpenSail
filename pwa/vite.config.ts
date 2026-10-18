@@ -8,9 +8,9 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      // The desktop app (`--mode native`, see .env.native) loads its files from disk:
+      // The native apps (`--mode native`, see .env.native) load their files from the package:
       // no service worker or web manifest there
-      disable: loadEnv(mode, process.cwd(), 'VITE_').VITE_NATIVE_APP === 'tauri',
+      disable: loadEnv(mode, process.cwd(), 'VITE_').VITE_NATIVE_APP === 'true',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {

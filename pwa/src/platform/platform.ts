@@ -1,12 +1,39 @@
 /**
- * Where the app runs: in a browser (the PWA, served from the web) or as the
- * desktop app (Tauri, desktop/), which loads this same build from disk.
+ * Where the app runs: in a browser (the PWA, served from the web), or as one of
+ * the native apps that load this same build from their package: Windows (Tauri,
+ * desktop/) and Android (Capacitor, android/).
+ *
+ * This is the one place that tells them apart. Features ask for a capability
+ * (platformFetch, loadNativeTcp, platformGeolocation) and the
+ * modules in this folder pick the implementation.
  */
 
-/** Built for the desktop app: `npm run build:native` (vite --mode native, see .env.native) */
-export const NATIVE_BUILD: boolean = import.meta.env.VITE_NATIVE_APP === 'tauri';
+/** A native app's shell: Tauri on Windows, Capacitor on Android */
+export type NativePlatform = 'tauri' | 'capacitor';
+
+/** Built for the native apps: `npm run build:native` (vite --mode native, see .env.native) */
+export const NATIVE_BUILD: boolean = import.meta.env.VITE_NATIVE_APP === 'true';
+
+interface CapacitorGlobal {
+  isNativePlatform?: () => boolean;
+}
+
+/** The native shell this page runs in, or null in a browser */
+export function nativePlatform(): NativePlatform | null {
+  if (typeof window === 'undefined') return null;
+  if ('__TAURI_INTERNALS__' in window) return 'tauri';
+  // Capacitor's native bridge defines window.Capacitor before the app's scripts run
+  const capacitor = (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
+  if (capacitor?.isNativePlatform?.() === true) return 'capacitor';
+  return null;
+}
 
 /** Running inside Tauri's webview, where the Rust commands and plugins can be called */
 export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return nativePlatform() === 'tauri';
+}
+
+/** Running inside Capacitor's Android WebView, where the app's Kotlin plugins can be called */
+export function isCapacitor(): boolean {
+  return nativePlatform() === 'capacitor';
 }

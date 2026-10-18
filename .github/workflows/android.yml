@@ -1,0 +1,108 @@
+name: Android app
+# OpenSail for Android (android/, Capacitor 8). The Android SDK and JDK only run here, not on
+# the dev laptop. Pull requests and main: Kotlin unit tests, the debug APK (artifact
+# opensail-android-debug) and a smoke test on an emulator.
+on:
+  pull_request:
+    paths: ['android/**', 'pwa/**', '.github/workflows/android.yml']
+  push:
+    branches: [main]
+    paths: ['android/**', 'pwa/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  apk:
+    name: APK (Kotlin tests, debug build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            pwa/package-lock.json
+            android/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+          cache-dependency-path: android/native/**/*.gradle*
+
+      - run: npm ci
+        working-directory: pwa
+      - run: npm ci
+      # Builds ../pwa with --mode native and copies it and the plugins into native/
+      - run: npm run sync
+
+      - name: Kotlin tests and debug APK
+        working-directory: android/native
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opensail-android-debug
+          path: android/native/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-test-reports
+          path: android/native/app/build/reports/tests
+          if-no-files-found: ignore
+
+  smoke:
+    name: Smoke test (emulator)
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: android/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: opensail-android-debug
+          path: android/apk
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # Google APIs image: @capacitor/geolocation reads Google Play services' fused location
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: android
+          script: |
+            adb emu geo fix 5.3597 52.8846
+            mkdir -p smoke-output && (adb logcat -v time > smoke-output/logcat.txt &) && node smoke/smoke.mjs apk/app-debug.apk smoke-output
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-smoke-output
+          path: android/smoke-output
+          if-no-files-found: ignore

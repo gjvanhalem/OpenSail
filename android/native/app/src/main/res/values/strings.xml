@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- app_name and title_activity_main differ per build type: app/build.gradle -->
+    <string name="package_name">nl.gzeven.opensail</string>
+    <string name="custom_url_scheme">nl.gzeven.opensail</string>
+</resources>

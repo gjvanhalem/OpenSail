@@ -43,7 +43,7 @@ export interface ChartCatalog {
 
 /**
  * Where the catalog lives: VITE_CHART_CATALOG_URL, or charts/index.json on the app's own host.
- * The desktop app reads it from the opensail-charts releases on GitHub (.env.native).
+ * The native apps read it from the opensail-charts releases on GitHub (.env.native).
  */
 export const CHART_CATALOG_URL: string =
   import.meta.env.VITE_CHART_CATALOG_URL || `${import.meta.env.BASE_URL}charts/index.json`;

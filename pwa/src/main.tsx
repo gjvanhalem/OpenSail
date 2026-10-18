@@ -7,7 +7,7 @@ import { store } from './store';
 import { registerSW } from 'virtual:pwa-register';
 import { NATIVE_BUILD } from './platform/platform';
 
-// Register service worker. The desktop app has its files on disk and updates with its installer.
+// Register the service worker. The native apps have their files in the package and update with it.
 if (!NATIVE_BUILD) {
   const updateSW = registerSW({
     onNeedRefresh() {

@@ -92,7 +92,7 @@ function goToSignIn(): void {
  */
 export async function loadAccount(): Promise<AccountState> {
   if (NATIVE_BUILD) {
-    // The desktop app has no accounts
+    // The native apps have no accounts
     setState({ status: 'no-accounts' });
     return state;
   }
