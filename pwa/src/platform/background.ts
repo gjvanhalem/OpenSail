@@ -59,10 +59,12 @@ let capacitor: PlatformBackground | null = null;
 /** Background support of the platform this page runs on */
 export function platformBackground(): PlatformBackground {
   if (nativePlatform() !== 'capacitor') return nothing;
+  // Register the plugin once: every load() shares this promise
+  let loaded: Promise<LoadedPlugin<CapacitorBackgroundPlugin>> | null = null;
   capacitor ??= capacitorBackground(() =>
-    import('@capacitor/core').then(({ registerPlugin }) => ({
+    (loaded ??= import('@capacitor/core').then(({ registerPlugin }) => ({
       plugin: registerPlugin<CapacitorBackgroundPlugin>('OpenSailBackground'),
-    }))
+    })))
   );
   return capacitor;
 }

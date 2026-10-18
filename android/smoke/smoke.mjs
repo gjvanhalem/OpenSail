@@ -336,14 +336,28 @@ try {
   await sleep(5000);
   // The boat drifts 200 m north while the screen is off
   currentStep = 'screen off';
+  // The alarm shows as a notification whose full-screen intent wakes the screen and brings
+  // OpenSail to the front, which then shows its own alarm and takes the notification down.
+  // Either one seen counts: the notification, or the screen woken by OpenSail with its alarm.
   let alarm = null;
   for (let i = 0; i < 30 && !alarm; i++) {
     gpsFix({ latitude: GPS.latitude + 0.0018, longitude: GPS.longitude });
     await sleep(2000);
     const notifications = await shell('dumpsys notification --noredact');
-    alarm = notifications.match(/android\.text=String \((ANCHOR DRAGGING[^)]*)\)/)?.[1] ?? null;
+    const text = notifications.match(/android\.text=String \((ANCHOR DRAGGING[^)]*)\)/)?.[1];
+    if (text) {
+      alarm = `notification: ${text}`;
+      break;
+    }
+    const awake = /mWakefulness=Awake/.test(await shell('dumpsys power'));
+    if (awake) {
+      const overlay = await step('alarm on screen', 20000, () =>
+        page.getByRole('alertdialog').first().innerText({ timeout: 3000 }).catch(() => '')
+      );
+      if (/ANCHOR DRAGGING/.test(overlay)) alarm = `woke the screen and opened OpenSail: ${overlay.split('\n').find((l) => /ANCHOR/.test(l))}`;
+    }
   }
-  report('Screen off: anchor alarm as a notification', alarm ?? 'no alarm notification within 60 s', alarm !== null, true);
+  report('Screen off: anchor alarm', alarm ?? 'no alarm notification and the screen stayed off for 60 s', alarm !== null, true);
   await device.screenshot({ path: `${out}/screen-off-alarm.png` }).catch(() => {});
   await shell('input keyevent KEYCODE_WAKEUP');
   gpsFix(GPS);
