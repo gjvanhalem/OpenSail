@@ -33,15 +33,19 @@ When the Wi-Fi drops, the app reconnects by itself (after 1 s, 2 s, 4 s … up t
 
 The app runs in WebView2, Microsoft's Chromium. CI starts the built app on Windows and checks these (the table is in the job summary of the [Desktop app workflow](../.github/workflows/desktop.yml), screenshots in its `smoke-output` artifact):
 
+Measured on the CI runner (WebView2 154, October 2026):
+
 | Feature | In the app |
 |---|---|
-| Storage (IndexedDB: routes, tracks, settings, chart tiles) | Works and survives a restart. Stored in `%LOCALAPPDATA%\nl.g-zeven.opensail\EBWebView`. Uninstalling may remove it. |
-| Service worker | Off: the app's files are on disk and update with the installer. |
-| Alarm sound (Web Audio) | Works. |
-| Screen wake lock | See the smoke test table. |
-| GPS (`navigator.geolocation`) | The API exists; WebView2 asks for permission the first time. It needs Windows location turned on and a location source (most laptops have none without GPS hardware). Rely on GPS from the instruments. |
-| USB serial (Web Serial) | See the smoke test table. WebView2 has no port picker like Chrome's, so USB NMEA likely needs a native plugin (follow-up: `tauri-plugin-serialplugin`). |
-| Bluetooth (Web Bluetooth) | Same: no device picker in WebView2. |
+| Origin | `https://tauri.localhost`, a secure context |
+| Storage (IndexedDB: routes, tracks, settings, chart tiles) | Works and survives a restart. Stored under `%LOCALAPPDATA%\nl.g-zeven.opensail\EBWebView`. `navigator.storage.persist()` returns false (quota about 10 GB on the runner). The data belongs to the app, not to a browser profile that gets cleaned up, but uninstalling may remove it. |
+| Service worker | None registered: the app's files are on disk and update with the installer. |
+| Charts | The catalog and PMTiles byte ranges load through native HTTP (`window.fetch` to GitHub is blocked by CORS, as expected); the ENC draws on the chart. |
+| Alarm sound (Web Audio) | `AudioContext` runs. |
+| Screen wake lock | `navigator.wakeLock.request('screen')` is granted. |
+| GPS (`navigator.geolocation`) | The API exists, permission state "prompt": WebView2 asks the first time. It needs Windows location turned on and a location source (most laptops have none). Rely on GPS from the instruments. To test on the laptop. |
+| USB serial (Web Serial) | `navigator.serial` exists and `getPorts()` works. Whether `requestPort()` shows a port picker in WebView2 can't be tested in CI: test on the laptop with a USB NMEA cable. Without a picker, the follow-up is `tauri-plugin-serialplugin`. |
+| Bluetooth (Web Bluetooth) | `navigator.bluetooth` exists (no adapter on the runner). Device picker: to test on the laptop. |
 
 ## Build
 

@@ -219,8 +219,11 @@ try {
   report('TCP instruments: reconnects after a drop', `${accepted - before} new connection(s)`, accepted > before, true);
 
   await page.click('a[href="/chart"]');
-  await sleep(5000);
+  await sleep(8000);
   await page.screenshot({ path: `${out}/chart.png` });
+  // Base map, seamarks and the ENC from the GitHub release, through the opensail:// protocol
+  const tiles = await page.evaluate(() => window.__OPENSAIL_TILE_STATS__);
+  report('Chart tiles loaded', tiles, tiles?.fromNetwork > 0, true);
 
   await close(session);
   session = await launch();
