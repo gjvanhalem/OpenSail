@@ -1,0 +1,10 @@
+{
+  "name": "opensail-server",
+  "private": true,
+  "type": "module",
+  "description": "Serves OpenSail with user accounts. Runs on Node 24 (built-in TypeScript type stripping), no dependencies.",
+  "scripts": {
+    "start": "node node.ts",
+    "test": "node --test"
+  }
+}

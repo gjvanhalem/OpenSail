@@ -122,9 +122,9 @@ opensail/
 
 ## Deployment
 
-OpenSail runs at https://opensail.g-zeven.nl: a Docker image (nginx) on a home server behind a Cloudflare Tunnel, updated automatically from `main`. See **[DEPLOY.md](DEPLOY.md)**.
+OpenSail runs at https://opensail.g-zeven.nl: a Docker image with the OpenSail server (`server/`: sign-in, user accounts, invites) on a home server behind a Cloudflare Tunnel, updated automatically from `main`. See **[DEPLOY.md](DEPLOY.md)**.
 
-It can also be deployed to any static hosting provider that supports HTTPS (chart archives go in `/charts/`):
+The built app can also be put on any static hosting provider that supports HTTPS (chart archives go in `/charts/`), but then there are no accounts: anyone with the address can open it.
 
 ### Recommended Hosting Providers
 

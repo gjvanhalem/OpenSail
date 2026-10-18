@@ -1,0 +1,19 @@
+{
+  // Type check only: Node 24 runs these files directly (type stripping).
+  // Uses the TypeScript and @types/node installed in ../pwa.
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2024", "DOM"],
+    "types": ["node"],
+    "typeRoots": ["../pwa/node_modules/@types"],
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}

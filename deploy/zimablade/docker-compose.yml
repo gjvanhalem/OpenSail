@@ -9,7 +9,12 @@ services:
     # 8080 and 9090 are taken on this box. The tunnel points at http://192.168.1.178:9091
     ports:
       - '9091:8080'
+    environment:
+      # The address people open: makes the session cookie Secure and builds invite links
+      - PUBLIC_ORIGIN=https://opensail.g-zeven.nl
     volumes:
+      # Users and the session secret. Back this folder up; it must be writable by uid 1000.
+      - ./data:/data
       # Chart archives (PMTiles) and their index.json, built by the `charts` tool below
       - ./charts:/charts:ro
 
