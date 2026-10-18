@@ -1,13 +1,16 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
+      // The desktop app (`--mode native`, see .env.native) loads its files from disk:
+      // no service worker or web manifest there
+      disable: loadEnv(mode, process.cwd(), 'VITE_').VITE_NATIVE_APP === 'tauri',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
@@ -134,4 +137,4 @@ export default defineConfig({
     // Enable source maps for production debugging
     sourcemap: true,
   },
-})
+}))

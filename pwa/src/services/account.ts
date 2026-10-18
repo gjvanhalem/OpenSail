@@ -5,6 +5,7 @@
  * module is only for showing the account and managing users.
  */
 import { useSyncExternalStore } from 'react';
+import { NATIVE_BUILD } from '@/platform/platform';
 
 export type Role = 'admin' | 'crew';
 
@@ -90,6 +91,11 @@ function goToSignIn(): void {
  * offline it keeps the app it already has.
  */
 export async function loadAccount(): Promise<AccountState> {
+  if (NATIVE_BUILD) {
+    // The desktop app has no accounts
+    setState({ status: 'no-accounts' });
+    return state;
+  }
   let response: Response;
   try {
     response = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' });

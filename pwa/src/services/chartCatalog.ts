@@ -3,6 +3,8 @@
  * region, listed in charts/index.json next to the PMTiles archives.
  */
 
+import { platformFetch } from '@/platform/platformFetch';
+
 export interface ChartRegionSource {
   publisher: string;
   /** SPDX licence id of the source data */
@@ -39,7 +41,10 @@ export interface ChartCatalog {
   regions: ChartRegionManifest[];
 }
 
-/** Where the catalog lives: VITE_CHART_CATALOG_URL, or charts/index.json on the app's own host */
+/**
+ * Where the catalog lives: VITE_CHART_CATALOG_URL, or charts/index.json on the app's own host.
+ * The desktop app reads it from the opensail-charts releases on GitHub (.env.native).
+ */
 export const CHART_CATALOG_URL: string =
   import.meta.env.VITE_CHART_CATALOG_URL || `${import.meta.env.BASE_URL}charts/index.json`;
 
@@ -64,7 +69,7 @@ export async function fetchChartCatalog(
   signal?: AbortSignal
 ): Promise<ChartRegionManifest[]> {
   try {
-    const response = await fetch(catalogUrl, { signal, cache: 'no-cache' });
+    const response = await platformFetch(catalogUrl, { signal, cache: 'no-cache' });
     if (!response.ok) return [];
     const catalog = (await response.json()) as Partial<ChartCatalog>;
     return Array.isArray(catalog.regions) ? catalog.regions.filter(isRegion) : [];

@@ -5,18 +5,21 @@ import './index.css';
 import App from './App.tsx';
 import { store } from './store';
 import { registerSW } from 'virtual:pwa-register';
+import { NATIVE_BUILD } from './platform/platform';
 
-// Register service worker
-const updateSW = registerSW({
-  onNeedRefresh() {
-    if (confirm('New content available. Reload to update?')) {
-      updateSW(true);
-    }
-  },
-  onOfflineReady() {
-    console.log('App ready to work offline');
-  },
-});
+// Register service worker. The desktop app has its files on disk and updates with its installer.
+if (!NATIVE_BUILD) {
+  const updateSW = registerSW({
+    onNeedRefresh() {
+      if (confirm('New content available. Reload to update?')) {
+        updateSW(true);
+      }
+    },
+    onOfflineReady() {
+      console.log('App ready to work offline');
+    },
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

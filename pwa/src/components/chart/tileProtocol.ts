@@ -1,6 +1,9 @@
 import maplibregl from 'maplibre-gl';
 import { PMTiles } from 'pmtiles';
 import { tileCache } from '@/database/services/TileCache';
+import { isTauri } from '@/platform/platform';
+import { platformFetch } from '@/platform/platformFetch';
+import { FetchRangeSource } from '@/platform/FetchRangeSource';
 import type { ChartTile } from '@/database/db';
 import {
   BASE_MAP_TILEJSON_URL,
@@ -83,11 +86,14 @@ registerTileSource(SEAMARK_SOURCE_ID, {
 
 const archives = new Map<string, { url: string; archive: PMTiles }>();
 
-/** A PMTiles archive as a tile source; its tiles are read with HTTP range requests */
+/**
+ * A PMTiles archive as a tile source; its tiles are read with HTTP range requests.
+ * The desktop app reads them natively, so the archive's host needs no CORS headers.
+ */
 export function registerPmtilesSource(id: string, archiveUrl: string): void {
   const existing = archives.get(id);
   if (existing?.url === archiveUrl) return;
-  const archive = new PMTiles(archiveUrl);
+  const archive = new PMTiles(isTauri() ? new FetchRangeSource(archiveUrl, platformFetch) : archiveUrl);
   archives.set(id, { url: archiveUrl, archive });
   registerTileSource(id, {
     format: 'vector',
