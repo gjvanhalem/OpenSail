@@ -118,3 +118,99 @@ describe('FetchRangeSource', () => {
     expect(tile?.data.byteLength).toBeGreaterThan(0);
   });
 });
+
+describe('capacitorFetch (Android)', () => {
+  const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+
+  it('is used by platformFetch in the Android app', async () => {
+    const request = vi.fn(async () => ({ data: toBase64(new Uint8Array([1, 2, 3])), status: 200, headers: {}, url: '' }));
+    vi.resetModules();
+    vi.doMock('@capacitor/core', () => ({ CapacitorHttp: { request } }));
+    (window as unknown as Record<string, unknown>).Capacitor = { isNativePlatform: () => true };
+    try {
+      const { platformFetch, usesNativeFetch } = await import('../platformFetch');
+      expect(usesNativeFetch()).toBe(true);
+      const response = await platformFetch('https://github.com/x/releases/latest/download/a.pmtiles');
+      expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1, 2, 3]);
+      expect(request).toHaveBeenCalledOnce();
+    } finally {
+      delete (window as unknown as Record<string, unknown>).Capacitor;
+      vi.doUnmock('@capacitor/core');
+    }
+  });
+
+  it('sends the Range header and decodes the base64 body', async () => {
+    const { capacitorFetch } = await import('../platformFetch');
+    const request = vi.fn(async () => ({
+      data: toBase64(new Uint8Array([10, 11, 12])),
+      status: 206,
+      headers: { 'Content-Range': 'bytes 10-12/100', 'Content-Length': '3', ETag: '"v1"', null: 'HTTP/1.1 206' },
+      url: 'https://objects.githubusercontent.com/a.pmtiles',
+    }));
+    const response = await capacitorFetch({ request })('https://github.com/a.pmtiles', { headers: { Range: 'bytes=10-12' } });
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'https://github.com/a.pmtiles',
+      method: 'GET',
+      headers: { range: 'bytes=10-12' },
+      responseType: 'arraybuffer',
+    }));
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 10-12/100');
+    expect(response.headers.get('etag')).toBe('"v1"');
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([10, 11, 12]);
+  });
+
+  it('turns JSON that CapacitorHttp parsed back into text', async () => {
+    const { capacitorFetch } = await import('../platformFetch');
+    const catalog = { version: 1, regions: [] };
+    const response = await capacitorFetch({ request: async () => ({ data: catalog, status: 200, headers: {}, url: '' }) })('https://x/index.json');
+    expect(await response.json()).toEqual(catalog);
+  });
+
+  it('keeps error bodies, which come back as text', async () => {
+    const { capacitorFetch } = await import('../platformFetch');
+    const response = await capacitorFetch({
+      request: async () => ({ data: '', status: 416, headers: { 'Content-Range': 'bytes */100' }, url: '' }),
+    })('https://x/a.pmtiles');
+    expect(response.status).toBe(416);
+    expect(response.headers.get('content-range')).toBe('bytes */100');
+    const notFound = await capacitorFetch({ request: async () => ({ data: 'Not Found', status: 404, headers: {}, url: '' }) })('https://x/b');
+    expect(await notFound.text()).toBe('Not Found');
+  });
+
+  it('honours an abort signal', async () => {
+    const { capacitorFetch } = await import('../platformFetch');
+    const controller = new AbortController();
+    const request = vi.fn(async () => {
+      controller.abort();
+      return { data: '', status: 200, headers: {}, url: '' };
+    });
+    await expect(capacitorFetch({ request })('https://x/a', { signal: controller.signal })).rejects.toThrow(/aborted/);
+    await expect(capacitorFetch({ request })('https://x/a', { signal: controller.signal })).rejects.toThrow(/aborted/);
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it('reads a real PMTiles archive through it', async () => {
+    const { capacitorFetch } = await import('../platformFetch');
+    const fs: { readFileSync(path: string): Uint8Array } = await import(/* @vite-ignore */ 'node:fs' as string);
+    const cwd = (globalThis as unknown as { process: { cwd(): string } }).process.cwd();
+    const fixture = new Uint8Array(fs.readFileSync(`${cwd}/e2e/fixtures/charts/e2e-stavoren.pmtiles`));
+    const server = rangeServer(fixture);
+    // What Android's HTTP client hands back for the range server's answers
+    const http = {
+      request: async ({ url, headers }: { url: string; headers?: Record<string, string> }) => {
+        const answer = await server(url, { headers: { Range: headers!.range } });
+        const body = new Uint8Array(await answer.arrayBuffer());
+        return {
+          data: answer.status >= 400 ? '' : toBase64(body),
+          status: answer.status,
+          headers: Object.fromEntries(answer.headers.entries()),
+          url,
+        };
+      },
+    };
+    const archive = new PMTiles(new FetchRangeSource('https://example.org/e2e-stavoren.pmtiles', capacitorFetch(http)));
+    const tile = await archive.getZxy(12, 2107, 1335);
+    expect(tile?.data.byteLength).toBeGreaterThan(0);
+  });
+});

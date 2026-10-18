@@ -3,7 +3,7 @@
  * 
  * Provides interface for connecting to marine instruments via USB (Web Serial API),
  * Bluetooth, Wi-Fi (WebSocket, directly or through the OpenSail bridge; plain TCP
- * in the desktop app) or the built-in instrument simulator, and displays
+ * in the Windows and Android apps) or the built-in instrument simulator, and displays
  * connection status and received data.
  */
 
@@ -55,7 +55,7 @@ export function InstrumentManager() {
   const [wifiUrl, setWifiUrl] = useState<string | null>(null);
   // Follow the saved address until the user types their own
   const wifiAddress = wifiUrl ?? savedWifiUrl;
-  // The desktop app opens TCP itself: host and port instead of a WebSocket address
+  // The native apps open TCP themselves: host and port instead of a WebSocket address
   const [nativeTcp] = useState(() => NativeTcpConnection.isSupported());
   const savedTcpHost = useAppSelector((state) => state.settings.settings.instrumentTcpHost);
   const savedTcpPort = useAppSelector((state) => state.settings.settings.instrumentTcpPort);

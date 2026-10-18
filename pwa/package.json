@@ -1,7 +1,7 @@
 {
   "name": "pwa",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,6 +27,8 @@
     "deploy:check": "node scripts/deploy-check.js"
   },
   "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/geolocation": "8.2.4",
     "@mapbox/vector-tile": "^2.0.5",
     "@reduxjs/toolkit": "^2.11.2",
     "@tauri-apps/api": "^2.12.4",

@@ -3,7 +3,7 @@ import type { FetchFunction } from './platformFetch';
 
 /**
  * A PMTiles archive read with HTTP range requests through any fetch function.
- * pmtiles' own FetchSource always uses window.fetch; the desktop app needs
+ * pmtiles' own FetchSource always uses window.fetch; the native apps need
  * platformFetch, because GitHub release downloads have no CORS headers.
  * Follows FetchSource: no If-Match, an ETag change means the archive changed.
  */

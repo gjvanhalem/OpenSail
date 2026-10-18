@@ -2,7 +2,7 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
-  /** 'tauri' in the desktop app's build (.env.native) */
+  /** 'true' in the native apps' build (.env.native) */
   readonly VITE_NATIVE_APP?: string;
   /** Chart catalog (index.json) on another host; archives are next to it */
   readonly VITE_CHART_CATALOG_URL?: string;

@@ -27,21 +27,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   useRouteNavigation();
   useGpsAutoStart();
 
-  // Handle responsive behavior - close sidebar on mobile by default
+  // Close the sidebar on a phone-sized screen at start, and when the window shrinks to one.
+  // Only then: closing it whenever it opens would make it impossible to open on a phone.
   useEffect(() => {
+    const isMobile = () => window.innerWidth < 768;
+    let wasMobile = isMobile();
+    if (wasMobile) dispatch(setSidebarOpen(false));
+
     const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      if (isMobile && sidebarOpen) {
-        dispatch(setSidebarOpen(false));
-      }
+      const mobile = isMobile();
+      if (mobile && !wasMobile) dispatch(setSidebarOpen(false));
+      wasMobile = mobile;
     };
-
-    // Set initial state
-    handleResize();
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [dispatch, sidebarOpen]);
+  }, [dispatch]);
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-50">

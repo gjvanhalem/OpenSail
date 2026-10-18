@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+// One version for every OpenSail app: pwa/package.json (see docs/RELEASING.md).
+// versionCode must grow with every release: 0.2.3 is 203, 1.4.0 is 10400.
+def appVersion = new groovy.json.JsonSlurper().parse(file('../../../pwa/package.json')).version
+def versionParts = appVersion.tokenize('.-+')
+def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+
+android {
+    namespace = "nl.gzeven.opensail"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "nl.gzeven.opensail"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode appVersionCode
+        versionName appVersion
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildTypes {
+        debug {
+            // Pull request builds install next to the released app, with their own storage
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            resValue 'string', 'app_name', 'OpenSail (test)'
+            resValue 'string', 'title_activity_main', 'OpenSail (test)'
+        }
+        release {
+            resValue 'string', 'app_name', 'OpenSail'
+            resValue 'string', 'title_activity_main', 'OpenSail'
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
