@@ -122,7 +122,9 @@ opensail/
 
 ## Deployment
 
-OpenSail can be deployed to any static hosting provider that supports HTTPS:
+OpenSail runs at https://opensail.g-zeven.nl: a Docker image (nginx) on a home server behind a Cloudflare Tunnel, updated automatically from `main`. See **[DEPLOY.md](DEPLOY.md)**.
+
+It can also be deployed to any static hosting provider that supports HTTPS (chart archives go in `/charts/`):
 
 ### Recommended Hosting Providers
 
