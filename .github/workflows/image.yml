@@ -1,5 +1,5 @@
 name: Container images
-# The web app image (served from the Zimablade) and the chart pipeline image.
+# The web app image, served from the Zimablade. The chart pipeline image: pipeline-image.yml.
 on:
   push:
     branches: [main]
@@ -9,7 +9,6 @@ on:
       - 'deploy/**'
       - 'Dockerfile'
       - '.dockerignore'
-      - 'tools/enc-pipeline/**'
       - '.github/workflows/image.yml'
   workflow_dispatch:
 
@@ -41,15 +40,3 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/opensail:${{ github.sha }}
           cache-from: type=gha,scope=opensail
           cache-to: type=gha,mode=max,scope=opensail
-
-      - name: Chart pipeline
-        uses: docker/build-push-action@v6
-        with:
-          context: tools/enc-pipeline
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/opensail-enc-pipeline:latest
-            ghcr.io/${{ github.repository_owner }}/opensail-enc-pipeline:${{ github.sha }}
-          cache-from: type=gha,scope=enc-pipeline
-          cache-to: type=gha,mode=max,scope=enc-pipeline
