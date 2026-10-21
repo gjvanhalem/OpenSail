@@ -2,66 +2,53 @@
 
 This roadmap goes from where the code is today (October 2026) to an app that meets all 15 requirements in [`.kiro/specs/marine-navigation-system/requirements.md`](.kiro/specs/marine-navigation-system/requirements.md).
 
-Effort is in **developer-weeks for one developer**. These are rough estimates, not commitments. The total is **about 21–27 weeks**.
+Effort is in **developer-weeks for one developer**. These are rough estimates, not commitments. The original estimate was **about 21–27 weeks**; Phases 0–4 and the native apps are done.
 
 ---
 
 ## Where we are today
 
-What works:
-- Chart display (but with a street-map style, not a nautical chart)
-- GPS position from the browser, plus a simulator
-- Track recording and GPX export
-- Route planning and saving routes
-- Settings that persist
+*Updated 2026-10-21, release [v0.2.0](https://github.com/gjvanhalem/OpenSail/releases/tag/v0.2.0).*
 
-What exists only partly, or not at all:
-- Offline map reading
-- Active route navigation
-- Instrument position and heading
-- AIS
-- Safety features
-- Logbook
-- Weather
-- Tides
+Phases 0–4 are done (milestones **M1** and **M2**), and OpenSail ships as a **Windows app and an Android app** from one codebase, plus a browser version on the Zimablade. It's tested on the boat with the Pcnautic autopilot over Wi-Fi.
 
-Basic project setup is also still incomplete: there is no git remote, and the CI pipeline has never run.
+Still open: AIS (Phase 5), the logbook (Phase 6), weather and tides (Phase 7), the coastal depth layer, and hardening (Phase 8). Also in progress: a UI cleanup (one navigation model, consistent gauges), see [Next up](#next-up).
 
 ### Requirement coverage
 
 | # | Requirement | Status | Phase |
 |---|---|---|---|
-| R1 | Chart display & navigation | 🟡 Map renders. No nautical layers, and it doesn't follow the vessel or rotate | 1, 3 |
-| R2 | Route planning | 🟢 Planning, saving, active navigation (XTE, ETA, auto-advance) and the route summary work. No hazard warnings yet | 2, 3 |
-| R3 | Instrument integration | 🟡 Parsers fixed in a separate worktree. Position and heading don't reach navigation | 0, 1 |
-| R4 | AIS | 🔴 Layer only. No decoder, no data, no CPA | 5 |
-| R5 | Offline operation | 🔴 Tiles download, but the map never uses them | 3, 7 |
-| R6 | Tablet compatibility | 🟡 Responsive layout. Not tested on devices | 8 |
+| R1 | Chart display & navigation | 🟢 MapLibre with OpenSeaMap seamarks and Rijkswaterstaat inland ENC; follows the vessel, north-up / heading-up | 1, 3 |
+| R2 | Route planning | 🟢 Planning, active navigation (XTE, ETA, auto-advance), route summary, hazard warnings (official inland, advisory on the coast) | 2, 3 |
+| R3 | Instrument integration | 🟢 NMEA 0183, NMEA 2000 and SeaTalk over USB, Bluetooth, Wi-Fi (TCP in the apps, WebSocket bridge in the browser) | 0, 1 |
+| R4 | AIS | 🔴 Map layer only: no decoder, no CPA. Data sources researched (own receiver, or aisstream.io via a relay) | 5 |
+| R5 | Offline operation | 🟢 Downloaded chart regions work offline; weather and tide caching waits for Phase 7 | 3, 7 |
+| R6 | Tablet compatibility | 🟡 Android app on tablets; responsive layout, not tested systematically on 7–13" devices | 8 |
 | R7 | Weather | ⚪ Not started | 7 |
-| R8 | Anchor watch | 🔴 Button with no logic | 4 |
+| R8 | Anchor watch | 🟢 Radius, drag alarm with GPS jitter handling, event log; keeps running with the screen off on Android | 4 |
 | R9 | Track recording | 🟢 Done, including per-track colours and track → route | 2 |
-| R10 | Protocol stubs | 🟡 GPS simulator only. No NMEA, NMEA 2000 or SeaTalk stubs | 1 |
+| R10 | Protocol stubs | 🟢 NMEA 0183, NMEA 2000 and SeaTalk simulator through the real connection interface | 1 |
 | R11 | Tides & currents | ⚪ Not started | 7 |
-| R12 | Man overboard | 🔴 Button with no logic | 4 |
+| R12 | Man overboard | 🟢 Always-visible button, marker, bearing and distance, guidance back, alarm | 4 |
 | R13 | Logbook | 🔴 Placeholder page. Repository and CSV export exist | 6 |
-| R14 | Instrument display | 🟡 Gauges exist. No unit switching, alerts or custom layout | 1 |
-| R15 | Chart management | 🔴 Region download only | 3 |
+| R14 | Instrument display | 🟢 Units, min/max alerts, configurable panels (gauges being redesigned in the UI cleanup) | 1 |
+| R15 | Chart management | 🟢 Regions, editions, update check, deletion; S-57 converted by the pipeline, not in the app | 3 |
 
 ---
 
-## Phase 0: Stabilise the foundation (about 1 week)
+## Phase 0: Stabilise the foundation ✅ done
 
 **Goal:** green CI on `main`, and every change after this one is reviewable.
 
-- [ ] Merge the parser-fix worktree (NMEA0183 talker-ID bug, NMEA2000 rewrite, 147/147 tests passing). Also merge the follow-up branch that normalises instrument values.
-- [ ] Commit the GPS work (GeolocationService, GPSSimulator, GPSControl). Remove the debug `console.log` in `Layout.tsx` first.
-- [ ] Rename `master` to `main`, add a GitHub remote, and push the `pre-cleanup` and `v2.0.0-pwa-only` tags.
-- [ ] Fix the 86 lint errors, mostly `no-explicit-any`, so CI's lint step passes.
-- [ ] Add `pwa/dev-dist/` to `.gitignore` and remove it from git tracking.
-- [ ] Add a `LICENSE` file. The README links to one that doesn't exist.
-- [ ] Fix outdated docs: React 18 → 19, Vite 5 → 7.
-- [ ] Add Playwright end-to-end tests to CI (Chromium only, to start).
-- [ ] Delete code that nothing uses, or put it on the backlog: `useChartCache`, `useTrackProcessor` with its worker, and `NavigationStatus` (which Phase 2 will wire up).
+- [x] Merge the parser-fix worktree (NMEA0183 talker-ID bug, NMEA2000 rewrite, 147/147 tests passing). Also merge the follow-up branch that normalises instrument values.
+- [x] Commit the GPS work (GeolocationService, GPSSimulator, GPSControl). Remove the debug `console.log` in `Layout.tsx` first.
+- [x] Rename `master` to `main`, add a GitHub remote, and push the `pre-cleanup` and `v2.0.0-pwa-only` tags.
+- [x] Fix the 86 lint errors, mostly `no-explicit-any`, so CI's lint step passes.
+- [x] Add `pwa/dev-dist/` to `.gitignore` and remove it from git tracking.
+- [x] Add a `LICENSE` file: [MIT](LICENSE) (2026-10-21).
+- [x] Fix outdated docs: React 18 → 19, Vite 5 → 7.
+- [x] Add Playwright end-to-end tests to CI (Chromium only, to start).
+- [x] Delete code that nothing uses, or put it on the backlog: `useChartCache`, `useTrackProcessor` with its worker, and `NavigationStatus` (which Phase 2 will wire up).
 
 **Done when:** CI passes on `main` for lint, typecheck, unit tests, end-to-end tests and the build.
 
@@ -181,16 +168,17 @@ Requirements R5.4–5.5, R7, R11.
 
 ---
 
-## Phase 8: Hardening & v3.0 release (about 2 weeks)
+## Phase 8: Hardening & v1.0 release (about 2 weeks)
 
-Requirement R6 and the non-functional requirements.
+Requirement R6 and the non-functional requirements. The apps are released from a `v*` tag ([`docs/RELEASING.md`](docs/RELEASING.md)); there is no web host to deploy to any more apart from the Zimablade.
 
-- [ ] Test on real 7"–13" tablets (Android and iPad): touch gestures, portrait and landscape, and touch response under 100 ms (R6).
-- [ ] Battery profiling. Replace the "500 mA" requirement with a measurable target (see decisions).
-- [ ] Performance: split up or reduce the 1.68 MB map bundle, set a Lighthouse budget in CI, and keep 60 fps while panning with AIS and a track displayed.
-- [ ] Run end-to-end tests in all browsers on CI. Run the full offline passage scenario.
-- [ ] Update the user guide, developer guide and support matrix.
-- [ ] Deploy to a hosting provider (Netlify or Vercel configs already exist) and tag **v3.0.0**.
+- [ ] Test on real 7"–13" tablets (Android): touch gestures, portrait and landscape, and touch response under 100 ms (R6).
+- [ ] Battery profiling on Android with the background mode on. Replace the "500 mA" requirement with a measurable target (see decisions).
+- [ ] Performance: split up or reduce the map bundle and keep 60 fps while panning with AIS and a track displayed.
+- [ ] Windows: code signing (no SmartScreen warning) and self-update (`tauri-plugin-updater`, as in toodoo).
+- [ ] Android: in-app update check against the GitHub releases; Play Store only if wanted.
+- [ ] Run the full offline passage scenario on both apps.
+- [ ] Update the user guide and the support matrix, and tag **v1.0.0** of the apps.
 
 ---
 
@@ -215,7 +203,7 @@ Phase 4 (safety) is cheap and high value. It can start right after Phase 1, alon
 | **M1: Usable alpha** | 0 + 1 + 2 | Navigate a planned route with live GPS or instruments (online) |
 | **M2: Safe offline beta** | 3 + 4 | Sail offline on a nautical chart, with man overboard and anchor watch |
 | **M3: Feature-complete** | 5 + 6 + 7 | Every spec requirement is in place |
-| **M4: v3.0 release** | 8 | Tested on tablets, deployed, documented |
+| **M4: v1.0 release** | 8 | Tested on tablets, signed and self-updating apps, documented |
 
 ---
 
@@ -225,10 +213,21 @@ The main way to use OpenSail becomes a native app; the web version on the Zimabl
 
 All apps are the same `pwa/` build: the platform differences live only in `pwa/src/platform/` (Tauri, Capacitor or browser, picked at runtime). One version (`pwa/package.json`) and one release tag `v*` with the Windows installer and the Android APK: [`docs/RELEASING.md`](docs/RELEASING.md).
 
-- **Windows (Tauri 2):** [`desktop/`](desktop/README.md). First release `desktop-v0.1.0`. Direct TCP to the autopilot (no bridge) and charts from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. Built and tested in CI only. Next: code signing and self-update, USB NMEA through a native serial plugin (WebView2 has no Web Serial port picker).
-- **Android (Capacitor 8), in progress:** [`android/`](android/README.md), a sideloaded APK. Direct TCP to the autopilot over the boat's Wi-Fi (in-repo Kotlin plugin, socket bound to Wi-Fi), native chart downloads, GPS through `@capacitor/geolocation`, and a foreground service that keeps GPS, the instrument link and the anchor check running with the screen off, with alarms as notifications. Built and smoke-tested on an emulator in CI. To test on the boat: the checklist in the Android README. Next: the first `v0.2.0` release (needs the signing secrets), then Play Store only if wanted.
+- **Windows (Tauri 2):** [`desktop/`](desktop/README.md). First release `desktop-v0.1.0`, now released together with Android as `v*`. Direct TCP to the autopilot (no bridge) and charts from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. Built and tested in CI only. Next: code signing and self-update, USB NMEA through a native serial plugin (WebView2 has no Web Serial port picker).
+- **Android (Capacitor 8), released in v0.2.0:** [`android/`](android/README.md), a sideloaded APK. Direct TCP to the autopilot over the boat's Wi-Fi (in-repo Kotlin plugin, socket bound to Wi-Fi), native chart downloads, GPS through `@capacitor/geolocation`, and a foreground service that keeps GPS, the instrument link and the anchor check running with the screen off, with alarms as notifications. Built and smoke-tested on an emulator in CI. To test on the boat: the checklist in the Android README. The release key backup is the owner's; Play Store only if wanted.
 - **iOS, not planned yet:** see [`docs/native-app-plan.md`](docs/native-app-plan.md) (needs a Mac runner and the Apple developer account).
 - Waddenzee and Zeeland charts once Rijkswaterstaat confirms the licence.
+
+---
+
+## Next up
+
+In order, as agreed on 2026-10-21:
+
+1. **UI cleanup** (in progress): one navigation model instead of the duplicated sidebar and top bar, every control working, consistent and readable gauges, a clean modern layout on laptop, tablet and phone. Proposal first in `docs/ui-redesign.md`.
+2. **Autopilot steering**: send the active route to the Pcnautic / pypilot autopilot as `RMC` and `APB` over the TCP link (its Navigation mode). Off by default, behind a clear switch.
+3. **AIS (Phase 5)** with an own AIS receiver on board (the safe, offline route for collision warnings); optionally an online overview through an aisstream.io relay on the Zimablade, marked as not for collision avoidance. Otherwise **weather and tides (Phase 7)** first.
+4. **Logbook (Phase 6)**, then **hardening (Phase 8)**.
 
 ---
 

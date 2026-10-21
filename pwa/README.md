@@ -159,7 +159,7 @@ We welcome contributions! Please see the [Developer Guide](DEVELOPER_GUIDE.md#co
 
 ## 📄 License
 
-Open source - see LICENSE file for details.
+[MIT](../LICENSE), see the [main README](../README.md#license) for the chart data licences.
 
 ## 🆘 Support
 
