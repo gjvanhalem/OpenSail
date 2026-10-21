@@ -26,7 +26,7 @@ export const RouteSummary: React.FC<RouteSummaryProps> = ({ route, departure }) 
   const summary = calculateRouteSummary(route.waypoints, speed, leaving);
 
   return (
-    <section aria-label="Route summary" className="bg-white/95 rounded-lg shadow-lg p-4 text-sm w-80">
+    <section aria-label="Route summary" className="bg-surface/95 rounded-lg shadow-lg p-4 text-sm w-80">
       <h2 className="font-semibold text-base mb-2">{route.name}</h2>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
         <dt className="text-gray-500">Total distance</dt>

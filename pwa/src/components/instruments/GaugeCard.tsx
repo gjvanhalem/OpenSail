@@ -29,15 +29,15 @@ export const GaugeCard: React.FC<GaugeCardProps> = ({
 }) => (
   <section
     aria-label={title}
-    className={`@container flex flex-col rounded-2xl bg-slate-900 px-3 pt-3 pb-3 sm:px-4 sm:pb-4 text-slate-50 ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
+    className={`@container flex flex-col rounded-2xl bg-gauge px-3 pt-3 pb-3 sm:px-4 sm:pb-4 text-gauge-ink ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
   >
-    <div className="flex flex-wrap justify-between gap-x-2 text-xs font-semibold tracking-widest text-slate-400">
+    <div className="flex flex-wrap justify-between gap-x-2 text-xs font-semibold tracking-widest text-gauge-muted">
       <h3>{title}</h3>
       {reference && <span>{reference}</span>}
     </div>
     <div className="flex flex-1 flex-col items-center justify-center">{children}</div>
     {footer && (
-      <div className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs @[14rem]:text-sm text-slate-400 tabular-nums">
+      <div className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs @[14rem]:text-sm text-gauge-muted tabular-nums">
         {footer}
       </div>
     )}
@@ -51,18 +51,18 @@ export const FooterValue: React.FC<{ label: string; children: React.ReactNode }>
   children,
 }) => (
   <span>
-    {label} <b className="font-semibold text-slate-50">{children}</b>
+    {label} <b className="font-semibold text-gauge-ink">{children}</b>
   </span>
 );
 
-/** SVG colours of the gauges, matching the card classes above */
+/** SVG colours of the gauges: the gauge tokens in index.css */
 export const GAUGE_COLORS = {
-  ink: '#f8fafc',
-  muted: '#94a3b8',
-  track: '#1e293b',
-  accent: '#38bdf8',
-  port: '#ef4444',
-  starboard: '#22c55e',
-  warning: '#f59e0b',
-  danger: '#ef4444',
+  ink: 'var(--gauge-ink)',
+  muted: 'var(--gauge-muted)',
+  track: 'var(--gauge-track)',
+  accent: 'var(--gauge-accent)',
+  port: 'var(--gauge-port)',
+  starboard: 'var(--gauge-starboard)',
+  warning: 'var(--gauge-warning)',
+  danger: 'var(--gauge-danger)',
 } as const;

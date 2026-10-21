@@ -39,7 +39,7 @@ export const NavigationSourceSettings: React.FC = () => {
   const activeSources = useAppSelector((state) => state.navigation.sources);
 
   return (
-    <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-1">Navigation Sources</h2>
       <p className="text-sm text-gray-500 mb-4">
         Auto uses the instruments while they send a value, and GPS otherwise.

@@ -1,5 +1,139 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens (docs/ui-redesign.md, "Visual system"). Every colour the UI uses
+ * is a CSS variable, so a display mode (night) only has to redefine the variables.
+ *
+ * - Semantic colours: bg-canvas, bg-surface, text-ink, text-muted, border-line,
+ *   bg-bar / text-bar-ink (app bar), bg-accent, bg-danger, text-ok, text-warn,
+ *   and the gauge colours.
+ * - Tailwind's gray, slate, blue and sky scales point at variables too, so the
+ *   existing classes follow the display mode. Blue is the marine accent (the sky
+ *   scale shifted one step darker for contrast in sunlight).
+ */
+:root {
+  --canvas: #eef2f6;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --muted: #475569;
+  --line: #d5dde6;
+  --bar: #0b2540;
+  --bar-ink: #ffffff;
+  --bar-muted: #9fb3c8;
+  --accent: #0369a1;
+  --accent-strong: #075985;
+  --accent-ink: #ffffff;
+  --danger: #dc2626;
+  --ok: #15803d;
+  --warn: #b45309;
+
+  --gauge-bg: #0f172a;
+  --gauge-ink: #f8fafc;
+  --gauge-muted: #94a3b8;
+  --gauge-track: #1e293b;
+  --gauge-accent: #38bdf8;
+  --gauge-port: #ef4444;
+  --gauge-starboard: #22c55e;
+  --gauge-warning: #f59e0b;
+  --gauge-danger: #ef4444;
+
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  --blue-50: #f0f9ff;
+  --blue-100: #e0f2fe;
+  --blue-200: #bae6fd;
+  --blue-300: #7dd3fc;
+  --blue-400: #38bdf8;
+  --blue-500: #0284c7;
+  --blue-600: #0369a1;
+  --blue-700: #075985;
+  --blue-800: #0c4a6e;
+  --blue-900: #082f49;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-bar: var(--bar);
+  --color-bar-ink: var(--bar-ink);
+  --color-bar-muted: var(--bar-muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-gauge: var(--gauge-bg);
+  --color-gauge-ink: var(--gauge-ink);
+  --color-gauge-muted: var(--gauge-muted);
+
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-slate-50: var(--gray-50);
+  --color-slate-100: var(--gray-100);
+  --color-slate-200: var(--gray-200);
+  --color-slate-300: var(--gray-300);
+  --color-slate-400: var(--gray-400);
+  --color-slate-500: var(--gray-500);
+  --color-slate-600: var(--gray-600);
+  --color-slate-700: var(--gray-700);
+  --color-slate-800: var(--gray-800);
+  --color-slate-900: var(--gray-900);
+
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
+  --color-sky-50: var(--blue-50);
+  --color-sky-100: var(--blue-100);
+  --color-sky-200: var(--blue-200);
+  --color-sky-300: var(--blue-300);
+  --color-sky-400: var(--blue-400);
+  --color-sky-500: var(--blue-500);
+  --color-sky-600: var(--blue-600);
+  --color-sky-700: var(--blue-700);
+  --color-sky-800: var(--blue-800);
+  --color-sky-900: var(--blue-900);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* MapLibre's own controls at the app's 44 px touch-target minimum */
+.maplibregl-ctrl-group button {
+  width: 44px;
+  height: 44px;
+}
+
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);

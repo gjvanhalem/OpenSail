@@ -26,7 +26,7 @@ export const RouteHazardList: React.FC<RouteHazardListProps> = ({ hazards, onSel
   const sorted = [...warnings].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 
   return (
-    <section aria-label="Route hazards" className="rounded-lg bg-white/95 shadow p-3 text-sm w-72 max-w-full">
+    <section aria-label="Route hazards" className="rounded-lg bg-surface/95 shadow p-3 text-sm w-72 max-w-full">
       <h3 className="font-semibold mb-1">Hazard check</h3>
       <p className="text-xs text-gray-600 mb-2">
         Against chart depths for a safety depth of {safetyDepth} m (the depth alert in Settings).

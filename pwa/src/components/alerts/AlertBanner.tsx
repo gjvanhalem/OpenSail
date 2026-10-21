@@ -45,7 +45,7 @@ export const AlertBanner: React.FC = () => {
       </ul>
       <button
         onClick={() => dispatch(acknowledgeAlerts())}
-        className="px-3 py-1 rounded bg-white text-red-700 font-semibold hover:bg-red-50"
+        className="px-3 py-1 rounded bg-surface text-red-700 font-semibold hover:bg-red-50"
       >
         Acknowledge
       </button>

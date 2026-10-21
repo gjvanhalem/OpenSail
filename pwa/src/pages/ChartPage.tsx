@@ -132,7 +132,7 @@ export const ChartPage: React.FC = () => {
         {navigation.position && (
           <button
             onClick={handleRecenter}
-            className={`bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 flex items-center gap-2 ${
+            className={`min-h-12 bg-surface px-4 py-2 rounded-xl shadow-lg hover:bg-gray-50 flex items-center gap-2 ${
               autoCenterEnabled ? 'ring-2 ring-blue-500' : ''
             }`}
             title={autoCenterEnabled ? 'Auto-center enabled' : 'Click to recenter on vessel'}
@@ -149,7 +149,7 @@ export const ChartPage: React.FC = () => {
         <div
           role="group"
           aria-label="Chart orientation"
-          className="bg-white rounded-lg shadow-lg flex overflow-hidden text-sm"
+          className="bg-surface rounded-xl shadow-lg flex overflow-hidden text-sm"
         >
           {(
             [
@@ -161,7 +161,7 @@ export const ChartPage: React.FC = () => {
               key={orientation}
               onClick={() => handleOrientationChange(orientation)}
               aria-pressed={settings.chartRotation === orientation}
-              className={`flex-1 px-3 py-2 ${
+              className={`flex-1 min-h-12 px-3 py-2 ${
                 settings.chartRotation === orientation
                   ? 'bg-blue-600 text-white'
                   : 'hover:bg-gray-50'
@@ -178,7 +178,7 @@ export const ChartPage: React.FC = () => {
         {!showRegionSelector && (
           <button
             onClick={() => setShowDownloadPanel(!showDownloadPanel)}
-            className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 flex items-center gap-2"
+            className="min-h-12 bg-surface px-4 py-2 rounded-xl shadow-lg hover:bg-gray-50 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

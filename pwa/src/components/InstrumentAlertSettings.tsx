@@ -27,7 +27,7 @@ export const InstrumentAlertSettings: React.FC = () => {
   };
 
   return (
-    <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-1">Instrument Alerts</h2>
       <p className="text-sm text-gray-500 mb-4">
         Show an alert when a value goes below its minimum or above its maximum. Leave a limit

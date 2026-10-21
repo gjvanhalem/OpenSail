@@ -117,7 +117,7 @@ export const RouteLayer: React.FC<RouteLayerProps> = React.memo(
                     </div>
                     {/* Waypoint name tooltip */}
                     {waypoint.name && (
-                      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-md text-xs whitespace-nowrap">
+                      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-surface px-2 py-1 rounded shadow-md text-xs whitespace-nowrap">
                         {waypoint.name}
                       </div>
                     )}

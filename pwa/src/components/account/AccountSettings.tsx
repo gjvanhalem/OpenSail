@@ -15,7 +15,7 @@ export const AccountSettings: React.FC = () => {
 
   if (account.status === 'offline') {
     return (
-      <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Account</h2>
         <p className="text-sm text-gray-600">Offline: account details come back when there's a connection.</p>
       </section>
@@ -42,7 +42,7 @@ export const AccountSettings: React.FC = () => {
 
   return (
     <>
-      <section className="bg-white rounded-lg shadow-sm p-6 mb-6" aria-labelledby="account-heading">
+      <section className="bg-surface rounded-lg shadow-sm p-6 mb-6" aria-labelledby="account-heading">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 id="account-heading" className="text-xl font-semibold text-gray-900">Account</h2>

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         name: 'OpenSail Navigation',
         short_name: 'OpenSail',
         description: 'Marine navigation system for modern devices',
-        theme_color: '#0ea5e9',
+        theme_color: '#0b2540',
         background_color: '#0c4a6e',
         display: 'standalone',
         orientation: 'any',

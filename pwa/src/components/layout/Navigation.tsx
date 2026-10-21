@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { toggleSidebar, toggleFullscreen } from '@/store/slices/uiSlice';
 import { APP_NAME } from '@/utils';
+import { Icon, type IconName } from '@/components/icons';
 
 export const Navigation: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -10,26 +11,26 @@ export const Navigation: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fullscreenMode = useAppSelector((state) => state.ui.fullscreenMode);
 
-  const navItems = [
-    { path: '/chart', label: 'Chart', icon: '🗺️' },
-    { path: '/routes', label: 'Routes', icon: '🧭' },
-    { path: '/tracks', label: 'Tracks', icon: '📍' },
-    { path: '/logbook', label: 'Logbook', icon: '📖' },
-    { path: '/instruments', label: 'Instruments', icon: '📡' },
-    { path: '/settings', label: 'Settings', icon: '⚙️' },
+  const navItems: { path: string; label: string; icon: IconName }[] = [
+    { path: '/chart', label: 'Chart', icon: 'chart' },
+    { path: '/routes', label: 'Routes', icon: 'routes' },
+    { path: '/tracks', label: 'Tracks', icon: 'tracks' },
+    { path: '/logbook', label: 'Logbook', icon: 'logbook' },
+    { path: '/instruments', label: 'Instruments', icon: 'instruments' },
+    { path: '/settings', label: 'Settings', icon: 'settings' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-blue-600 text-white shadow-lg">
-      <div className="px-4 py-3">
+    <nav className="bg-bar text-bar-ink shadow-lg">
+      <div className="px-2 py-1">
         <div className="flex items-center justify-between">
           {/* Left section - Menu toggle and brand */}
           <div className="flex items-center space-x-4">
             <button
               onClick={() => dispatch(toggleSidebar())}
-              className="p-2 rounded hover:bg-blue-700 transition-colors"
+              className="w-12 h-12 grid place-items-center rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Toggle sidebar"
             >
               <svg
@@ -58,17 +59,20 @@ export const Navigation: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-label={item.label}
+                title={item.label}
                 className={`
-                  px-4 py-2 rounded transition-colors
+                  min-h-12 min-w-12 px-3 lg:px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors
                   ${
                     isActive(item.path)
-                      ? 'bg-blue-700 font-semibold'
-                      : 'hover:bg-blue-700'
+                      ? 'bg-white/15 font-semibold'
+                      : 'hover:bg-white/10'
                   }
                 `}
               >
-                <span className="mr-2">{item.icon}</span>
-                {item.label}
+                <Icon name={item.icon} className="w-5 h-5" />
+                {/* Icons only on narrow tablets, where six labels don't fit */}
+                <span className="hidden lg:inline">{item.label}</span>
               </Link>
             ))}
           </div>
@@ -77,7 +81,7 @@ export const Navigation: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => dispatch(toggleFullscreen())}
-              className="p-2 rounded hover:bg-blue-700 transition-colors"
+              className="w-12 h-12 grid place-items-center rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Toggle fullscreen"
               title={fullscreenMode ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
@@ -108,7 +112,7 @@ export const Navigation: React.FC = () => {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded hover:bg-blue-700 transition-colors"
+              className="md:hidden w-12 h-12 grid place-items-center rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Toggle mobile menu"
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
@@ -141,7 +145,7 @@ export const Navigation: React.FC = () => {
 
         {/* Mobile menu dropdown */}
         {mobileMenuOpen && (
-          <div id="mobile-menu" className="md:hidden mt-3 pt-3 border-t border-blue-500">
+          <div id="mobile-menu" className="md:hidden mt-3 pt-3 border-t border-white/20">
             <div className="flex flex-col space-y-1">
               {navItems.map((item) => (
                 <Link
@@ -149,15 +153,15 @@ export const Navigation: React.FC = () => {
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`
-                    px-4 py-2 rounded transition-colors
+                    min-h-12 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors
                     ${
                       isActive(item.path)
-                        ? 'bg-blue-700 font-semibold'
-                        : 'hover:bg-blue-700'
+                        ? 'bg-white/15 font-semibold'
+                        : 'hover:bg-white/10'
                     }
                   `}
                 >
-                  <span className="mr-2">{item.icon}</span>
+                  <Icon name={item.icon} className="w-5 h-5" />
                   {item.label}
                 </Link>
               ))}

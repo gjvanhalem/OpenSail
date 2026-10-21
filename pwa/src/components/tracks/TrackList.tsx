@@ -50,7 +50,7 @@ const TrackItem = React.memo<{
   return (
     <div
       className={`border rounded-lg overflow-hidden transition-colors ${
-        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-surface'
       }`}
     >
       {/* Track Header */}

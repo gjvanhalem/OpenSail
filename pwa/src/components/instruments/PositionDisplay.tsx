@@ -33,7 +33,7 @@ export const PositionDisplay: React.FC<PositionDisplayProps> = React.memo(({ cla
           <div>{formatCoordinate(position.longitude, false)}</div>
         </div>
       ) : (
-        <div className="py-4 text-3xl font-bold text-slate-500">--</div>
+        <div className="py-4 text-3xl font-bold text-gauge-muted">--</div>
       )}
     </GaugeCard>
   );

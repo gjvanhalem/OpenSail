@@ -91,7 +91,7 @@ export const WaypointEditor: React.FC<WaypointEditorProps> = ({
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+        className="bg-surface rounded-lg shadow-xl max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

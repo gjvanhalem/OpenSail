@@ -50,7 +50,7 @@ export function NavigationStatus() {
     return (
       <section
         aria-label="Route guidance"
-        className="bg-white/95 rounded-lg shadow-lg p-3 text-sm w-72"
+        className="bg-surface/95 rounded-lg shadow-lg p-3 text-sm w-72"
       >
         <div className="font-semibold">Arrived</div>
         <div className="text-gray-600">End of route {route.name}</div>
@@ -74,7 +74,7 @@ export function NavigationStatus() {
   return (
     <section
       aria-label="Route guidance"
-      className="bg-white/95 rounded-lg shadow-lg p-3 text-sm w-72"
+      className="bg-surface/95 rounded-lg shadow-lg p-3 text-sm w-72"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="min-w-0">

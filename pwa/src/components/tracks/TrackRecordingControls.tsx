@@ -71,7 +71,7 @@ export const TrackRecordingControls: React.FC<TrackRecordingControlsProps> = ({ 
   const status = getStatus();
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className="bg-surface border border-gray-200 rounded-lg p-4">
       <h3 className="font-semibold text-lg mb-4">Track Recording</h3>
 
       {/* Recording Status */}
@@ -148,7 +148,7 @@ export const TrackRecordingControls: React.FC<TrackRecordingControlsProps> = ({ 
       {/* Name Dialog */}
       {showNameDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-surface rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Start Track Recording</h3>
             <div className="mb-4">
               <label htmlFor="track-name" className="block text-sm font-medium text-gray-700 mb-2">

@@ -21,7 +21,7 @@ export const ViewportRegionSelector: React.FC<ViewportRegionSelectorProps> = ({
   };
 
   return (
-    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-white px-6 py-4 rounded-lg shadow-xl z-30 max-w-md">
+    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-surface px-6 py-4 rounded-lg shadow-xl z-30 max-w-md">
       <div className="text-center">
         <h3 className="text-lg font-semibold mb-2">Select Download Region</h3>
         <p className="text-sm text-gray-600 mb-4">

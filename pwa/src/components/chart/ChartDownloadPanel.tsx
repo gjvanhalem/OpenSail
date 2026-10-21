@@ -116,7 +116,7 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
   };
 
   return (
-    <div className="absolute top-0 right-0 w-96 h-full bg-white shadow-xl z-20 overflow-y-auto">
+    <div className="absolute top-0 right-0 w-96 h-full bg-surface shadow-xl z-20 overflow-y-auto">
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Offline Charts</h2>

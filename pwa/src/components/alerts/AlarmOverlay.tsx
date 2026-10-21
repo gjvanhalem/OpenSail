@@ -46,7 +46,7 @@ export const AlarmOverlay: React.FC = () => {
         </ul>
         <button
           onClick={() => dispatch(silenceAlarms())}
-          className="min-w-64 px-10 py-6 rounded-2xl bg-white text-red-700 text-3xl font-bold shadow-xl hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-white/60"
+          className="min-w-64 px-10 py-6 rounded-2xl bg-surface text-red-700 text-3xl font-bold shadow-xl hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-white/60"
           autoFocus
         >
           Silence
