@@ -31,6 +31,10 @@ As a Progressive Web App (PWA), OpenSail works on any device with a modern brows
 - **Workbox** for Service Worker and offline functionality
 - **Vitest** and **Playwright** for comprehensive testing
 
+## Apps
+
+OpenSail also comes as an app for **Windows** ([`desktop/`](desktop/README.md)) and **Android** ([`android/`](android/README.md)): the same app, plus a direct Wi-Fi connection to the autopilot (no bridge), charts downloaded from GitHub and, on Android, alarms and the anchor watch with the screen off. Download them from the [releases](https://github.com/gjvanhalem/OpenSail/releases). How releases are made: [`docs/RELEASING.md`](docs/RELEASING.md).
+
 ## Quick Start
 
 ### For Users

@@ -223,8 +223,12 @@ Phase 4 (safety) is cheap and high value. It can start right after Phase 1, alon
 
 The main way to use OpenSail becomes a native app; the web version on the Zimablade stays for now. The native apps have no accounts.
 
-- **Windows (Tauri 2), in progress:** [`desktop/`](desktop/README.md). The same web app, plus direct TCP to the autopilot (no bridge) and charts from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. Built and tested in CI only; installers on `desktop-v*` releases. Next: code signing and self-update, USB NMEA through a native serial plugin (WebView2 has no Web Serial port picker), Waddenzee and Zeeland charts once Rijkswaterstaat confirms the licence.
-- **Android (Capacitor), later:** [`docs/native-app-plan.md`](docs/native-app-plan.md). It reuses the app's `NativeTcpConnection` and the platform fetch from the Windows work.
+All apps are the same `pwa/` build: the platform differences live only in `pwa/src/platform/` (Tauri, Capacitor or browser, picked at runtime). One version (`pwa/package.json`) and one release tag `v*` with the Windows installer and the Android APK: [`docs/RELEASING.md`](docs/RELEASING.md).
+
+- **Windows (Tauri 2):** [`desktop/`](desktop/README.md). First release `desktop-v0.1.0`. Direct TCP to the autopilot (no bridge) and charts from the public [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. Built and tested in CI only. Next: code signing and self-update, USB NMEA through a native serial plugin (WebView2 has no Web Serial port picker).
+- **Android (Capacitor 8), in progress:** [`android/`](android/README.md), a sideloaded APK. Direct TCP to the autopilot over the boat's Wi-Fi (in-repo Kotlin plugin, socket bound to Wi-Fi), native chart downloads, GPS through `@capacitor/geolocation`, and a foreground service that keeps GPS, the instrument link and the anchor check running with the screen off, with alarms as notifications. Built and smoke-tested on an emulator in CI. To test on the boat: the checklist in the Android README. Next: the first `v0.2.0` release (needs the signing secrets), then Play Store only if wanted.
+- **iOS, not planned yet:** see [`docs/native-app-plan.md`](docs/native-app-plan.md) (needs a Mac runner and the Apple developer account).
+- Waddenzee and Zeeland charts once Rijkswaterstaat confirms the licence.
 
 ---
 

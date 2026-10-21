@@ -11,6 +11,7 @@ import { useSafetyMonitor } from '@/hooks/useSafetyMonitor';
 import { AnchorWatchPanel, MobButton, MobPanel } from '@/components/safety';
 import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 import { useGpsAutoStart } from '@/hooks/useGpsAutoStart';
+import { useBackgroundMode } from '@/hooks/useBackgroundMode';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   useAlarmOutput(safetyWatchActive);
   useRouteNavigation();
   useGpsAutoStart();
+  useBackgroundMode();
 
   // Close the sidebar on a phone-sized screen at start, and when the window shrinks to one.
   // Only then: closing it whenever it opens would make it impossible to open on a phone.

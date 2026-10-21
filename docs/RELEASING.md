@@ -49,7 +49,21 @@ Android only installs an update that is signed with the same key as the installe
 
 - The keystore is on the owner's laptop: `C:\Users\gjvan\.opensail\android\opensail-release.p12` (PKCS12, alias `opensail`, RSA 4096, valid until 2054), its password in `opensail-release.password` next to it. **Keep a backup of both** outside the laptop (password manager, encrypted USB stick).
 - Certificate SHA-256: `A5:B0:00:E0:FC:2B:EE:BC:6F:8E:7D:CD:5C:AD:AB:EC:27:E1:0D:64:93:F7:AA:8D:CD:6B:24:CB:AC:8D:E7:83`. `apksigner verify --print-certs` on a release APK shows it.
-- CI signs with three repository secrets. To set them (Git Bash, in `C:\Users\gjvan\.opensail\android`):
+- CI signs with three repository secrets (set on 2026-10-18). To set them again, in `C:\Users\gjvan\.opensail\android`, in Windows PowerShell:
+
+  ```powershell
+  gh secret set ANDROID_KEYSTORE_BASE64 -R gjvanhalem/OpenSail --body ([Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\opensail-release.p12")))
+  ```
+
+  ```powershell
+  gh secret set ANDROID_KEYSTORE_PASSWORD -R gjvanhalem/OpenSail --body ((Get-Content -Raw "$PWD\opensail-release.password").Trim())
+  ```
+
+  ```powershell
+  gh secret set ANDROID_KEY_ALIAS -R gjvanhalem/OpenSail --body opensail
+  ```
+
+  Or in Git Bash:
 
   ```bash
   base64 -w0 opensail-release.p12 | gh secret set ANDROID_KEYSTORE_BASE64 -R gjvanhalem/OpenSail
