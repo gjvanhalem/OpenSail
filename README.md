@@ -187,7 +187,7 @@ OpenSail is built as a Progressive Web App instead of a native mobile app for se
 
 ## License
 
-Open source - see LICENSE file for details.
+[MIT](LICENSE). The chart data has its own licences and credits, shown in the app: OpenStreetMap / OpenFreeMap (ODbL), OpenSeaMap (CC BY-SA), Rijkswaterstaat ENC (CC0). OpenSail is not for navigation: always keep official charts and a proper lookout.
 
 ## Support
 

@@ -1,5 +1,6 @@
 {
   "name": "opensail-desktop",
+  "license": "MIT",
   "private": true,
   "description": "OpenSail for Windows (Tauri 2): the web app in ../pwa plus native TCP and HTTP",
   "scripts": {
