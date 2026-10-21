@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSail UI prototype</title>
+<style>
+/* Design tokens: the proposed visual system (docs/ui-redesign.md, "Visual system") */
+:root {
+  --bg: #eef2f6; --surface: #ffffff; --ink: #0f172a; --muted: #475569; --line: #d5dde6;
+  --bar: #0b2540; --bar-ink: #ffffff; --bar-muted: #9fb3c8;
+  --accent: #0369a1; --accent-ink: #ffffff;
+  --danger: #dc2626; --ok: #15803d; --warn: #b45309;
+  --water: #cfe6f5; --land: #f1e8cf; --land-line: #d8c9a3; --route: #c026d3;
+  --g-bg: #0b1726; --g-ink: #f8fafc; --g-muted: #94a3b8; --g-track: #22344b; --g-accent: #38bdf8;
+  --port: #ef4444; --stbd: #22c55e;
+  --r: 12px; --tap: 48px;
+}
+body.night {
+  --bg: #000; --surface: #140000; --ink: #ff5c4d; --muted: #b3392e; --line: #3a0a06;
+  --bar: #0a0000; --bar-ink: #ff5c4d; --bar-muted: #a1332a;
+  --accent: #b3261e; --accent-ink: #ffd6d2;
+  --water: #1a0302; --land: #2a0805; --land-line: #44100a; --route: #ff5c4d;
+  --g-bg: #0a0000; --g-ink: #ff5c4d; --g-muted: #a1332a; --g-track: #2a0805; --g-accent: #ff5c4d;
+  --port: #ff5c4d; --stbd: #ff5c4d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink);
+  display: flex; flex-direction: column; overflow: hidden; }
+button { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* App bar */
+.appbar { height: 56px; background: var(--bar); color: var(--bar-ink); display: flex; align-items: center; gap: 8px; padding: 0 12px; flex: none; }
+.brand { font-weight: 700; font-size: 20px; margin-right: 16px; display: flex; align-items: center; gap: 8px; }
+.tabs { display: flex; gap: 4px; flex: 1; }
+.tab { min-height: var(--tap); padding: 0 16px; border: 0; background: none; color: var(--bar-muted); border-radius: 8px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+.tab[aria-current="page"] { color: var(--bar-ink); background: rgba(255,255,255,.12); }
+.tab svg { width: 22px; height: 22px; }
+.status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--bar-muted); padding: 0 8px; white-space: nowrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; }
+.iconbtn { width: var(--tap); height: var(--tap); border: 0; background: none; color: var(--bar-ink); border-radius: 8px; cursor: pointer;
+  display: grid; place-items: center; }
+.iconbtn svg { width: 24px; height: 24px; }
+.iconbtn:hover, .tab:hover { background: rgba(255,255,255,.08); }
+
+/* Bottom navigation (phones and portrait tablets) */
+.bottomnav { display: none; background: var(--bar); flex: none; padding-bottom: env(safe-area-inset-bottom); }
+.bottomnav .tab { flex: 1; flex-direction: column; gap: 2px; font-size: 12px; min-height: 60px; padding: 6px 0; border-radius: 0; justify-content: center; }
+
+main { flex: 1; position: relative; overflow: hidden; }
+.view { position: absolute; inset: 0; display: none; overflow: auto; }
+.view.on { display: block; }
+
+/* Chart */
+#chart { overflow: hidden; }
+.map { position: absolute; inset: 0; width: 100%; height: 100%; background: var(--water); }
+.map .land { fill: var(--land); stroke: var(--land-line); stroke-width: 2; }
+.fab-col { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 2; }
+.fab { width: var(--tap); height: var(--tap); border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.18); cursor: pointer; }
+.fab svg { width: 24px; height: 24px; }
+.fab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fab-label { font-size: 11px; font-weight: 700; }
+.navcard { position: absolute; top: 12px; left: 12px; z-index: 2; background: var(--surface); border-radius: var(--r); box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  padding: 10px 14px; display: grid; grid-template-columns: repeat(4, auto); gap: 2px 18px; max-width: calc(100% - 96px); }
+.navcard .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.navcard .v { font-size: 20px; font-weight: 700; }
+.navcard .title { grid-column: 1 / -1; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.databar { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2; display: flex; justify-content: flex-end; pointer-events: none; }
+.cells { display: flex; background: var(--g-bg); color: var(--g-ink); border-radius: var(--r); overflow: hidden; pointer-events: auto; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+.cell { padding: 8px 16px; min-width: 96px; border-left: 1px solid var(--g-track); }
+.cell:first-child { border-left: 0; }
+.cell .k { font-size: 12px; color: var(--g-muted); letter-spacing: .06em; }
+.cell .v { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.cell .u { font-size: 13px; color: var(--g-muted); margin-left: 3px; font-weight: 500; }
+.cell.alarm { background: var(--danger); }
+.safety { position: absolute; left: 12px; bottom: 12px; z-index: 3; display: flex; align-items: flex-end; gap: 10px; }
+.mob { width: 72px; height: 72px; border-radius: 50%; background: #dc2626; color: #fff; border: 4px solid #fff; font-weight: 800; font-size: 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer; }
+body.night .mob { background: #8f0f08; border-color: #ff5c4d; color: #ffd6d2; }
+.anchor { height: var(--tap); padding: 0 14px; border-radius: 24px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  display: flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.18); cursor: pointer; }
+.disclaimer { position: absolute; right: 12px; bottom: 96px; font-size: 11px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 6px; opacity: .85; z-index: 1; }
+.sheet { position: absolute; z-index: 4; right: 72px; top: 12px; width: 300px; background: var(--surface); border-radius: var(--r); box-shadow: 0 8px 30px rgba(0,0,0,.3); padding: 16px; display: none; }
+.sheet.on { display: block; }
+.sheet h3 { margin: 0 0 12px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+.row { display: flex; align-items: center; justify-content: space-between; min-height: var(--tap); border-top: 1px solid var(--line); }
+.switch { width: 44px; height: 26px; border-radius: 13px; background: var(--accent); position: relative; }
+.switch::after { content: ""; position: absolute; right: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
+.switch.off { background: var(--line); }
+.switch.off::after { right: auto; left: 3px; }
+
+/* Instruments */
+.page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.page h1 { font-size: 28px; margin: 0 0 4px; }
+.page .sub { color: var(--muted); margin: 0 0 20px; }
+.toolbar { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.btn { min-height: var(--tap); padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.gauge { background: var(--g-bg); color: var(--g-ink); border-radius: 16px; padding: 14px 16px 16px; position: relative; }
+.gauge .head { display: flex; justify-content: space-between; font-size: 13px; letter-spacing: .08em; color: var(--g-muted); font-weight: 600; }
+.gauge svg { width: 100%; max-width: 240px; display: block; margin: 4px auto 0; }
+.gauge .foot { display: flex; justify-content: space-between; font-size: 14px; color: var(--g-muted); margin-top: 6px; }
+.gauge .foot b { color: var(--g-ink); font-weight: 600; }
+.gauge.alarm { outline: 3px solid var(--danger); }
+.gtext { fill: var(--g-ink); font-weight: 700; }
+.gmuted { fill: var(--g-muted); }
+.card { background: var(--surface); border-radius: var(--r); padding: 20px; margin-top: 24px; border: 1px solid var(--line); }
+.card h2 { margin: 0 0 12px; font-size: 20px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.seg .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Placeholder pages */
+.empty { padding: 40px 24px; color: var(--muted); max-width: 680px; margin: 0 auto; }
+.split { display: grid; grid-template-columns: 360px 1fr; height: 100%; }
+.split .list { background: var(--surface); border-right: 1px solid var(--line); padding: 20px; overflow: auto; }
+.split .list h1 { margin: 0 0 16px; font-size: 24px; display: flex; justify-content: space-between; align-items: center; }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.item b { display: block; }
+.item small { color: var(--muted); }
+.settings { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px; }
+.settings nav a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+.settings nav a.on { background: var(--surface); font-weight: 600; }
+
+/* Phones and portrait tablets: bottom navigation, compact bars */
+@media (max-width: 1023px) {
+  .tabs.top { display: none; }
+  .bottomnav { display: flex; }
+  .split { grid-template-columns: 1fr; grid-template-rows: 45% 55%; }
+  .split .list { order: 2; border-right: 0; border-top: 1px solid var(--line); }
+  .settings { grid-template-columns: 1fr; }
+  .settings nav { display: none; }
+}
+@media (max-width: 640px) {
+  .appbar { height: 52px; }
+  .status .lbl { display: none; }
+  .navcard { grid-template-columns: repeat(2, auto); gap: 0 14px; }
+  .navcard .v { font-size: 18px; }
+  .databar { bottom: 96px; left: 96px; }
+  .cells { flex-wrap: wrap; justify-content: flex-end; }
+  .cell { min-width: 0; padding: 6px 12px; flex: 1 0 33%; }
+  .cell .v { font-size: 22px; }
+  .cell.opt { display: none; }
+  .safety { bottom: 12px; }
+  .disclaimer { bottom: 170px; }
+  .anchor .lbl { display: none; }
+  .sheet { left: 12px; right: 12px; width: auto; top: auto; bottom: 12px; }
+  .page { padding: 16px; }
+  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gauge { padding: 10px; }
+  .gauge .foot { font-size: 12px; flex-direction: column; }
+  .seg { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 4 18h8zM13 6v12h7zM2 20h20l-2 2H4z"/></svg>
+    OpenSail
+  </div>
+  <nav class="tabs top" aria-label="Main"></nav>
+  <div class="status" title="Instruments: Wi-Fi connected · GPS fix"><span class="dot"></span><span class="lbl">Wi-Fi · GPS 3 m</span></div>
+  <button class="iconbtn" id="nightBtn" aria-label="Night mode" title="Night mode (red)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+  <button class="iconbtn" aria-label="Full screen" title="Full screen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</header>
+
+<main>
+  <!-- CHART -->
+  <section class="view on" id="chart" aria-label="Chart">
+    <svg class="map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <path class="land" d="M0 470 C120 440 210 520 330 500 C420 485 470 560 560 600 L600 700 L0 700Z"/>
+      <path class="land" d="M640 0 L1000 0 L1000 520 C930 470 880 380 820 330 C760 280 700 200 690 120 C685 70 660 30 640 0Z"/>
+      <path class="land" d="M760 700 C800 640 880 620 1000 610 L1000 700Z"/>
+      <g stroke="var(--route)" stroke-width="4" fill="none" stroke-linecap="round">
+        <path d="M480 420 L420 250 L300 140 L180 90" stroke-dasharray="0"/>
+      </g>
+      <g fill="var(--surface)" stroke="var(--route)" stroke-width="3">
+        <circle cx="420" cy="250" r="9"/><circle cx="300" cy="140" r="9"/><circle cx="180" cy="90" r="9"/>
+      </g>
+      <g fill="#15803d"><circle cx="560" cy="380" r="7"/><circle cx="520" cy="300" r="7"/></g>
+      <g fill="#dc2626"><rect x="380" y="330" width="12" height="12"/><rect x="345" y="270" width="12" height="12"/></g>
+      <g transform="translate(480 420) rotate(-19)">
+        <path d="M0 -26 L14 16 L0 8 L-14 16Z" fill="#0b2540" stroke="#fff" stroke-width="3"/>
+        <line x1="0" y1="-26" x2="0" y2="-120" stroke="#0b2540" stroke-width="3" stroke-dasharray="8 6"/>
+      </g>
+    </svg>
+
+    <div class="navcard" aria-label="Route guidance">
+      <div class="title">To WP2 Noorderhaven · Leg 2 of 3</div>
+      <div><div class="k">DTW</div><div class="v num">1.8 nm</div></div>
+      <div><div class="k">BRG</div><div class="v num">340°</div></div>
+      <div><div class="k">XTE</div><div class="v num">0.02 R</div></div>
+      <div><div class="k">ETA</div><div class="v num">14:32</div></div>
+    </div>
+
+    <div class="fab-col">
+      <button class="fab" aria-pressed="true" aria-label="Follow vessel" title="Follow vessel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+      </button>
+      <button class="fab" id="orientBtn" aria-label="Orientation: North up" title="North up / Heading up">
+        <span class="fab-label" id="orientLbl">N↑</span>
+      </button>
+      <button class="fab" id="layersBtn" aria-label="Layers" title="Layers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>
+      </button>
+      <button class="fab" aria-label="Offline charts" title="Offline charts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0-4-4m4 4 4-4M4 19h16"/></svg>
+      </button>
+      <div style="height:8px"></div>
+      <button class="fab" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="fab" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/></svg></button>
+    </div>
+
+    <div class="sheet" id="layers" aria-label="Layers">
+      <h3>Layers <button class="iconbtn" style="color:var(--ink)" aria-label="Close" onclick="layers.classList.remove('on')">✕</button></h3>
+      <div class="row">Seamarks (OpenSeaMap)<span class="switch"></span></div>
+      <div class="row">Inland ENC (Rijkswaterstaat)<span class="switch"></span></div>
+      <div class="row">Routes<span class="switch"></span></div>
+      <div class="row">Tracks<span class="switch off"></span></div>
+      <div class="row">AIS targets<span class="switch off"></span></div>
+    </div>
+
+    <div class="disclaimer">⚠ Not for navigation</div>
+
+    <div class="databar">
+      <div class="cells" title="Tap for all instruments" onclick="show('instruments')">
+        <div class="cell"><div class="k">SOG</div><div class="v num" data-v="sog">6.0<span class="u">kn</span></div></div>
+        <div class="cell"><div class="k">COG</div><div class="v num">338°</div></div>
+        <div class="cell"><div class="k">DEPTH</div><div class="v num">13.8<span class="u">m</span></div></div>
+        <div class="cell opt"><div class="k">HDG</div><div class="v num">341°</div></div>
+        <div class="cell opt"><div class="k">AWS</div><div class="v num">14<span class="u">kn</span></div></div>
+      </div>
+    </div>
+
+    <div class="safety">
+      <button class="mob" aria-label="Man overboard">MOB</button>
+      <button class="anchor" aria-label="Anchor watch">⚓ <span class="lbl">Anchor</span></button>
+    </div>
+  </section>
+
+  <!-- INSTRUMENTS -->
+  <section class="view" id="instruments" aria-label="Instruments">
+    <div class="page">
+      <div class="toolbar">
+        <div><h1>Instruments</h1></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="chip"><span class="dot"></span>Wi-Fi 192.168.14.1:20220 · NMEA 0183</span>
+          <button class="btn">Edit layout</button>
+        </div>
+      </div>
+      <div class="grid" id="gauges"></div>
+
+      <div class="card">
+        <h2>Connection</h2>
+        <div class="seg" role="group" aria-label="Connection type">
+          <button class="btn">USB</button><button class="btn">Bluetooth</button>
+          <button class="btn" aria-pressed="true">Wi-Fi</button><button class="btn">Simulator</button>
+        </div>
+        <p style="color:var(--muted)">Connected to the autopilot at 192.168.14.1:20220. Data last received just now. <a href="#" style="color:var(--accent)">Show raw data</a></p>
+        <button class="btn">Disconnect</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROUTES -->
+  <section class="view" id="routes" aria-label="Routes">
+    <div class="split">
+      <div class="list">
+        <h1>Routes <button class="btn primary">New route</button></h1>
+        <div class="item"><b>Scheveningen → IJmuiden</b><small>3 legs · 24.6 nm · ETA 4 h 06 at 6 kn</small>
+          <div style="display:flex;gap:8px;margin-top:10px"><button class="btn primary">Navigate</button><button class="btn">Edit</button><button class="btn">⋯</button></div></div>
+        <div class="item"><b>Rondje Haringvliet</b><small>7 legs · 18.2 nm</small></div>
+      </div>
+      <div style="position:relative;overflow:hidden"><svg class="map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><path class="land" d="M640 0 L1000 0 L1000 520 C930 470 880 380 820 330 C760 280 700 200 690 120Z"/><path d="M480 420 L420 250 L300 140 L180 90" stroke="var(--route)" stroke-width="4" fill="none"/></svg></div>
+    </div>
+  </section>
+
+  <!-- TRACKS -->
+  <section class="view" id="tracks" aria-label="Tracks">
+    <div class="split">
+      <div class="list">
+        <h1>Tracks <button class="btn primary">● Record</button></h1>
+        <div class="item"><b>Sat 18 Oct · Scheveningen</b><small>12.4 nm · 2 h 41 · avg 4.6 kn</small></div>
+        <div class="item"><b>Sun 12 Oct · Haringvliet</b><small>21.0 nm · 4 h 05</small></div>
+      </div>
+      <div style="position:relative;overflow:hidden"><svg class="map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><path class="land" d="M0 470 C120 440 210 520 330 500 C420 485 470 560 560 600 L600 700 L0 700Z"/><path d="M300 420 C380 300 520 320 600 200" stroke="#0369a1" stroke-width="4" fill="none"/></svg></div>
+    </div>
+  </section>
+
+  <!-- LOGBOOK -->
+  <section class="view" id="logbook" aria-label="Logbook"><div class="empty"><h1>Logbook</h1><p>Not built yet (ROADMAP). Proposal: hide this tab until it is.</p></div></section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="settings" aria-label="Settings">
+    <div class="settings">
+      <nav aria-label="Settings sections">
+        <a class="on" href="#">Boat &amp; units</a><a href="#">Chart</a><a href="#">Navigation sources</a><a href="#">Alarms</a><a href="#">Offline charts</a><a href="#">Account</a><a href="#">About</a>
+      </nav>
+      <div>
+        <div class="card" style="margin-top:0"><h2>Boat &amp; units</h2>
+          <div class="row">Units<span class="chip">Nautical (nm, kn, m)</span></div>
+          <div class="row">Speed gauge range<span class="chip">0–12 kn</span></div>
+          <div class="row">Display<span class="chip">Day · Night (red) · Auto</span></div>
+        </div>
+        <div class="card"><h2>Alarms</h2>
+          <div class="row">Shallow water below<span class="chip">3.0 m</span></div>
+          <div class="row">Anchor watch radius<span class="chip">50 m</span></div>
+          <div class="row">Test alarm sound<button class="btn">Test</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="bottomnav tabs" aria-label="Main"></nav>
+
+<script>
+const TABS = [
+  ['chart', 'Chart', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
+  ['routes', 'Routes', '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a4 4 0 0 0 0-8h-4a4 4 0 0 1 0-8h6"/>'],
+  ['tracks', 'Tracks', '<path d="M4 18c3-6 6 2 9-4s5-6 7-8"/><circle cx="4" cy="18" r="1.5"/>'],
+  ['instruments', 'Instruments', '<path d="M4 16a8 8 0 1 1 16 0"/><path d="m12 16 4-5"/>'],
+  ['settings', 'Settings', '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'],
+];
+for (const nav of document.querySelectorAll('.tabs')) {
+  nav.innerHTML = TABS.map(([id, label, icon]) =>
+    `<button class="tab" data-tab="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${icon}</svg>${label}</button>`).join('');
+}
+function show(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === id));
+  document.querySelectorAll('.tab').forEach(t => t.dataset.tab === id ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current'));
+  location.hash = id;
+}
+document.addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) show(t.dataset.tab); });
+nightBtn.onclick = () => document.body.classList.toggle('night');
+layersBtn.onclick = () => layers.classList.toggle('on');
+let northUp = true;
+orientBtn.onclick = () => { northUp = !northUp; orientLbl.textContent = northUp ? 'N↑' : 'H↑'; orientBtn.setAttribute('aria-label', 'Orientation: ' + (northUp ? 'North up' : 'Heading up')); };
+
+/* ---- Gauges: one shared 200x200 dial geometry, centre (100,100), radius 80 ---- */
+const P = (a, r = 80) => { const t = a * Math.PI / 180; return [100 + r * Math.sin(t), 100 - r * Math.cos(t)]; };
+const f = n => n.toFixed(1);
+const arc = (a0, a1, r = 80) => { const [x0, y0] = P(a0, r), [x1, y1] = P(a1, r); return `M${f(x0)} ${f(y0)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${f(x1)} ${f(y1)}`; };
+
+function speedGauge(v, max, sog) {
+  // 270° sweep from -135° to +135°; the arc fills to the value, digits in the centre
+  const a = -135 + Math.min(v / max, 1) * 270;
+  let ticks = '';
+  for (let s = 0; s <= max; s += 2) {
+    const ang = -135 + s / max * 270, [x0, y0] = P(ang, 92), [x1, y1] = P(ang, s % 4 ? 86 : 82), [tx, ty] = P(ang, 66);
+    ticks += `<line x1="${f(x0)}" y1="${f(y0)}" x2="${f(x1)}" y2="${f(y1)}" stroke="var(--g-muted)" stroke-width="2"/>`;
+    if (s % 4 === 0) ticks += `<text x="${f(tx)}" y="${f(ty + 4)}" text-anchor="middle" font-size="12" class="gmuted">${s}</text>`;
+  }
+  const [mx, my] = P(a);
+  return `<div class="gauge"><div class="head"><span>SPEED</span><span>STW</span></div>
+  <svg viewBox="0 0 200 180" role="img" aria-label="Speed ${v} knots">
+    <path d="${arc(-135, 135)}" fill="none" stroke="var(--g-track)" stroke-width="12" stroke-linecap="round"/>
+    <path d="${arc(-135, a)}" fill="none" stroke="var(--g-accent)" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="${f(mx)}" cy="${f(my)}" r="9" fill="var(--g-ink)"/>
+    ${ticks}
+    <text x="100" y="112" text-anchor="middle" font-size="46" class="gtext num">${v.toFixed(1)}</text>
+    <text x="100" y="134" text-anchor="middle" font-size="14" class="gmuted">kn</text>
+  </svg>
+  <div class="foot"><span>SOG <b class="num">${sog.toFixed(1)} kn</b></span><span>Max <b class="num">7.4</b></span></div></div>`;
+}
+
+function windGauge(awa, aws, tws, twa, twd) {
+  // Boat-relative dial: bow at the top, port red / starboard green close-hauled sectors
+  let ticks = '';
+  for (let d = 0; d < 360; d += 30) {
+    const [x0, y0] = P(d, 80), [x1, y1] = P(d, d % 90 ? 73 : 68);
+    ticks += `<line x1="${f(x0)}" y1="${f(y0)}" x2="${f(x1)}" y2="${f(y1)}" stroke="var(--g-muted)" stroke-width="2"/>`;
+  }
+  const [tx, ty] = P(awa, 86), [lx, ly] = P(awa - 8, 100), [rx, ry] = P(awa + 8, 100);
+  const side = awa <= 180 ? 'S' : 'P', ang = awa <= 180 ? awa : 360 - awa;
+  return `<div class="gauge"><div class="head"><span>WIND</span><span>APPARENT</span></div>
+  <svg viewBox="0 0 200 200" role="img" aria-label="Apparent wind ${aws} knots at ${ang} degrees ${side === 'S' ? 'starboard' : 'port'}">
+    <circle cx="100" cy="100" r="80" fill="none" stroke="var(--g-track)" stroke-width="6"/>
+    <path d="${arc(20, 60, 80)}" fill="none" stroke="var(--stbd)" stroke-width="8"/>
+    <path d="${arc(300, 340, 80)}" fill="none" stroke="var(--port)" stroke-width="8"/>
+    ${ticks}
+    <polygon points="100,26 93,40 107,40" fill="var(--g-muted)"/>
+    <polygon points="${f(tx)},${f(ty)} ${f(lx)},${f(ly)} ${f(rx)},${f(ry)}" fill="var(--g-accent)"/>
+    <text x="100" y="106" text-anchor="middle" font-size="40" class="gtext num">${aws.toFixed(1)}</text>
+    <text x="100" y="128" text-anchor="middle" font-size="14" class="gmuted">kn · AWA ${ang}° ${side}</text>
+  </svg>
+  <div class="foot"><span>TWS <b class="num">${tws.toFixed(1)} kn</b></span><span>TWA <b class="num">${twa}° S</b></span><span>TWD <b class="num">${String(twd).padStart(3, '0')}°</b></span></div></div>`;
+}
+
+function headingGauge(hdg, cog) {
+  // Compass card turns so the heading is under the lubber line at the top
+  let card = '';
+  for (let d = 0; d < 360; d += 10) {
+    const a = d - hdg, [x0, y0] = P(a, 80), [x1, y1] = P(a, d % 30 ? 74 : 68);
+    card += `<line x1="${f(x0)}" y1="${f(y0)}" x2="${f(x1)}" y2="${f(y1)}" stroke="var(--g-muted)" stroke-width="${d % 30 ? 1.5 : 2.5}"/>`;
+  }
+  for (const [d, l] of [[0, 'N'], [90, 'E'], [180, 'S'], [270, 'W']]) {
+    const [x, y] = P(d - hdg, 56);
+    card += `<text x="${f(x)}" y="${f(y + 5)}" text-anchor="middle" font-size="15" font-weight="700" fill="${l === 'N' ? 'var(--port)' : 'var(--g-muted)'}">${l}</text>`;
+  }
+  const [cx, cy] = P(cog - hdg, 88);
+  return `<div class="gauge"><div class="head"><span>HEADING</span><span>TRUE</span></div>
+  <svg viewBox="0 0 200 200" role="img" aria-label="Heading ${hdg} degrees">
+    <circle cx="100" cy="100" r="80" fill="none" stroke="var(--g-track)" stroke-width="6"/>
+    ${card}
+    <polygon points="100,8 92,24 108,24" fill="var(--g-accent)"/>
+    <circle cx="${f(cx)}" cy="${f(cy)}" r="6" fill="none" stroke="var(--g-ink)" stroke-width="2.5"/>
+    <text x="100" y="114" text-anchor="middle" font-size="40" class="gtext num">${String(hdg).padStart(3, '0')}°</text>
+  </svg>
+  <div class="foot"><span>COG <b class="num">${cog}°</b> (○)</span><span>Var <b>1.5° E</b></span></div></div>`;
+}
+
+function depthGauge(d, limit, history) {
+  // Big number plus a 2-minute trend; amber/red when close to or below the shallow limit
+  const max = Math.max(...history, limit * 2), w = 180, h = 50;
+  const pts = history.map((v, i) => `${f(10 + i / (history.length - 1) * w)},${f(130 + v / max * h)}`).join(' ');
+  const ly = 130 + limit / max * h, state = d < limit ? 'var(--danger)' : d < limit * 1.5 ? 'var(--warn)' : 'var(--g-ink)';
+  return `<div class="gauge"><div class="head"><span>DEPTH</span><span>BELOW KEEL</span></div>
+  <svg viewBox="0 0 200 190" role="img" aria-label="Depth ${d} metres">
+    <text x="100" y="78" text-anchor="middle" font-size="64" font-weight="700" fill="${state}" class="num">${d.toFixed(1)}</text>
+    <text x="100" y="104" text-anchor="middle" font-size="14" class="gmuted">m · ${(d * 3.281).toFixed(0)} ft</text>
+    <rect x="10" y="130" width="180" height="50" rx="4" fill="var(--g-track)"/>
+    <line x1="10" x2="190" y1="${f(ly)}" y2="${f(ly)}" stroke="var(--danger)" stroke-width="2" stroke-dasharray="5 4"/>
+    <polyline points="${pts}" fill="none" stroke="var(--g-accent)" stroke-width="2.5"/>
+    <text x="188" y="${f(ly - 4)}" text-anchor="end" font-size="11" fill="var(--danger)">${limit} m alarm</text>
+  </svg>
+  <div class="foot"><span>Trend <b>shoaling 0.3 m/min</b></span></div></div>`;
+}
+
+function positionGauge() {
+  return `<div class="gauge"><div class="head"><span>POSITION</span><span>GPS 3 m</span></div>
+  <div style="font: 700 26px/1.4 ui-monospace, Consolas, monospace; text-align:center; padding: 28px 0 18px">51°59.561′ N<br>004°04.912′ E</div>
+  <div class="foot"><span>Fix <b>3D · 11 sats</b></span><span>Source <b>Instrument</b></span></div></div>`;
+}
+
+gauges.innerHTML = speedGauge(6.0, 12, 6.2) + depthGauge(13.8, 3, [16, 15.6, 15.1, 14.9, 14.6, 14.4, 14.1, 13.8])
+  + windGauge(46, 14, 10.7, 70, 51) + headingGauge(341, 338) + positionGauge();
+
+if (location.hash) show(location.hash.slice(1)); else show('chart');
+if (new URLSearchParams(location.search).has('night')) document.body.classList.add('night');
+if (new URLSearchParams(location.search).has('layers')) layers.classList.add('on');
+</script>
+</body>
+</html>

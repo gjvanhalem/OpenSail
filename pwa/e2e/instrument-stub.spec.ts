@@ -51,6 +51,22 @@ for (const protocol of ['NMEA0183', 'NMEA2000', 'SeaTalk']) {
   });
 }
 
+test('the wind gauge shows apparent wind and works out the true wind', async ({ page }) => {
+  await startSimulator(page, 'NMEA0183');
+  await page.getByLabel('Heading (° true)').fill('341');
+  await page.getByLabel('Speed (kn)', { exact: true }).fill('6');
+  await page.getByLabel('Apparent wind speed (kn)').fill('14');
+  await page.getByLabel('Apparent wind angle (°)').fill('46');
+
+  const wind = page.getByRole('region', { name: 'WIND' });
+  await expect(wind.getByText('APPARENT')).toBeVisible();
+  await expect(wind.getByTestId('wind-angle-readout')).toHaveText('46° Stbd');
+  // 14 kn at 46° while sailing 6 kn is 10.7 kn of true wind at 70°, from 051°
+  await expect(wind.getByTestId('tws-readout')).toHaveText('10.7');
+  await expect(wind.getByTestId('twa-readout')).toHaveText('70° Stbd');
+  await expect(wind.getByTestId('twd-readout')).toHaveText('051°');
+});
+
 test('the simulator keeps feeding the chart after leaving the instruments page', async ({ page }) => {
   await startSimulator(page, 'NMEA0183');
   await page.click('a[href="/chart"]');
