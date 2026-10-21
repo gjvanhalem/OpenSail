@@ -13,6 +13,7 @@ import { useRouteNavigation } from '@/hooks/useRouteNavigation';
 import { useGpsAutoStart } from '@/hooks/useGpsAutoStart';
 import { useBackgroundMode } from '@/hooks/useBackgroundMode';
 import { useMediaQuery, WIDE_SCREEN } from '@/hooks/useMediaQuery';
+import { useApplyDisplayMode } from '@/hooks/useDisplayMode';
 import { Icon } from '@/components/icons';
 
 interface LayoutProps {
@@ -27,6 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const dispatch = useAppDispatch();
   const fullscreenMode = useAppSelector((state) => state.ui.fullscreenMode);
   const wide = useMediaQuery(WIDE_SCREEN);
+  const night = useApplyDisplayMode();
   useAlertMonitor();
   const safetyWatchActive = useSafetyMonitor();
   useAlarmOutput(safetyWatchActive);
@@ -36,7 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-canvas">
-      {!fullscreenMode && <AppBar showTabs={wide} />}
+      {!fullscreenMode && <AppBar showTabs={wide} night={night} />}
 
       {/* The bars (with the fullscreen toggle) are hidden in fullscreen mode, so offer a way back */}
       {fullscreenMode && (

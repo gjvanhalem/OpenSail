@@ -102,15 +102,15 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
 
       {/* Configuration panel */}
       {isConfigOpen && (
-        <div className="mb-4 p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-3">Gauge layout</h3>
+        <div className="mb-4 p-4 bg-gauge rounded-lg">
+          <h3 className="text-lg font-semibold text-gauge-ink mb-3">Gauge layout</h3>
           <ol className="space-y-2">
             {gauges.map((gauge, index) => {
               const name = GAUGE_NAMES[gauge.type];
               return (
                 <li
                   key={gauge.type}
-                  className="flex flex-wrap items-center gap-3 p-2 hover:bg-gray-700 rounded"
+                  className="flex flex-wrap items-center gap-3 p-2 hover:bg-white/10 rounded"
                   data-testid={`gauge-config-${gauge.type}`}
                 >
                   <label className="flex items-center gap-3 flex-1 min-w-32 cursor-pointer">
@@ -119,9 +119,9 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
                       checked={gauge.enabled}
                       onChange={() => save(updateGauge(gauges, gauge.type, { enabled: !gauge.enabled }))}
                       aria-label={`Show ${name}`}
-                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500"
                     />
-                    <span className="text-white">{name}</span>
+                    <span className="text-gauge-ink">{name}</span>
                   </label>
                   <select
                     value={gauge.size}
@@ -129,7 +129,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
                       save(updateGauge(gauges, gauge.type, { size: e.target.value as GaugeSize }))
                     }
                     aria-label={`${name} size`}
-                    className="px-2 py-1 bg-gray-700 text-white border border-gray-600 rounded"
+                    className="px-2 py-1 bg-white/10 text-gauge-ink border border-white/20 rounded"
                   >
                     {GAUGE_SIZES.map((size) => (
                       <option key={size} value={size}>
@@ -141,7 +141,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
                     onClick={() => save(moveGauge(gauges, gauge.type, -1))}
                     disabled={index === 0}
                     aria-label={`Move ${name} up`}
-                    className="px-2 py-1 text-white bg-gray-700 rounded disabled:opacity-30"
+                    className="px-2 py-1 text-gauge-ink bg-white/10 rounded disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -149,7 +149,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
                     onClick={() => save(moveGauge(gauges, gauge.type, 1))}
                     disabled={index === gauges.length - 1}
                     aria-label={`Move ${name} down`}
-                    className="px-2 py-1 text-white bg-gray-700 rounded disabled:opacity-30"
+                    className="px-2 py-1 text-gauge-ink bg-white/10 rounded disabled:opacity-30"
                   >
                     ↓
                   </button>

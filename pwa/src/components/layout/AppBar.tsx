@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setSettingOptimistic, updateSetting, type SettingUpdate } from '@/store/slices/settingsSlice';
 import { toggleFullscreen } from '@/store/slices/uiSlice';
 import { APP_NAME } from '@/utils';
 import { Icon } from '@/components/icons';
@@ -10,10 +11,18 @@ import { StatusChip } from './StatusChip';
 /**
  * The bar at the top of every screen. On wide screens it holds the tabs; on
  * narrower ones the tabs are in the bottom bar and this only keeps the name,
- * the status and full screen.
+ * the status, night mode and full screen.
  */
-export const AppBar: React.FC<{ showTabs: boolean }> = ({ showTabs }) => {
+export const AppBar: React.FC<{ showTabs: boolean; night: boolean }> = ({ showTabs, night }) => {
   const dispatch = useAppDispatch();
+  const displayMode = useAppSelector((state) => state.settings.settings.displayMode);
+
+  // One tap switches between day and night; Auto is chosen in Settings
+  const toggleNight = () => {
+    const update: SettingUpdate = { key: 'displayMode', value: night ? 'day' : 'night' };
+    dispatch(setSettingOptimistic(update));
+    dispatch(updateSetting(update));
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 bg-bar px-2 text-bar-ink shadow-lg">
@@ -45,6 +54,15 @@ export const AppBar: React.FC<{ showTabs: boolean }> = ({ showTabs }) => {
 
       <div className="ml-auto flex items-center gap-1">
         <StatusChip compact={!showTabs} />
+        <button
+          onClick={toggleNight}
+          className="grid h-12 w-12 place-items-center rounded-lg hover:bg-white/10"
+          aria-label="Night mode"
+          aria-pressed={night}
+          title={`${night ? 'Night' : 'Day'} colours${displayMode === 'auto' ? ' (automatic)' : ''}: tap for ${night ? 'day' : 'night'}`}
+        >
+          <Icon name={night ? 'sun' : 'moon'} />
+        </button>
         <button
           onClick={() => dispatch(toggleFullscreen())}
           className="grid h-12 w-12 place-items-center rounded-lg hover:bg-white/10"

@@ -262,3 +262,26 @@ Small PRs against `main`, each with before/after screenshots and the full check 
 E2E tests that rely on today's selectors: `accounts`, `chart-display`, `chart-follow`,
 `chart-management`, `helpers/charts.ts`, `man-overboard`, `performance`, `phone-layout`,
 `responsive-design`, `safety-alarms`, `track-to-route`.
+
+## 5. Built
+
+Stacked PRs, each based on the one before (merge in this order):
+
+| PR | What |
+|---|---|
+| [#42](https://github.com/gjvanhalem/OpenSail/pull/42) | This document; redrawn gauges, wind gauge shows apparent wind and calculates true wind |
+| [#43](https://github.com/gjvanhalem/OpenSail/pull/43) | Colour tokens, SVG icons, 48 px touch targets |
+| [#44](https://github.com/gjvanhalem/OpenSail/pull/44) | One navigation model: top tabs / bottom bar, no sidebar, safety cluster |
+| [#45](https://github.com/gjvanhalem/OpenSail/pull/45) | Chart screen: map buttons, Layers, instrument strip |
+| [#46](https://github.com/gjvanhalem/OpenSail/pull/46) | Settings, Instruments, Routes and Tracks tidied; unused settings removed |
+| #47 | Night mode (Day / Night / Auto) |
+
+Night mode as built: the UI turns red on black through the colour variables, and the
+chart is inverted, dimmed and tinted red with a CSS filter on the map's canvas container (so
+markers follow). Auto switches at civil dusk and dawn (sun 6° below the horizon) at the boat's
+position, or 20:00–07:00 without one.
+
+| Night, desktop | Night, phone |
+|---|---|
+| ![](ui-redesign/after-night/desktop-chart.png) | ![](ui-redesign/after-night/phone-chart.png) |
+| ![](ui-redesign/after-night/desktop-instruments.png) | ![](ui-redesign/after-night/phone-settings.png) |

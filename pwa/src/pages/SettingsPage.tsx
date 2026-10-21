@@ -107,6 +107,22 @@ export const SettingsPage: React.FC = () => {
           <Section id="boat">
             <Card>
               <div>
+                <label htmlFor="settings-display" className={LABEL}>
+                  Display
+                </label>
+                <select
+                  id="settings-display"
+                  value={settings.displayMode}
+                  onChange={(e) => handleSettingChange('displayMode', e.target.value as AppSettings['displayMode'])}
+                  className={FIELD}
+                >
+                  <option value="day">Day</option>
+                  <option value="night">Night (red, keeps night vision)</option>
+                  <option value="auto">Auto (night from dusk to dawn)</option>
+                </select>
+                <p className={HELP}>The moon button in the top bar switches day and night with one tap.</p>
+              </div>
+              <div>
                 <label htmlFor="settings-units" className={LABEL}>
                   Units
                 </label>
