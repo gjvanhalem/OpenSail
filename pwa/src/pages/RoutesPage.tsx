@@ -79,7 +79,8 @@ const RoutePlanningWorkspace: React.FC<RoutePlanningWorkspaceProps> = ({
         </div>
       )}
 
-      <div className="absolute top-0 right-0 w-96 h-full shadow-lg">
+      {/* The lower half on a phone, a panel on the right from 768 px */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 md:inset-x-auto md:top-0 md:right-0 md:w-96 md:h-full shadow-lg">
         <RoutePlannerUI
           planner={planner}
           editingRouteId={editingRouteId}
@@ -151,15 +152,18 @@ export const RoutesPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-full flex">
-      {/* Sidebar - Route List */}
-      <div className="w-80 bg-surface border-r flex flex-col">
+    // Side by side from 768 px; below that the map on top and the list under it
+    <div className="h-full flex flex-col-reverse md:flex-row">
+      {/* Route list; hidden on a narrow screen while planning, so the map gets the room */}
+      <div
+        className={`${showPlanner ? 'hidden md:flex' : 'flex'} min-h-0 flex-1 md:flex-none w-full md:w-80 bg-surface border-t md:border-t-0 md:border-r flex-col`}
+      >
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">Routes</h1>
             <button
               onClick={handleNewRoute}
-              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+              className="min-h-11 px-4 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
             >
               + New Route
             </button>
@@ -252,8 +256,8 @@ export const RoutesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content - Map */}
-      <div className="flex-1 relative">
+      {/* Map */}
+      <div className={`relative ${showPlanner ? 'flex-1' : 'h-[45%] shrink-0'} md:h-auto md:flex-1`}>
         {showPlanner ? (
           <RoutePlanningWorkspace
             key={plannerSession}

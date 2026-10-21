@@ -210,33 +210,6 @@ export type ChartRotation = typeof ChartRotation[keyof typeof ChartRotation];
 
 export type UnitSystem = 'metric' | 'imperial' | 'nautical';
 
-export interface AppSettings {
-  // Display settings
-  units: UnitSystem;
-  chartRotation: ChartRotation;
-  defaultZoom: number;
-  theme: 'light' | 'dark';
-  showNavigationAids: boolean;
-  showDepthContours: boolean;
-  
-  // Alert settings
-  anchorWatchRadius: number;
-  enableAnchorAlarm: boolean;
-  enableCollisionAlarm: boolean;
-  collisionWarningDistance: number;
-  enableWeatherAlerts: boolean;
-  
-  // Connection settings
-  autoSync: boolean;
-  instrumentProtocol: 'nmea0183' | 'nmea2000' | 'seatalk' | 'stub';
-  instrumentConnectionType: 'serial' | 'network';
-  serialPort: string;
-  networkHost: string;
-  networkPort: number;
-  baudRate: number;
-  autoReconnect: boolean;
-}
-
 export const ErrorCode = {
   GPS_SIGNAL_LOST: 'GPS_SIGNAL_LOST',
   INSTRUMENT_DISCONNECTED: 'INSTRUMENT_DISCONNECTED',

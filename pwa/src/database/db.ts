@@ -176,8 +176,28 @@ export class NavigationDatabase extends Dexie {
       chartTiles: 'key, source, timestamp, *regions',
       chartRegions: 'id, downloadedAt',
     }).upgrade(tx => tx.table('chartTiles').clear());
+
+    // UI redesign: settings that nothing read are gone (the Instruments page has
+    // its own connection settings; theme becomes a display mode)
+    this.version(4).stores({}).upgrade(tx => tx.table('settings').bulkDelete(REMOVED_SETTINGS));
   }
 }
+
+/** Setting keys removed in database version 4 */
+export const REMOVED_SETTINGS = [
+  'theme',
+  'instrumentProtocol',
+  'instrumentConnectionType',
+  'serialPort',
+  'networkHost',
+  'networkPort',
+  'baudRate',
+  'autoReconnect',
+  'collisionWarningDistance',
+  'enableWeatherAlerts',
+  'offlineMode',
+  'autoSync',
+];
 
 // Create and export database instance
 export const db = new NavigationDatabase();
@@ -206,22 +226,11 @@ async function setDefaultSettings(): Promise<void> {
     units: 'nautical',
     chartRotation: 'north-up',
     defaultZoom: 12,
-    theme: 'light',
     showNavigationAids: true,
     showDepthContours: true,
     anchorWatchRadius: 50,
     enableAnchorAlarm: false,
     enableCollisionAlarm: true,
-    collisionWarningDistance: 2,
-    enableWeatherAlerts: true,
-    autoSync: false,
-    instrumentProtocol: 'nmea0183',
-    instrumentConnectionType: 'serial',
-    serialPort: '',
-    networkHost: '',
-    networkPort: 10110,
-    baudRate: 4800,
-    autoReconnect: true
   };
 
   await db.settings.bulkAdd(

@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/test';
 test.describe('Units (R14.4)', () => {
   test('gauges follow the units setting', async ({ page }) => {
     await page.goto('/settings');
-    const units = page.getByLabel('Units');
+    const units = page.getByLabel('Units', { exact: true });
     await units.selectOption('imperial');
     await expect(units).toHaveValue('imperial');
 
@@ -25,7 +25,7 @@ test.describe('Units (R14.4)', () => {
 
     // Back to nautical without reloading
     await page.click('a[href="/settings"]');
-    await page.getByLabel('Units').selectOption('nautical');
+    await page.getByLabel('Units', { exact: true }).selectOption('nautical');
     await page.click('a[href="/instruments"]');
     await expect(page.getByTestId('depth-readout')).toHaveText('3.5');
     await expect(page.getByTestId('speed-readout')).toHaveText('10.0');

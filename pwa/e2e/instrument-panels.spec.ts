@@ -12,7 +12,7 @@ test('choose, order and resize gauges, saved across reloads', async ({ page }) =
   await page.goto('/instruments');
   await expect.poll(() => gaugeOrder(page)).toEqual(['speed', 'depth', 'wind', 'heading', 'position']);
 
-  await page.getByRole('button', { name: 'Configure' }).click();
+  await page.getByRole('button', { name: 'Edit layout' }).click();
   await page.getByLabel('Show Wind').uncheck();
   for (let i = 0; i < 4; i++) {
     await page.getByRole('button', { name: 'Move Position up' }).click();

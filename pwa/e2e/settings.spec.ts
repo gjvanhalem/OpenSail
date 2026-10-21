@@ -29,22 +29,6 @@ test.describe('Settings', () => {
     }
   });
 
-  test('should toggle offline mode', async ({ page }) => {
-    // Look for offline mode toggle
-    const offlineToggle = page.locator('input[type="checkbox"][name*="offline"], [aria-label*="offline"]');
-    
-    if (await offlineToggle.isVisible()) {
-      const initialState = await offlineToggle.isChecked();
-      
-      // Toggle the setting
-      await offlineToggle.click();
-      
-      // Verify state changed
-      const newState = await offlineToggle.isChecked();
-      expect(newState).toBe(!initialState);
-    }
-  });
-
   test('should persist settings after reload', async ({ page }) => {
     // Change a setting
     const unitsSelect = page.locator('select[name*="units"], [aria-label*="units"]');
@@ -84,5 +68,20 @@ test.describe('Settings', () => {
   test('should display app version', async ({ page }) => {
     // Look for version information
     await expect(page.getByText(/version \d+\.\d+\.\d+/i)).toBeVisible();
+  });
+});
+
+test.describe('Settings layout', () => {
+  test('groups the settings, with an index on wide screens', async ({ page }) => {
+    await page.goto('/settings');
+    const index = page.getByRole('navigation', { name: 'Settings sections' });
+    for (const name of ['Boat & units', 'Chart', 'Navigation sources', 'Alarms', 'About']) {
+      await expect(page.getByRole('region', { name, exact: true })).toBeVisible();
+      await expect(index.getByRole('link', { name, exact: true })).toBeVisible();
+    }
+    // Settings that did nothing are gone; the chart layers are on the chart
+    for (const gone of ['Theme', 'Protocol', 'Baud Rate', 'Enable Offline Mode', 'Enable Weather Alerts', 'Show Navigation Aids']) {
+      await expect(page.getByText(gone, { exact: true })).toHaveCount(0);
+    }
   });
 });
