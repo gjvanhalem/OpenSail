@@ -2,6 +2,7 @@ import { db, type Setting } from '../db';
 import type { NavigationSourceChoice } from '@/store/slices/navigationSlice';
 import { DEFAULT_ALERT_THRESHOLDS, type AlertThresholds } from '@/store/slices/alertsSlice';
 import { DEFAULT_PANEL_LAYOUT, type PanelLayout } from '@/components/instruments/panelLayout';
+import { DEFAULT_SPEED_GAUGE_MAX } from '@/components/instruments/dial';
 import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
 export type GpsMode = 'off' | 'real' | 'simulator';
@@ -60,6 +61,8 @@ export interface AppSettings {
 
   /** Which instrument gauges show, in what order and size */
   instrumentPanelLayout: PanelLayout;
+  /** Top of the speed gauge's scale, knots (one of SPEED_GAUGE_RANGES) */
+  speedGaugeMax: number;
   enableWeatherAlerts: boolean;
   
   // Offline mode
@@ -106,6 +109,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   collisionWarningDistance: 2,
   alertThresholds: DEFAULT_ALERT_THRESHOLDS,
   instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
+  speedGaugeMax: DEFAULT_SPEED_GAUGE_MAX,
   enableWeatherAlerts: true,
   
   // Offline mode

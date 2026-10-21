@@ -10,6 +10,7 @@ import { InstrumentAlertSettings } from '@/components/InstrumentAlertSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
 import { useUnits } from '@/hooks/useUnits';
 import { raiseAlarm } from '@/store/slices/alertsSlice';
+import { SPEED_GAUGE_RANGES } from '@/components/instruments/dial';
 import { ANCHOR_RADIUS_MAX_M, ANCHOR_RADIUS_MIN_M } from '@/utils/safety';
 
 export const SettingsPage: React.FC = () => {
@@ -85,6 +86,25 @@ export const SettingsPage: React.FC = () => {
                 <option value="nautical">Nautical (nm, knots, m)</option>
                 <option value="metric">Metric (km, km/h, m)</option>
                 <option value="imperial">Imperial (mi, mph, ft)</option>
+              </select>
+            </div>
+
+            {/* Speed gauge range */}
+            <div>
+              <label htmlFor="settings-speed-gauge" className="block text-sm font-medium text-gray-700 mb-2">
+                Speed gauge range
+              </label>
+              <select
+                id="settings-speed-gauge"
+                value={settings.speedGaugeMax}
+                onChange={(e) => handleSettingChange('speedGaugeMax', Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.keys(SPEED_GAUGE_RANGES).map((max) => (
+                  <option key={max} value={max}>
+                    0–{units.format('speed', Number(max), 0)}
+                  </option>
+                ))}
               </select>
             </div>
 

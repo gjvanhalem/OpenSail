@@ -1,86 +1,111 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useUnits } from '@/hooks/useUnits';
-import { useGaugeAlert, GAUGE_ALERT_CLASSES } from '@/hooks/useGaugeAlert';
-import { GaugeAlert } from '@/components/alerts/GaugeAlert';
+import { useGaugeAlert } from '@/hooks/useGaugeAlert';
 import { formatQuantity } from '@/utils/units';
+import { normalizeInstrumentData } from '@/store/slices/instrumentNormalization';
+import { InstrumentDataType } from '@/models';
+import { GaugeCard, GAUGE_COLORS as C } from './GaugeCard';
+import { depthState, depthTrend, recentSamples, type DepthSample } from './depthTrend';
 
 interface DepthGaugeProps {
   className?: string;
-  maxDepth?: number;
 }
 
-export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({ 
-  className = '',
-  maxDepth = 50 
-}) => {
+const STATE_COLORS = { danger: C.danger, warning: C.warning, normal: C.ink } as const;
+
+// The trend graph: deeper is lower, the surface at the top
+const GRAPH = { x: 10, y: 120, width: 180, height: 56 };
+
+/**
+ * Depth as a large number that turns amber close to and red below the
+ * shallow-water limit, with the last two minutes as a graph and the limit drawn in.
+ */
+export const DepthGauge: React.FC<DepthGaugeProps> = React.memo(({ className = '' }) => {
   const depth = useSelector((state: RootState) => state.instruments.depth);
+  const stream = useSelector((state: RootState) => state.instruments.dataStreams[InstrumentDataType.Depth]);
+  const threshold = useSelector((state: RootState) => state.settings.settings.alertThresholds.depth);
   const units = useUnits();
   const alert = useGaugeAlert('depth');
 
-  const depthMeters = depth ?? 0;
+  const limit = threshold.enabled ? threshold.min : null;
   // Also show the other unit, for charts in feet or metres
   const secondary = units.label('depth') === 'ft' ? 'metric' : 'imperial';
 
-  // Calculate bar height (0-maxDepth range)
-  const barHeight = Math.min((depthMeters / maxDepth) * 100, 100);
-  
-  // Color based on depth (red for shallow, green for safe, blue for deep)
-  const getDepthColor = (depth: number): string => {
-    if (depth < 2) return '#ef4444'; // red - danger
-    if (depth < 5) return '#f59e0b'; // amber - caution
-    if (depth < 20) return '#10b981'; // green - safe
-    return '#3b82f6'; // blue - deep
-  };
+  const samples = useMemo((): DepthSample[] => {
+    const all = (stream ?? []).flatMap((data) => {
+      const d = normalizeInstrumentData(data).depth;
+      return d === undefined ? [] : [{ t: data.timestamp, depth: d }];
+    });
+    return all.length ? recentSamples(all, all[all.length - 1].t) : [];
+  }, [stream]);
+  const trend = depthTrend(samples);
+
+  let line: string | null = null;
+  let limitY: number | null = null;
+  if (samples.length > 1) {
+    const scale = Math.max(...samples.map((s) => s.depth), (limit ?? 0) * 2, 1);
+    const t0 = samples[0].t;
+    const span = Math.max(samples[samples.length - 1].t - t0, 1);
+    line = samples
+      .map((s) => {
+        const x = GRAPH.x + ((s.t - t0) / span) * GRAPH.width;
+        const y = GRAPH.y + (s.depth / scale) * GRAPH.height;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+    if (limit !== null) limitY = GRAPH.y + (limit / scale) * GRAPH.height;
+  }
 
   return (
-    <div
-      className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${alert ? GAUGE_ALERT_CLASSES : ''} ${className}`}
+    <GaugeCard
+      title="DEPTH"
+      alert={alert}
+      className={className}
+      footer={
+        depth === null ? (
+          <span>No data</span>
+        ) : (
+          <>
+            <span>{trend ? `${trend.kind[0].toUpperCase()}${trend.kind.slice(1)}` : 'Trend: waiting'}</span>
+            {trend && trend.kind !== 'steady' && (
+              <span>
+                {units.value('depth', Math.abs(trend.rate))} {units.label('depth')}/min
+              </span>
+            )}
+          </>
+        )
+      }
     >
-      <div className="text-sm text-gray-400 mb-2">DEPTH</div>
-      
-      {/* Bar gauge */}
-      <div className="relative w-24 h-32 bg-gray-700 rounded-lg overflow-hidden">
-        {/* Depth bar */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 transition-all duration-300"
-          style={{ 
-            height: `${barHeight}%`,
-            backgroundColor: getDepthColor(depthMeters)
-          }}
-        />
-        
-        {/* Scale markers */}
-        <div className="absolute inset-0 flex flex-col justify-between py-2 px-1">
-          {[maxDepth, maxDepth * 0.75, maxDepth * 0.5, maxDepth * 0.25, 0].map((mark, i) => (
-            <div key={i} className="flex items-center">
-              <div className="w-2 h-px bg-gray-500" />
-              <span className="ml-1 text-xs text-gray-400">{units.value('depth', mark, 0)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Digital readout */}
-      <div className="mt-3 text-center">
-        <div className="text-3xl font-bold text-white" data-testid="depth-readout">
-          {units.value('depth', depthMeters)}
-        </div>
-        <div className="text-xs text-gray-400">
-          {units.label('depth') === 'ft' ? 'feet' : 'meters'}
-        </div>
-        <div className="text-sm text-gray-500 mt-1">
-          {formatQuantity('depth', depthMeters, secondary)}
-        </div>
-      </div>
-      
-      {/* Status indicator */}
-      {depth === null && (
-        <div className="mt-2 text-xs text-gray-500">No data</div>
-      )}
-      <GaugeAlert alert={alert} />
-    </div>
+      <svg viewBox="0 0 200 186" className="w-full max-w-60" role="img" aria-label="Depth and trend">
+        <text
+          x={100}
+          y={74}
+          textAnchor="middle"
+          fontSize={60}
+          fontWeight={700}
+          fill={depth === null ? C.muted : STATE_COLORS[depthState(depth, limit)]}
+          data-testid="depth-readout"
+        >
+          {depth === null ? '--' : units.value('depth', depth)}
+        </text>
+        <text x={100} y={98} textAnchor="middle" fontSize={14} fill={C.muted}>
+          {units.label('depth')}
+          {depth !== null && ` · ${formatQuantity('depth', depth, secondary)}`}
+        </text>
+        <rect x={GRAPH.x} y={GRAPH.y} width={GRAPH.width} height={GRAPH.height} rx={4} fill={C.track} />
+        {limitY !== null && limit !== null && (
+          <>
+            <line x1={GRAPH.x} x2={GRAPH.x + GRAPH.width} y1={limitY} y2={limitY} stroke={C.danger} strokeWidth={2} strokeDasharray="5 4" />
+            <text x={GRAPH.x + GRAPH.width - 2} y={limitY - 4} textAnchor="end" fontSize={11} fill={C.danger}>
+              {units.format('depth', limit)} alarm
+            </text>
+          </>
+        )}
+        {line && <polyline points={line} fill="none" stroke={C.accent} strokeWidth={2.5} />}
+      </svg>
+    </GaugeCard>
   );
 });
 

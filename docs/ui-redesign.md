@@ -1,6 +1,6 @@
 # OpenSail UI redesign: audit and proposal
 
-Status: **proposal, waiting for the owner's OK** (no app code changed yet).
+Status: **approved by the owner on 2026-10-21**, with the recommended option for every decision in section 3. Being built in the PRs listed in section 4.
 
 The UI grew screen by screen over several phases and was never designed as a whole. This
 document lists what is there now, what is broken or duplicated, and proposes one navigation

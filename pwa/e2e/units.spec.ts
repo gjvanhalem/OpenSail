@@ -17,7 +17,8 @@ test.describe('Units (R14.4)', () => {
 
     // 3.5 m = 11.5 ft, 10 kn = 11.5 mph, 20 kn = 23.0 mph
     await expect(page.getByTestId('depth-readout')).toHaveText('11.5');
-    await expect(page.getByText('feet', { exact: true })).toBeVisible();
+    // The depth unit, with the depth in the other unit next to it
+    await expect(page.getByRole('region', { name: 'DEPTH' })).toContainText('ft · 3.5 m');
     await expect(page.getByTestId('speed-readout')).toHaveText('11.5');
     await expect(page.getByTestId('wind-speed-readout')).toHaveText('23.0');
     await expect(page.getByText('mph').first()).toBeVisible();

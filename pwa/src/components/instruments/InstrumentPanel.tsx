@@ -34,8 +34,8 @@ const GAUGES: Record<GaugeType, React.FC> = {
 // Grid columns a gauge takes, and how much its content is enlarged
 const SIZE_STYLES: Record<GaugeSize, { span: string; zoom: number }> = {
   small: { span: '', zoom: 1 },
-  medium: { span: 'sm:col-span-2', zoom: 1.4 },
-  large: { span: 'sm:col-span-2 lg:col-span-4', zoom: 1.8 },
+  medium: { span: 'col-span-2', zoom: 1.4 },
+  large: { span: 'col-span-2 lg:col-span-4', zoom: 1.8 },
 };
 
 const SIZE_NAMES: Record<GaugeSize, string> = { small: 'Small', medium: 'Medium', large: 'Large' };
@@ -69,7 +69,8 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
         return 'flex flex-col gap-4';
       case 'grid':
       default:
-        return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
+        // Two small gauges side by side even on a phone
+        return 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4';
     }
   };
 
@@ -172,7 +173,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
                 data-testid={`gauge-${gauge.type}`}
                 data-size={gauge.size}
               >
-                <div style={{ zoom }} className="h-full [&>div]:h-full">
+                <div style={{ zoom }} className="h-full [&>section]:h-full">
                   <Gauge />
                 </div>
               </div>

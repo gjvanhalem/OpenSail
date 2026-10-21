@@ -2,6 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { formatCoordinate } from '@/utils/formatting';
+import { GaugeCard } from './GaugeCard';
 
 interface PositionDisplayProps {
   className?: string;
@@ -14,18 +15,27 @@ export const PositionDisplay: React.FC<PositionDisplayProps> = React.memo(({ cla
   const source = useSelector((state: RootState) => state.navigation.sources.position);
 
   return (
-    <div className={`flex flex-col items-center justify-center p-4 bg-gray-800 rounded-lg ${className}`}>
-      <div className="text-sm text-gray-400 mb-2">POSITION</div>
+    <GaugeCard
+      title="POSITION"
+      reference={source ? SOURCE_LABELS[source].toUpperCase() : undefined}
+      className={className}
+      footer={
+        position ? (
+          position.accuracy > 0 && <span>Accuracy ± {Math.round(position.accuracy)} m</span>
+        ) : (
+          <span>No data</span>
+        )
+      }
+    >
       {position ? (
-        <div className="text-center font-mono text-white text-xl leading-relaxed" data-testid="position-readout">
+        <div className="py-4 text-center font-mono text-base @[15rem]:text-2xl font-bold leading-relaxed" data-testid="position-readout">
           <div>{formatCoordinate(position.latitude, true)}</div>
           <div>{formatCoordinate(position.longitude, false)}</div>
         </div>
       ) : (
-        <div className="text-3xl font-bold text-gray-500">--</div>
+        <div className="py-4 text-3xl font-bold text-slate-500">--</div>
       )}
-      <div className="mt-2 text-xs text-gray-500">{source ? SOURCE_LABELS[source] : 'No data'}</div>
-    </div>
+    </GaugeCard>
   );
 });
 

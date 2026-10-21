@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { settingsRepository, type AppSettings } from '@/database/repositories/SettingsRepository';
 import { DEFAULT_ALERT_THRESHOLDS } from './alertsSlice';
 import { DEFAULT_PANEL_LAYOUT } from '@/components/instruments/panelLayout';
+import { DEFAULT_SPEED_GAUGE_MAX } from '@/components/instruments/dial';
 import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
 export interface SettingsState {
@@ -48,6 +49,7 @@ const initialState: SettingsState = {
     collisionWarningDistance: 2,
     alertThresholds: DEFAULT_ALERT_THRESHOLDS,
     instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
+    speedGaugeMax: DEFAULT_SPEED_GAUGE_MAX,
     enableWeatherAlerts: true,
     offlineMode: false,
     autoSync: false,
