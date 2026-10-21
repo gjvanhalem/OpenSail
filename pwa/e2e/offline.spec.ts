@@ -164,7 +164,7 @@ test.describe('Offline Functionality', () => {
 
     // Zoom in to the most detailed downloaded level, still with depth data
     const cachedBeforeZoom = await servedFromCache();
-    await page.locator('.maplibregl-ctrl-zoom-in').click();
+    await page.getByRole('button', { name: 'Zoom in' }).click();
     await expect.poll(() => page.evaluate(() => Math.round(window.__OPENSAIL_MAP__!.getZoom()))).toBe(13);
     await expect.poll(servedFromCache, { timeout: 15000 }).toBeGreaterThan(cachedBeforeZoom);
     await expect.poll(depthAreas, { timeout: 15000 }).toBeGreaterThan(0);

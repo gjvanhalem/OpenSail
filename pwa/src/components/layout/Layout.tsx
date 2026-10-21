@@ -42,7 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {fullscreenMode && (
         <button
           onClick={() => dispatch(toggleFullscreen())}
-          className="fixed top-3 right-3 z-50 grid h-12 w-12 place-items-center rounded-xl bg-bar text-bar-ink shadow-lg"
+          className="fixed top-3 left-1/2 -translate-x-1/2 z-50 grid h-12 w-12 place-items-center rounded-xl bg-bar text-bar-ink shadow-lg"
           aria-label="Exit fullscreen"
           title="Exit fullscreen"
         >

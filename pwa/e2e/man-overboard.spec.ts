@@ -120,8 +120,8 @@ test.describe('Man overboard', () => {
     const note = page.getByRole('button', { name: /Not for navigation/ });
     const noteBox = (await note.boundingBox())!;
     const mobBox = (await mobButton(page).boundingBox())!;
-    // The MOB button sits fully above the note
-    expect(mobBox.y + mobBox.height).toBeLessThanOrEqual(noteBox.y);
+    // The note is at the top of the chart, the MOB button at the bottom
+    expect(mobBox.y).toBeGreaterThanOrEqual(noteBox.y + noteBox.height);
     // ...so the note can still be opened (a covered button fails this click)
     await note.click({ trial: true });
   });

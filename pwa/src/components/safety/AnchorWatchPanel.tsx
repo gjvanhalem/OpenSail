@@ -12,7 +12,7 @@ import { useWakeLockStatus } from '@/hooks/useAlarmOutput';
 import type { SafetyEventType } from '@/database/db';
 import { ANCHOR_RADIUS_MAX_M, ANCHOR_RADIUS_MIN_M, clampAnchorRadius } from '@/utils/safety';
 import { formatCoordinate } from '@/utils/formatting';
-import { clockTime } from './format';
+import { anchorWatchStatus, clockTime, metres as m } from './format';
 
 const EVENT_LABELS: Partial<Record<SafetyEventType, string>> = {
   anchor_dropped: 'Anchor dropped',
@@ -24,8 +24,6 @@ const EVENT_LABELS: Partial<Record<SafetyEventType, string>> = {
   anchor_raised: 'Anchor raised',
 };
 
-const m = (metres: number | undefined | null) =>
-  metres === undefined || metres === null ? '--' : `${Math.round(metres)} m`;
 
 function logLine(entry: AnchorLogEntry): string {
   const label = EVENT_LABELS[entry.type] ?? entry.type;
@@ -82,7 +80,7 @@ const RadiusControl: React.FC<{ value: number; onChange: (metres: number) => voi
 /**
  * Anchor watch (R8): pick a radius, drop anchor at the boat's position, then
  * the distance from the anchor, the alarm state and a timestamped log. When
- * minimised during a watch it stays on screen as a small status button.
+ * minimised during a watch its status shows on the anchor button (SafetyCluster).
  */
 export const AnchorWatchPanel: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -102,32 +100,9 @@ export const AnchorWatchPanel: React.FC = () => {
     return () => clearTimeout(timer);
   }, [confirmRaise]);
 
-  if (!open && !watch) return null;
-
-  const status = !watch
-    ? null
-    : watch.dragging
-      ? { text: 'DRAGGING', className: 'bg-red-600 text-white' }
-      : watch.gpsLost
-        ? { text: 'NO POSITION', className: 'bg-orange-500 text-white' }
-        : watch.poorAccuracy
-          ? { text: 'GPS too inaccurate', className: 'bg-orange-100 text-orange-800' }
-          : watch.distanceM === null
-            ? { text: 'Waiting for a fix', className: 'bg-gray-100 text-gray-700' }
-            : { text: 'Holding', className: 'bg-green-100 text-green-800' };
-
-  if (!open && watch && status) {
-    return (
-      <button
-        onClick={() => dispatch(setAnchorPanelOpen(true))}
-        aria-label="Anchor watch status"
-        data-testid="anchor-status-pill"
-        className={`fixed z-[80] right-3 bottom-24 px-3 py-2 rounded-full shadow-lg font-semibold text-sm ${status.className}`}
-      >
-        <Icon name="anchor" className="inline w-4 h-4 mr-1 -mt-0.5" />{m(watch.distanceM)} / {m(watch.radiusM)} · {status.text}
-      </button>
-    );
-  }
+  // Closed, a running watch shows its status on the anchor button (SafetyCluster)
+  if (!open) return null;
+  const status = watch ? anchorWatchStatus(watch) : null;
 
   // On a phone the panel opens at the top, so it never covers the MOB button
   return (
