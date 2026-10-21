@@ -1,68 +1,58 @@
-# OpenSail PWA
+# OpenSail App
 
-Progressive Web App version of OpenSail marine navigation system.
+The OpenSail frontend. This one codebase is the browser version and is wrapped by the Windows app (`desktop/`, Tauri) and the Android app (`android/`, Capacitor).
 
 ## 📚 Documentation
 
 - **[User Guide](USER_GUIDE.md)** - Installation, usage, and troubleshooting for end users
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Setup, architecture, and contribution guidelines for developers
-- **[E2E Tests Summary](E2E_TESTS_SUMMARY.md)** - End-to-end test coverage and results
+- **[Developer Guide](DEVELOPER_GUIDE.md)** - Setup, architecture, testing, and contributing
+- **[E2E Tests](e2e/README.md)** - Running and writing the Playwright tests
 
 ## 🚀 Quick Start
 
 ### For Users
 
-1. **Access the App**: Open in your browser (Chrome/Edge recommended)
-2. **Install as PWA**: Click the install icon in the address bar
-3. **Download Charts**: Pre-download charts for offline use
-4. **Connect Instruments**: Connect via USB or Bluetooth (Chrome/Edge only)
+- **Windows**: download `OpenSail_<version>_x64-setup.exe` from the [GitHub releases](https://github.com/gjvanhalem/OpenSail/releases). It is unsigned, so Windows SmartScreen shows a warning.
+- **Android**: download and sideload the signed `OpenSail-<version>.apk` from the same release.
+- **Browser**: the hosted version needs an account (invite only). Chrome or Edge is recommended.
 
 See the [User Guide](USER_GUIDE.md) for detailed instructions.
 
 ### For Developers
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
+npm ci
 npm run dev
 ```
+
+The app runs at http://localhost:5173. No `.env` or map token is needed.
 
 See the [Developer Guide](DEVELOPER_GUIDE.md) for complete setup instructions.
 
 ## 🛠️ Tech Stack
 
-- **React 19.2** with TypeScript 5.9
-- **Vite 7.3** for fast development and optimized builds
-- **Redux Toolkit 2.2** for state management
-- **MapLibre GL JS** (via `react-map-gl/maplibre`) for vector maps, on free OpenStreetMap tiles from OpenFreeMap
-- **Dexie.js 4.x** for IndexedDB storage
-- **Tailwind CSS 4.2** for responsive styling
-- **Workbox 7.x** for PWA/Service Worker
-- **Vitest 1.x** for unit tests
-- **Playwright 1.x** for E2E tests
+- **React 19** with TypeScript 5.9
+- **Vite 7** with `vite-plugin-pwa` (Workbox)
+- **Redux Toolkit 2** for state management
+- **MapLibre GL 5** (via `react-map-gl/maplibre`) on OpenFreeMap tiles, with PMTiles for chart archives
+- **Dexie 4** for IndexedDB storage
+- **Tailwind CSS 4**
+- **Vitest 4** for unit tests, **Playwright** for E2E tests
 
 ## 📁 Project Structure
 
 ```
 src/
-├── components/     # React UI components
-│   ├── chart/     # Map and chart components
-│   ├── instruments/ # Instrument display gauges
-│   ├── routes/    # Route planning components
-│   ├── tracks/    # Track recording components
-│   └── ui/        # Shared UI components
-├── services/      # Business logic services
-│   ├── storage/   # IndexedDB repositories
-│   ├── connections/ # Web Serial/Bluetooth wrappers
-│   ├── protocols/ # Marine protocol parsers
-│   └── workers/   # Web Workers
-├── store/         # Redux state management
-├── models/        # TypeScript data models
-├── utils/         # Utility functions
+├── pages/         # Chart, Routes, Tracks, Instruments, Settings
+├── components/    # UI: layout, chart, instruments, routes, tracks, safety, alerts, account
+├── platform/      # Tauri / Capacitor / browser differences
+├── protocols/     # NMEA 0183, NMEA 2000, SeaTalk parsers
+├── services/      # Connections, GPS, alarms, chart downloads, simulator
+├── store/         # Redux store and slices
+├── database/      # Dexie database and repositories
 ├── hooks/         # Custom React hooks
-└── types/         # TypeScript type definitions
+├── utils/         # Calculations, units, route guidance, GPX export
+└── workers/       # Web Worker
 ```
 
 ## 🔧 Development Scripts
@@ -70,92 +60,55 @@ src/
 ```bash
 # Development
 npm run dev              # Start dev server with HMR
-npm run build            # Build for production
+npm run build            # Type check and build for the web
+npm run build:native     # Build for the Windows and Android apps
 npm run preview          # Preview production build
 
 # Code Quality
 npm run lint             # Run ESLint
-npm run lint:fix         # Fix ESLint issues
 npm run format           # Format with Prettier
-npm run type-check       # TypeScript type checking
+npx tsc -b               # TypeScript type checking
 
 # Testing
-npm run test             # Run unit tests
+npm test                 # Run unit tests
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage
-npm run test:e2e         # Run E2E tests
+npm run test:e2e         # Run E2E tests (build first)
 npm run test:e2e:ui      # Run E2E tests in UI mode
 ```
 
 ## 🌐 Browser Compatibility
 
-| Feature | Chrome/Edge 89+ | Safari 15.4+ | Firefox 90+ |
-|---------|----------------|--------------|-------------|
-| Chart Display | ✅ | ✅ | ✅ |
-| Route Planning | ✅ | ✅ | ✅ |
-| Track Recording | ✅ | ✅ | ✅ |
-| Offline Mode | ✅ | ✅ | ✅ |
-| PWA Install | ✅ | ✅ | ✅ |
-| USB Instruments | ✅ | ❌ | ❌ |
-| Bluetooth Instruments | ✅ | Limited | ❌ |
+| Feature | Chrome/Edge | Safari | Firefox |
+|---------|-------------|--------|---------|
+| Chart, routes, tracks, safety | ✅ | ✅ | ✅ |
+| Offline charts | ✅ | ✅ | ✅ |
+| USB instruments (Web Serial) | ✅ | ❌ | ❌ |
+| Bluetooth instruments | ✅ | ❌ | ❌ |
+| Wi-Fi instruments (through the bridge) | ✅ | ✅ | ✅ |
 
-**Recommended**: Chrome 89+ or Edge 89+ for full functionality
-
-## 📋 Requirements
-
-- **Node.js**: 18.x or higher
-- **npm**: 9.x or higher
-- **Modern Browser**: Chrome/Edge 89+, Safari 15.4+, or Firefox 90+
-- **HTTPS**: Required for PWA features (automatic with recommended hosting)
+The Windows and Android apps connect to Wi-Fi instruments directly, without the bridge.
 
 ## 🚢 Features
 
-- **Offline-First**: Full functionality without internet connectivity
-- **Chart Display**: Vector charts with MapLibre GL JS (no API token needed)
-- **Route Planning**: Create and navigate multi-waypoint routes
-- **Track Recording**: Record and export vessel tracks (GPX format)
-- **Instrument Integration**: Connect via USB (Web Serial) or Bluetooth
-- **Protocol Support**: NMEA0183, NMEA2000, SeaTalk
-- **AIS Display**: View other vessels with collision warnings
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **PWA Installation**: Install as standalone app on any platform
+- **Charts**: OpenFreeMap base map, OpenSeaMap seamarks, and Rijkswaterstaat inland ENC depth areas and hazards
+- **Offline charts**: download regions, with editions and an update check
+- **Chart view**: follows the vessel, north-up or heading-up, Layers panel, instrument strip
+- **Routes**: planning, active navigation (bearing, distance, XTE, ETA), route summary, hazard warnings
+- **Tracks**: recording, colours, GPX export, track to route
+- **Safety**: man overboard, anchor watch, alarms with a siren and full-screen alert
+- **Instruments**: NMEA 0183, NMEA 2000 and SeaTalk over USB, Bluetooth or Wi-Fi, with a built-in simulator
+- **Night mode**: Day, Night (red on black) or Auto
 
-## 🔐 Environment Variables
-
-Create a `.env` file in the `pwa/` directory:
-
-```env
-VITE_API_ENDPOINT=http://localhost:3000
-VITE_ENVIRONMENT=development
-```
-
-See `.env.example` for the template.
+AIS, the logbook, weather and tides are not built yet. See [ROADMAP.md](../ROADMAP.md).
 
 ## 🚀 Deployment
 
-### Recommended Hosting
-
-- **Netlify**: Automatic HTTPS, CDN, continuous deployment
-- **Vercel**: Automatic HTTPS, edge network, preview deployments
-- **Cloudflare Pages**: Global CDN, automatic HTTPS, fast builds
-
-All provide:
-- Automatic HTTPS (required for PWA)
-- Static hosting
-- Environment variable management
-- Continuous deployment from Git
-
-See the [Developer Guide](DEVELOPER_GUIDE.md#build-and-deployment) for detailed deployment instructions.
+The browser version is served by `server/` (with user accounts) from the Docker image `ghcr.io/gjvanhalem/opensail`. See [DEPLOY.md](../DEPLOY.md). The Windows and Android apps are released together from a version tag; see [docs/RELEASING.md](../docs/RELEASING.md).
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the [Developer Guide](DEVELOPER_GUIDE.md#contributing) for:
-
-- Development setup
-- Code style guidelines
-- Testing requirements
-- Pull request process
-- Areas for contribution
+We welcome contributions! See the [Developer Guide](DEVELOPER_GUIDE.md#contributing).
 
 ## 📄 License
 
@@ -164,9 +117,7 @@ We welcome contributions! Please see the [Developer Guide](DEVELOPER_GUIDE.md#co
 ## 🆘 Support
 
 - **User Issues**: See [User Guide](USER_GUIDE.md#troubleshooting)
-- **Bug Reports**: Open a GitHub issue
-- **Feature Requests**: Open a GitHub discussion
-- **Development Help**: See [Developer Guide](DEVELOPER_GUIDE.md)
+- **Bug Reports and Feature Requests**: Open a GitHub issue
 
 ---
 

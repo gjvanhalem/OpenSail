@@ -1,201 +1,93 @@
 # OpenSail
 
-Open-source marine navigation system built as a Progressive Web App.
+Open-source marine navigation for recreational sailors, made for Dutch inland waters and the coast. One app for your **Windows laptop**, your **Android phone or tablet**, and the **browser**.
 
-## Overview
+[![Latest release](https://img.shields.io/github/v/release/gjvanhalem/OpenSail?label=release)](https://github.com/gjvanhalem/OpenSail/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-OpenSail is a comprehensive marine navigation solution designed for recreational sailors and coastal cruisers. Built with modern web technologies, it provides chart display, route planning, instrument integration, and offline functionality—all accessible through your web browser.
+> ⚠️ **Not for navigation.** OpenSail is a helpful extra on board, not a certified chart plotter. Always carry official charts and keep a proper lookout.
 
-As a Progressive Web App (PWA), OpenSail works on any device with a modern browser and can be installed for a native app-like experience. No app store required, no platform lock-in, just open your browser and start navigating.
+## Download
 
-## Key Features
+Get the newest version from **[Releases](https://github.com/gjvanhalem/OpenSail/releases/latest)**:
 
-- **Offline-First Navigation**: Full functionality without internet connectivity
-- **Vector Nautical Charts**: Chart display powered by MapLibre GL JS on free OpenStreetMap tiles (no API token needed)
-- **Route Planning**: Create and navigate multi-waypoint routes with real-time guidance
-- **Track Recording**: Record and export vessel tracks in GPX format
-- **Instrument Integration**: Connect marine instruments via USB or Bluetooth
-- **Protocol Support**: NMEA0183, NMEA2000, and SeaTalk protocols
-- **AIS Display**: View other vessels with collision warnings
-- **Cross-Platform**: Works on Windows, Android, iOS, and any device with a browser
-- **PWA Installation**: Install as a standalone app on any platform
+| Platform | File | Notes |
+|---|---|---|
+| **Windows** 10/11 | `OpenSail_<version>_x64-setup.exe` | The installer isn't code-signed yet, so Windows shows *"unknown publisher"*: choose **More info → Run anyway**. Updates install over the old version. |
+| **Android** 7+ | `OpenSail-<version>.apk` | Allow *"install unknown apps"* for your browser or file manager. For anchor watch with the screen off, set the app's battery use to **Unrestricted**. |
+| **Browser** | — | Chrome or Edge recommended. A hosted version with user accounts runs on the maintainer's server ([DEPLOY.md](DEPLOY.md)). |
 
-## Technology Stack
+How to use it, step by step: **[User guide](pwa/USER_GUIDE.md)**.
 
-- **React 19** with TypeScript for type-safe UI development
-- **Vite 7** for fast development and optimized builds
-- **Redux Toolkit** for centralized state management
-- **MapLibre GL JS** for WebGL-based vector map rendering
-- **Dexie.js** for IndexedDB storage (routes, tracks, charts)
-- **Tailwind CSS** for responsive, mobile-first design
-- **Workbox** for Service Worker and offline functionality
-- **Vitest** and **Playwright** for comprehensive testing
+## What it does
 
-## Apps
+- **Nautical chart**: OpenStreetMap base map, OpenSeaMap buoys, beacons and lights, and Rijkswaterstaat depth areas and hazards for Dutch inland waters. The chart follows the boat, north-up or heading-up, with a Layers panel.
+- **Offline**: download chart regions at home and use them without internet on the water.
+- **Routes**: plan with waypoints, then navigate with bearing, distance, cross-track error and ETA. It moves to the next waypoint automatically and warns about shallow water and hazards.
+- **Tracks**: record, colour, export as GPX, and turn a track into a route.
+- **Safety**: an always-visible **man overboard** button with guidance back to the spot, and an **anchor watch** with a drag alarm. Alarms ring loudly and keep the screen on. On Android they keep running with the screen off.
+- **Instruments**: NMEA 0183, NMEA 2000 and SeaTalk over **USB**, **Bluetooth** or **Wi-Fi**. The apps connect straight to a Wi-Fi gateway or autopilot over TCP, for example the Pcnautic tiller pilot at `192.168.14.1:20220`. Gauges show speed, depth, wind (apparent and calculated true wind) and heading, with an instrument strip on the chart, units, min/max alarms and a built-in simulator.
+- **Day and night mode**: red on black at night, or automatic.
 
-OpenSail also comes as an app for **Windows** ([`desktop/`](desktop/README.md)) and **Android** ([`android/`](android/README.md)): the same app, plus a direct Wi-Fi connection to the autopilot (no bridge), charts downloaded from GitHub and, on Android, alarms and the anchor watch with the screen off. Download them from the [releases](https://github.com/gjvanhalem/OpenSail/releases). How releases are made: [`docs/RELEASING.md`](docs/RELEASING.md).
+**Not there yet:** AIS targets and collision warnings, the logbook, and weather and tides. See the [roadmap](ROADMAP.md#next-up).
 
-## Quick Start
+## How it's built
 
-### For Users
+One React app (`pwa/`) runs everywhere. Only a thin platform layer (`pwa/src/platform/`) differs per platform.
 
-1. **Access the App**: Open OpenSail in your browser (Chrome or Edge recommended)
-2. **Install as PWA**: Click the install icon in the address bar for standalone app experience
-3. **Download Charts**: Pre-download nautical charts for your sailing region
-4. **Connect Instruments**: Connect GPS and marine instruments via USB or Bluetooth
-5. **Start Navigating**: Plan routes, record tracks, and navigate offline
+```
+pwa/            the app: React 19, TypeScript, Vite 7, Redux Toolkit, Dexie (IndexedDB),
+                MapLibre GL, Tailwind 4; protocol parsers, chart, safety, instruments
+  src/platform/ browser / Tauri / Capacitor: native fetch, TCP, GPS, background mode
+desktop/        Windows app (Tauri 2, Rust)
+android/        Android app (Capacitor 8, Kotlin TCP plugin, foreground service)
+server/         Node 24 server for the hosted browser version (sign-in, invites, roles)
+tools/
+  enc-pipeline/     Rijkswaterstaat S-57 charts → PMTiles (Docker: GDAL + tippecanoe)
+  opensail-bridge/  TCP/UDP NMEA → WebSocket, for Wi-Fi instruments in the browser
+docs/           releasing, chart sources, decisions, native app plan, UI redesign
+```
 
-See the [User Guide](pwa/USER_GUIDE.md) for detailed instructions.
+Chart archives are published in the public repo **[opensail-charts](https://github.com/gjvanhalem/opensail-charts)**.
 
-### For Developers
+## Development
+
+You need **Node.js 22 or newer**. Rust, the JDK and the Android SDK are only needed to build the apps yourself; GitHub Actions builds and tests those.
 
 ```bash
-# Navigate to PWA directory
 cd pwa
+```
 
-# Install dependencies
-npm install
+```bash
+npm ci
+```
 
-# Start development server
+```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+The app runs at http://localhost:5173. No API keys or `.env` are needed. Use the GPS simulator (Settings → Navigation sources → GPS Mode → Simulator) and the instrument simulator (Instruments → Simulator) to try everything without a boat.
 
-See the [Developer Guide](pwa/DEVELOPER_GUIDE.md) for complete setup and contribution guidelines.
+| Command (in `pwa/`) | What |
+|---|---|
+| `npm run build` | Web build in `pwa/dist` |
+| `npm run build:native` | The build the Windows and Android apps wrap |
+| `npm test` | Unit tests (Vitest) |
+| `npx playwright test --project=chromium --project=accounts` | End-to-end tests as CI runs them (Playwright; `npm run test:e2e` also runs Firefox, WebKit and mobile projects) |
+| `npm run lint` | ESLint |
 
-## Browser Compatibility
+Server and bridge tests (Node 24): `node --test server/server.test.ts` and `node --test tools/opensail-bridge/bridge.test.mjs`, run from the repo root. The root `package.json` has `dev`, `build`, `test`, `test:e2e` and `lint` shortcuts that run in `pwa/`.
 
-| Feature | Chrome/Edge 89+ | Safari 15.4+ | Firefox 90+ |
-|---------|----------------|--------------|-------------|
-| Chart Display | ✅ | ✅ | ✅ |
-| Route Planning | ✅ | ✅ | ✅ |
-| Track Recording | ✅ | ✅ | ✅ |
-| Offline Mode | ✅ | ✅ | ✅ |
-| PWA Install | ✅ | ✅ | ✅ |
-| USB Instruments | ✅ | ❌ | ❌ |
-| Bluetooth Instruments | ✅ | Limited | ❌ |
+More: **[Developer guide](pwa/DEVELOPER_GUIDE.md)**, [Windows app](desktop/README.md), [Android app](android/README.md), [hosting on a home server](DEPLOY.md).
 
-**Recommended**: Chrome 89+ or Edge 89+ for full functionality including device connections.
+## Releases
 
-## Development Scripts
-
-All development happens in the `pwa/` directory. For convenience, you can run these commands from the root:
-
-```bash
-# Development
-npm run dev              # Start development server
-npm run build            # Build for production
-npm run preview          # Preview production build
-
-# Testing
-npm run test             # Run unit tests
-npm run test:e2e         # Run end-to-end tests
-
-# Code Quality
-npm run lint             # Run ESLint
-npm run format           # Format code with Prettier
-```
-
-## Documentation
-
-- **[User Guide](pwa/USER_GUIDE.md)** - Installation, usage, and troubleshooting for end users
-- **[Developer Guide](pwa/DEVELOPER_GUIDE.md)** - Setup, architecture, and contribution guidelines
-- **[PWA Architecture](pwa/README.md)** - Technical details and project structure
-- **[E2E Tests Summary](pwa/E2E_TESTS_SUMMARY.md)** - Test coverage and results
-
-## Project Structure
-
-```
-opensail/
-├── pwa/                    # Progressive Web App implementation
-│   ├── src/               # Application source code
-│   ├── public/            # Static assets and PWA manifest
-│   ├── e2e/               # End-to-end tests
-│   └── package.json       # PWA dependencies
-├── .kiro/                 # Kiro specs and configuration
-└── package.json           # Root package.json with convenience scripts
-```
-
-## Requirements
-
-- **Node.js**: 18.x or higher
-- **npm**: 9.x or higher
-- **Modern Browser**: Chrome/Edge 89+, Safari 15.4+, or Firefox 90+
-- **HTTPS**: Required for PWA features (automatic with recommended hosting)
-
-## Deployment
-
-OpenSail runs at https://opensail.g-zeven.nl: a Docker image with the OpenSail server (`server/`: sign-in, user accounts, invites) on a home server behind a Cloudflare Tunnel, updated automatically from `main`. See **[DEPLOY.md](DEPLOY.md)**.
-
-The built app can also be put on any static hosting provider that supports HTTPS (chart archives go in `/charts/`), but then there are no accounts: anyone with the address can open it.
-
-### Recommended Hosting Providers
-
-- **Netlify**: Automatic HTTPS, CDN, continuous deployment
-- **Vercel**: Automatic HTTPS, edge network, preview deployments
-- **Cloudflare Pages**: Global CDN, automatic HTTPS, fast builds
-
-All provide free tiers suitable for personal use.
-
-### Build and Deploy
-
-```bash
-cd pwa
-npm run build
-```
-
-The optimized production build will be in `pwa/dist/` and can be deployed to any static host.
-
-See the [Developer Guide](pwa/DEVELOPER_GUIDE.md#build-and-deployment) for detailed deployment instructions.
+There's one version for all platforms, in `pwa/package.json`. Pushing a tag `vX.Y.Z` runs every test, including the Windows and Android smoke tests, and publishes one GitHub release with the Windows installer and the signed APK. See **[docs/RELEASING.md](docs/RELEASING.md)**.
 
 ## Contributing
 
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
-
-### Getting Started
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Make your changes and add tests
-4. Commit using conventional commits (`feat:`, `fix:`, `docs:`, etc.)
-5. Push to your fork and submit a pull request
-
-See the [Developer Guide](pwa/DEVELOPER_GUIDE.md#contributing) for detailed contribution guidelines.
-
-### Areas for Contribution
-
-- Additional marine protocol support
-- Chart source integrations
-- Weather data providers
-- UI/UX improvements
-- Performance optimizations
-- Documentation improvements
-- Internationalization
-
-## Why PWA?
-
-OpenSail is built as a Progressive Web App instead of a native mobile app for several key reasons:
-
-- **Universal Compatibility**: Works on any device with a modern browser
-- **No App Store**: Direct deployment, no approval process or fees
-- **Instant Updates**: Users always get the latest version via Service Worker
-- **Simpler Development**: Standard web technologies, no platform-specific tooling
-- **True Cross-Platform**: Single codebase for Windows, Android, iOS, and more
-- **Offline-First**: Full functionality without internet connectivity
-- **Easy Installation**: Install directly from browser, no app store required
+Issues and pull requests are welcome. Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:` …). Every pull request runs lint, type checks, unit tests and the end-to-end tests. Plans and open work are in **[ROADMAP.md](ROADMAP.md)**. The original requirements (R1–R15) are in `.kiro/specs/marine-navigation-system/requirements.md`.
 
 ## License
 
-[MIT](LICENSE). The chart data has its own licences and credits, shown in the app: OpenStreetMap / OpenFreeMap (ODbL), OpenSeaMap (CC BY-SA), Rijkswaterstaat ENC (CC0). OpenSail is not for navigation: always keep official charts and a proper lookout.
-
-## Support
-
-- **User Issues**: See [User Guide](pwa/USER_GUIDE.md#troubleshooting)
-- **Bug Reports**: Open a GitHub issue
-- **Feature Requests**: Open a GitHub discussion
-- **Development Help**: See [Developer Guide](pwa/DEVELOPER_GUIDE.md)
-
----
-
-**Happy Sailing! ⛵**
+[MIT](LICENSE). The chart data has its own licences and credits, which the app shows: OpenStreetMap / OpenFreeMap (ODbL), OpenSeaMap (CC BY-SA) and Rijkswaterstaat ENC (CC0).

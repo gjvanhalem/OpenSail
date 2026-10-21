@@ -1,6 +1,6 @@
 # Spike: free depth data for the Dutch coast
 
-**Status: decided by the owner on 2026-10-16; see [Owner decision](#owner-decision).** Nothing has been built on it yet. Written 2026-10-15.
+**Status: decided by the owner on 2026-10-16; see [Owner decision](#owner-decision).** Nothing has been built on it yet (v0.3.0): there's no coastal depth region, and the Waddenzee and Zeeland ENCs aren't published until Rijkswaterstaat confirms the licence. The published chart catalog (opensail-charts) has only the inland ENC (`nl-inland`). Written 2026-10-15.
 
 **Question.** The official Dutch coastal and sea ENCs (Dienst der Hydrografie) are commercial, and there's no budget (see [`chart-source-decision.md`](chart-source-decision.md#decision)). Which free depth data should give the chart depth contours along the coast, and the route planner its hazard warnings (R2.5)? Coastal depths are advisory only.
 
@@ -70,7 +70,7 @@ Coverage is good offshore. At 115 m it's too coarse for channels and gullies nea
 
 ## Recommendation
 
-1. **Waddenzee and Zeeland: use the "met diepte" ENCs as they are.** The pipeline already handles them, and they're official and weekly. They can be marked `official: true`, the same as the inland ENC, once Rijkswaterstaat confirms the licence (see above). Hazard warnings there can be "official", not "advisory".
+1. **Waddenzee and Zeeland: use the "met diepte" ENCs as they are.** The pipeline already handles them, and they're official and weekly. They can be marked `official: true`, the same as the inland ENC, once Rijkswaterstaat confirms the licence (see above). Hazard warnings there can be "official", not "advisory". *(The owner chose advisory instead; see [Owner decision](#owner-decision).)*
 2. **The rest of the coast: build an advisory "coastal depth" region from the RWS 20 m grid:**
    - Clip the grid to the coastal strip outside the ENC coverage (west of the Wadden and Zeeland cells, up to the edge of the data).
    - **Convert NAP to chart datum (LAT).** Bed level in NAP isn't a charted depth: LAT is roughly 1 m below NAP on the Holland coast, and more in the Wadden. Use the official **NLLAT** separation model (Rijkswaterstaat / Dienst der Hydrografie). *To check: its licence and how to download it.* If it isn't available, use a conservative constant: subtract the separation, so the chart shows *less* water than the survey did.

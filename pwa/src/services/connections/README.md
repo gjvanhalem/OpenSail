@@ -1,20 +1,28 @@
 # Instrument Connections
 
-This directory contains connection implementations for marine instruments using Web APIs.
+This directory contains the connections to marine instruments: USB serial, Bluetooth, Wi-Fi (WebSocket in the browser, plain TCP in the Windows and Android apps) and a simulator. Every connection implements `InstrumentDataConnection` (`types.ts`): `connect()`, `disconnect()`, `onData()` (one line of protocol data per call) and `onStatusChange()`.
+
+In the Redux store (`instrumentsSlice`) a connection's `type` is `'serial'`, `'bluetooth'`, `'network'` (Wi-Fi, both kinds) or `'stub'`.
+
+| Connection | Browser | Windows app (WebView2) | Android app (WebView) |
+|---|---|---|---|
+| SerialConnection (USB) | Chromium browsers | API present, port picker not yet tested | no |
+| BluetoothConnection | Chromium browsers | API present, device picker not yet tested | no |
+| WebSocketConnection (Wi-Fi) | yes | yes | yes |
+| NativeTcpConnection (Wi-Fi) | no | yes | yes |
+| StubConnection (simulator) | yes | yes | yes |
 
 ## SerialConnection
 
 Connects to USB marine instruments using the Web Serial API.
 
-**Browser Support:**
-- Chrome 89+
-- Edge 89+
+**Browser Support:** Chromium browsers (Chrome, Edge). Not in the Android app; in the Windows app see `desktop/README.md`.
 
 **Features:**
 - NMEA0183, NMEA2000, and SeaTalk protocol support
-- Configurable baud rates (4800 for NMEA0183, 250000 for NMEA2000)
-- Automatic data buffering and line parsing
-- Error handling and reconnection
+- Configurable baud rate (default 4800)
+- Data buffering and line splitting
+- Errors reported through the ErrorHandler
 
 **Usage:**
 ```typescript
@@ -35,10 +43,7 @@ await connection.connect();
 
 Connects to Bluetooth marine instruments using the Web Bluetooth API.
 
-**Browser Support:**
-- Chrome 89+
-- Edge 89+
-- Safari 15.4+ (limited support)
+**Browser Support:** Chromium browsers (Chrome, Edge). Not Safari or Firefox, not in the Android app.
 
 **Features:**
 - NMEA0183, NMEA2000, and SeaTalk protocol support
@@ -68,27 +73,71 @@ The BluetoothConnection uses standard GATT service UUIDs for marine instruments:
 - Service UUID: `0000fff0-0000-1000-8000-00805f9b34fb`
 - Characteristic UUID: `0000fff1-0000-1000-8000-00805f9b34fb`
 
-These can be overridden in the constructor options if your device uses different UUIDs.
+These can be overridden in the constructor options (`serviceUuid`, `characteristicUuid`) if your device uses different UUIDs.
+
+## WebSocketConnection
+
+Instruments over Wi-Fi in the browser. Browsers can't open TCP or UDP sockets, so this talks WebSocket: to a gateway that offers it, or to the OpenSail bridge (`tools/opensail-bridge`), which relays a TCP NMEA server or UDP broadcasts to `ws://localhost:10110` (read-only by default).
+
+**Features:**
+- Lines split from the message stream (`lineStream.ts`, shared with NativeTcpConnection)
+- Keeps reconnecting when the link drops, waiting 1 s, doubling up to 15 s, until `disconnect()`
+- `blockedWebSocketReason()` explains addresses the browser will refuse: a page loaded over HTTPS may only open an unencrypted `ws://` link to localhost (mixed content)
+
+**Usage:**
+```typescript
+const connection = new WebSocketConnection({
+  id: 'network-1',
+  protocol: 'NMEA0183',
+  url: 'ws://localhost:10110',
+});
+
+instrumentDataService.wireConnection(connection, 'NMEA0183');
+await connection.connect();
+```
+
+The address is saved in the setting `instrumentWebSocketUrl` (default `ws://localhost:10110`).
+
+## NativeTcpConnection
+
+Instruments over Wi-Fi in the Windows and Android apps: a plain TCP connection opened by the app (`platform/nativeTcp.ts`: Rust in `desktop/src-tauri/src/tcp.rs`, Kotlin in `android/native/app/src/main/java/nl/gzeven/opensail/tcp/`). No bridge needed. `NativeTcpConnection.isSupported()` is true only in the native apps; the Instruments page then asks for host and port instead of a WebSocket address.
+
+**Features:**
+- Same line splitting and reconnect behaviour as WebSocketConnection
+- Read-only unless `allowWrites` is set; the Instruments page opens it read-only
+
+**Usage:**
+```typescript
+const connection = new NativeTcpConnection({
+  id: 'network-1',
+  protocol: 'NMEA0183',
+  host: '192.168.14.1',  // Pcnautic / pypilot autopilot on Wi-Fi pcnautic_AP
+  port: 20220,
+});
+
+instrumentDataService.wireConnection(connection, 'NMEA0183');
+await connection.connect();
+```
+
+Host and port are saved in the settings `instrumentTcpHost` and `instrumentTcpPort` (defaults `192.168.14.1` and `20220`).
 
 ## Integration with Protocol Parsers
 
-Both connection types integrate with the InstrumentDataService, which wires them to the appropriate protocol parsers (NMEA0183Parser, NMEA2000Parser, SeaTalkParser).
+Every connection is wired to the InstrumentDataService, which hands its lines to the protocol parser (NMEA0183Parser, NMEA2000Parser, SeaTalkParser in `src/protocols`).
 
 ```typescript
 const dataService = new InstrumentDataService(dispatch);
 
-// For Serial
-dataService.wireConnection(serialConnection, 'NMEA0183');
-
-// For Bluetooth
-dataService.wireBluetoothConnection(bluetoothConnection, 'NMEA0183');
+dataService.wireConnection(connection, 'NMEA0183');
 ```
+
+`wireBluetoothConnection()` does the same for a BluetoothConnection.
 
 The parsed data is automatically dispatched to the Redux store for use throughout the application.
 
 ## Error Handling
 
-Both connection types provide status callbacks:
+Every connection provides status callbacks:
 
 ```typescript
 connection.onStatusChange((status, error) => {
@@ -110,6 +159,10 @@ if (SerialConnection.isSupported()) {
 
 if (BluetoothConnection.isSupported()) {
   // Bluetooth is available
+}
+
+if (NativeTcpConnection.isSupported()) {
+  // Running in the Windows or Android app: plain TCP is available
 }
 ```
 

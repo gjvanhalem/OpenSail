@@ -2,321 +2,193 @@
 
 ## Technology Stack
 
+One frontend, `pwa/`, runs in the browser and inside the Windows and Android apps. Versions are in `pwa/package.json`.
+
 ### Core Framework
-- **React 18.x**: Modern UI library with hooks and concurrent features
-- **TypeScript 5.4.0**: Type-safe development with strict type checking
-- **Vite 5.x**: Fast build tool optimized for modern web development
+- **React 19**: UI library
+- **TypeScript 5.9**: strict type checking (`tsc -b` in the build)
+- **Vite 7**: build tool and dev server
+- **React Router 7**: pages (Chart, Instruments, Routes, Tracks, Settings)
 
 ### PWA Infrastructure
-- **Workbox 7.x**: Service Worker library for offline functionality and caching
-- **Web App Manifest**: PWA configuration for installability
-- **HTTPS**: Required for PWA features and secure contexts
+- **vite-plugin-pwa / Workbox 7**: service worker for the app files (browser version only; the native apps have none)
+- **Web App Manifest**: installable from the browser
+- **HTTPS**: required for PWA features and the device APIs
 
 ### State Management
-- **Redux Toolkit 2.2.0**: Centralized state management with Redux best practices
-- **React-Redux 9.1.0**: React bindings for Redux
+- **Redux Toolkit 2**: slices in `pwa/src/store/slices/`
+- **React-Redux 9**
 
 ### Data Storage
-- **IndexedDB**: Browser-based database for routes, waypoints, tracks, logbook, AIS targets, settings
-- **Dexie.js 4.x**: IndexedDB wrapper with TypeScript support and better API
-- **Chart Tile Caching**: IndexedDB-based tile storage with LRU eviction
+- **IndexedDB** through **Dexie 4** (`pwa/src/database/`): routes, waypoints, tracks, safety events, settings, AIS targets, logbook, offline chart tiles and regions
+- **Repository pattern**: one repository per data type
 
-### Mapping
-- **Mapbox GL JS 3.x**: Vector map rendering with WebGL
-- **react-map-gl 7.x**: React wrapper for Mapbox GL JS
+### Mapping and Charts
+- **MapLibre GL 5** through `react-map-gl/maplibre` 8. No Mapbox, no token.
+- **PMTiles 4**: chart archives read with HTTP range requests
+- **Base map**: OpenFreeMap (OpenStreetMap, ODbL)
+- **Seamarks**: OpenSeaMap raster overlay (CC BY-SA), with a "not for navigation" disclaimer
+- **Depth areas and hazards**: Rijkswaterstaat inland ENC (CC0), converted to PMTiles by `tools/enc-pipeline` (Docker: GDAL + tippecanoe) and published in the public repo `gjvanhalem/opensail-charts` (GitHub releases)
+- **One tile protocol**: every tile goes through `opensail://` (`components/chart/tileProtocol.ts`): IndexedDB first, then the network
+
+### Native Apps
+- **Windows**: Tauri 2 in `desktop/` (Rust, WebView2). NSIS installer, unsigned, no self-update yet.
+- **Android**: Capacitor 8 in `android/` (Kotlin TCP plugin, foreground service for background and screen-off use, alarms as notifications). Signed APK, sideloaded.
+- **Platform layer** `pwa/src/platform/`: `platform.ts` picks Tauri, Capacitor or browser at runtime. Native fetch without CORS (`platformFetch.ts`, `FetchRangeSource.ts`), direct TCP (`nativeTcp.ts`), geolocation (`geolocation.ts`), background mode (`background.ts`).
+- `npm run build:native` (`--mode native`, `.env.native`): no service worker, no accounts, chart catalog from the opensail-charts releases.
+
+### Hosted Browser Version
+- `server/`: Node 24 server without dependencies; serves the app and `/charts/`, with user accounts (setup code, invites, admin and crew roles)
+- Runs as Docker image `ghcr.io/gjvanhalem/opensail` on the owner's home server behind a Cloudflare Tunnel. See `DEPLOY.md`.
 
 ### Device Integration
-- **Web Serial API**: USB connection to marine instruments (Chrome/Edge only)
-- **Web Bluetooth API**: Bluetooth connection to marine instruments (Chrome/Edge/Safari limited)
-- **Geolocation API**: GPS position from device
+- **Web Serial API**: USB instruments (Chromium browsers)
+- **Web Bluetooth API**: Bluetooth instruments (Chromium browsers)
+- **Wi-Fi**: direct TCP in the native apps; in the browser a WebSocket, to a gateway or to `tools/opensail-bridge` (Node, relays TCP/UDP to `ws://localhost:10110`, read-only by default)
+- **Geolocation**: `navigator.geolocation`, or `@capacitor/geolocation` in the Android app
+- **Web Audio and Screen Wake Lock**: alarm siren and keeping the screen on
 
 ### UI Framework
-- **Tailwind CSS 3.x**: Utility-first CSS framework for responsive design
-- **Headless UI 2.x**: Unstyled, accessible UI components
-- **React Spring 9.x**: Physics-based animations
+- **Tailwind CSS 4**, colours as CSS variables in `index.css` so night mode (red on black) only redefines them
 
 ### Testing
-- **Vitest 1.x**: Fast unit test framework (Vite-native)
-- **Playwright 1.x**: E2E testing across browsers
-- **Testing Library**: Component testing utilities
+- **Vitest 4** with Testing Library and `fake-indexeddb`
+- **Playwright**: end-to-end tests in `pwa/e2e/` (CI runs the `chromium` and `accounts` projects)
+- **node --test**: server (`server/server.test.ts`) and bridge (`tools/opensail-bridge/bridge.test.mjs`)
+- Kotlin unit tests and an emulator smoke test (Android), `cargo test` and a smoke test (Windows), in CI
 
 ### Development Tools
-- **Prettier 3.2.0**: Code formatting
-- **ESLint 8.x**: Code linting with TypeScript support
-- **TypeScript Compiler**: Type checking
+- **ESLint 9** (flat config) with typescript-eslint
+- **Prettier 3**
 
 ## Project Structure
 
 ```
-src/
-├── components/          # React UI components
-│   ├── chart/          # Map and chart components
-│   ├── instruments/    # Instrument display gauges
-│   ├── routes/         # Route planning components
-│   ├── tracks/         # Track recording components
-│   └── ui/             # Shared UI components
-├── services/           # Business logic services
-│   ├── storage/        # IndexedDB repositories
-│   ├── connections/    # Web Serial/Bluetooth wrappers
-│   ├── protocols/      # Marine protocol parsers
-│   └── workers/        # Web Workers for heavy tasks
-├── store/              # Redux store and slices
-│   ├── navigationSlice.ts
-│   ├── routesSlice.ts
-│   ├── tracksSlice.ts
-│   ├── aisSlice.ts
-│   └── instrumentsSlice.ts
-├── models/             # TypeScript data models
-├── utils/              # Utility functions
-├── hooks/              # Custom React hooks
-└── types/              # TypeScript type definitions
-public/
-├── manifest.json       # Web App Manifest
-├── service-worker.js   # Service Worker (generated by Workbox)
-└── icons/              # PWA icons
+pwa/                      the one frontend
+├── src/
+│   ├── components/       chart/, instruments/, routes/, tracks/, safety/, alerts/,
+│   │                     layout/ (top tabs, bottom bar), account/
+│   ├── pages/            Chart, Instruments, Routes, Tracks, Settings (Logbook hidden)
+│   ├── services/         connections/, alarm/, simulator/, GPS, chart download and catalog,
+│   │                     track recording, route hazards, error handling
+│   ├── protocols/        NMEA 0183, NMEA 2000 and SeaTalk parsers
+│   ├── platform/         browser / Tauri / Capacitor differences
+│   ├── database/         Dexie database, repositories, TileCache
+│   ├── store/            Redux store and slices
+│   ├── hooks/            custom React hooks
+│   ├── models/           TypeScript data models
+│   ├── utils/            calculations, formatting, route guidance, GPX export, feature detection
+│   └── workers/          track processing Web Worker
+├── e2e/                  Playwright tests
+└── public/               icons and static files
+desktop/                  Windows app (Tauri 2)
+android/                  Android app (Capacitor 8)
+server/                   Node server for the hosted browser version
+tools/enc-pipeline/       Rijkswaterstaat ENC → PMTiles
+tools/opensail-bridge/    TCP/UDP NMEA → WebSocket
+docs/                     releasing, chart decisions, native app plan, UI redesign
+.github/workflows/        CI and releases
 ```
 
 ## Architecture Patterns
 
-### Progressive Web App (PWA)
-- Installable on all platforms (Windows, Android, iOS)
-- Works offline with Service Worker caching
-- App-like experience in standalone mode
-- Automatic updates via Service Worker
-- No app store required
+### One Codebase, Three Platforms
+- The same `pwa/` build runs in the browser, in WebView2 (Windows) and in the Android WebView
+- Platform differences only in `pwa/src/platform/`
+- Native apps have no accounts; the hosted browser version has
 
 ### Offline-First Design
-- All critical functionality works without internet connectivity
-- Service Worker caches app shell and assets
+- The service worker (browser) or the app package (native) holds the app files
 - IndexedDB stores all navigation data locally
-- Chart tiles pre-downloaded for selected regions
-- Background sync for data when connectivity returns
+- Chart regions are downloaded for offline use (Chart page → Offline charts); tiles are stored per region, with editions and an update check
 
 ### Repository Pattern
-- Data access abstraction layer using Dexie.js
-- Repositories handle all IndexedDB operations
-- Consistent CRUD interfaces across all data types
-- Separation of concerns between business logic and data storage
+- Data access through repositories on Dexie
+- Consistent CRUD interfaces across data types
 
-### Protocol Parser Pattern
-- Dedicated parsers for each marine protocol (NMEA0183, NMEA2000, SeaTalk)
-- Protocol stub simulator for testing without hardware
-- Consistent interface for all protocol parsers
-- Real-time data streaming via Redux actions
-
-### Component-Based Architecture
-- Reusable React components with TypeScript
-- Responsive design with Tailwind CSS
-- Accessible components using Headless UI
-- Performance optimized with React.memo and lazy loading
+### Connection and Protocol Parser Pattern
+- Every connection (`SerialConnection`, `BluetoothConnection`, `WebSocketConnection`, `NativeTcpConnection`, `StubConnection`) hands over one line at a time
+- `InstrumentDataService` passes lines to the parser for the protocol
+- Readings go to Redux; position, COG/SOG and heading go through the navigation source settings (auto, GPS or instrument)
+- `StubConnection` simulates an instrument bus in all three protocols
 
 ## Marine Protocols
 
-### NMEA0183
-- Supported sentences: GGA, RMC, GLL, VTG, DBT, DPT, MWV, VHW, HDG, VDM, VDO
-- Serial communication via Web Serial API
-- ASCII text-based protocol with checksum validation
-- Sentence parsing and validation implemented
+### NMEA 0183
+- Sentences: GGA, RMC, GLL, VTG, DBT, DPT, MWV, VHW, HDG, HDM, HDT, RSA (rudder), XDR (heel, pitch), VDM/VDO (recognised; no AIS decoder yet)
+- Checksum validation
+- A magnetic heading becomes true with the magnetic variation setting, when no instrument sends variation
 
-### NMEA2000
-- Supported PGNs: 126992, 127250, 127251, 128259, 128267, 129025, 129026, 129029, 130306, 130310
-- CAN bus protocol via USB adapter
-- Binary message format with PGN-based routing
-- IEEE float parsing for position data
+### NMEA 2000
+- PGNs: 126992, 127250, 127251, 128259, 128267, 129025, 129026, 129029, 130306, 130310
+- Through a gateway (USB, Wi-Fi); a browser can't talk to CAN directly
 
 ### SeaTalk (Raymarine)
-- Supported commands: 0x00 (Depth), 0x10 (Wind Angle), 0x11 (Wind Speed), 0x20 (Speed), 0x84 (Heading)
-- Proprietary Raymarine protocol
-- Binary data with bit-level parsing
-- Command-based message structure
+- Datagrams: 00 (depth), 10/11 (apparent wind), 20 (speed through water), 23/27 (water temperature), 50/51 (latitude/longitude), 52 (SOG), 53 (COG), 84 (autopilot heading), 89 (compass heading), 99 (variation)
+- As `$STALK` sentences, the way SeaTalk-to-NMEA gateways forward them
 
 ## Data Flow
 
 ### Instrument Data Flow
-1. Physical instrument → Web Serial/Bluetooth API
-2. Protocol parser (NMEA0183/2000/SeaTalk) → Structured data
-3. Redux action dispatch → State update
-4. React components → Display update
+1. Instrument → USB, Bluetooth, WebSocket or native TCP connection
+2. Protocol parser → structured data
+3. Redux (`instrumentsSlice`, `navigationSlice`) → gauges, instrument strip, alerts
 
-### Route Planning Flow
-1. User creates waypoints → Redux action
-2. Route calculations (distance, bearing) → Route object
-3. Route validation checks for hazards → Warnings
-4. Repository persists to IndexedDB → Storage
-5. Active route tracked for navigation → Real-time guidance
-
-### AIS Data Flow
-1. AIS messages via NMEA → Protocol parser
-2. Target decoding and tracking → AISTarget objects
-3. CPA calculation for collision detection → Warnings
-4. Repository stores targets → IndexedDB
-5. Automatic cleanup of expired targets → 24-hour retention
+### Route Navigation Flow
+1. User creates waypoints → route saved in IndexedDB
+2. Hazard check along the route (official inland ENC, advisory on the coast)
+3. Active navigation: bearing, distance, XTE, ETA, auto-advance within the arrival radius
 
 ### Offline Chart Flow
-1. User selects region → Download UI
-2. Tile download for zoom levels → Blob storage
-3. IndexedDB stores tiles → TileCache
-4. Service Worker intercepts requests → Cache-first strategy
-5. Map displays cached tiles → Offline navigation
+1. User selects the visible map area → Offline Charts panel
+2. Base map, seamark and ENC tiles and label glyphs for the chosen zoom levels → TileCache (IndexedDB)
+3. The `opensail://` protocol serves stored tiles; offline, a missing tile is empty
+
+### Safety Flow
+- Man overboard and anchor watch events are logged in IndexedDB and restored after a restart
+- Alarms: Web Audio siren, full-screen alert, wake lock; Android notifications with the screen off
 
 ## Browser Compatibility
 
-### Full Support (Recommended)
-- **Chrome 89+**: All features including Web Serial and Web Bluetooth
-- **Edge 89+**: All features including Web Serial and Web Bluetooth
-
-### Partial Support
-- **Safari 15.4+**: Core PWA features, limited Bluetooth, no Web Serial
-- **Firefox 90+**: Core PWA features, no Web Serial/Bluetooth
-
-### Feature Detection
-- Runtime detection of API availability
-- Clear messaging for unsupported features
-- Fallback options (manual data entry, file import)
-- Recommend Chrome/Edge for full functionality
-
-## Performance Considerations
-
-### Chart Rendering
-- WebGL-based vector rendering via Mapbox GL JS
-- Tile caching with LRU eviction in IndexedDB
-- Viewport-based rendering (only visible tiles)
-- Target: 60 FPS on tablet hardware
-
-### Data Processing
-- Position updates debounced for display
-- Batch IndexedDB writes for track recording
-- Web Workers for heavy computations (track processing, calculations)
-- Efficient spatial indexing for AIS targets
-
-### Memory Management
-- AIS history limited to 24 hours
-- Track data compression for storage
-- Progressive chart loading
-- Service Worker cache size limits
-
-### Code Optimization
-- Code splitting by route
-- Lazy loading of heavy components
-- Tree shaking with Vite
-- Asset optimization (compression, minification)
+- **Chrome / Edge**: all browser features, including Web Serial and Web Bluetooth
+- **Safari, Firefox**: no USB or Bluetooth instruments; Wi-Fi instruments through WebSocket work
+- Runtime feature detection (`utils/featureDetection.ts`); the warning banner is not shown in the native apps
 
 ## Build and Development
 
-### Scripts
-- `npm run dev`: Start Vite development server with HMR
-- `npm run build`: Production build with optimization
-- `npm run preview`: Preview production build locally
-- `npm run test`: Run Vitest unit tests
-- `npm run test:e2e`: Run Playwright E2E tests
-- `npm run lint`: Run ESLint
-- `npm run format`: Format code with Prettier
+### Scripts (in `pwa/`)
+- `npm run dev`: dev server at http://localhost:5173 (no `.env` or tokens needed)
+- `npm run build`: web build in `pwa/dist`
+- `npm run build:native`: the build the Windows and Android apps wrap
+- `npm test`: Vitest
+- `npm run test:e2e`: Playwright
+- `npm run lint`: ESLint
+- `npm run format`: Prettier
 
-### Build Output
-- Optimized JavaScript bundles in `dist/`
-- Code-split chunks for lazy loading
-- Compressed assets (gzip/brotli)
-- Source maps for debugging
-- Service Worker with Workbox
+The root `package.json` has `dev`, `build`, `preview`, `test`, `test:e2e` and `lint` shortcuts that run in `pwa/`. Rust, the JDK and the Android SDK are not needed locally: CI builds the apps.
 
-### Development Environment
-- Hot Module Replacement (HMR) for instant updates
-- TypeScript type checking in real-time
-- ESLint integration in editor
-- Browser DevTools for debugging
-- Redux DevTools for state inspection
+### CI (`.github/workflows/`)
+- `pwa-deploy.yml`: lint, `tsc -b`, Vitest, server and bridge tests, Playwright (chromium, accounts), build
+- `android.yml`: Kotlin tests, APK; emulator smoke test on tags and manual runs
+- `desktop.yml`: Rust fmt/clippy/test when `desktop/` changes; installer and smoke test on tags and manual runs
+- `release.yml`: tag `v*` builds and tests both apps and publishes one GitHub release with the `.exe` and `.apk` (see `docs/RELEASING.md`)
+- `image.yml`: Docker image of the web version on main
+- `pipeline-image.yml`: chart pipeline image when `tools/enc-pipeline` changes
 
-## Deployment
-
-### Hosting Requirements
-- **HTTPS**: Required for PWA features and Web APIs
-- **Static Hosting**: Any CDN or static host (Netlify, Vercel, GitHub Pages)
-- **Service Worker**: Must be served from same origin
-- **CORS**: Configure for chart tile sources
-
-### Recommended Hosts
-- **Netlify**: Automatic HTTPS, CDN, continuous deployment
-- **Vercel**: Automatic HTTPS, edge network, preview deployments
-- **Cloudflare Pages**: Global CDN, automatic HTTPS, fast builds
-
-### Environment Variables
-- `VITE_MAPBOX_TOKEN`: Mapbox API access token
-- `VITE_API_ENDPOINT`: Optional backend API endpoint
-- `VITE_ENVIRONMENT`: Development/production flag
-
-## Testing Strategy
-
-### Unit Testing
-- Protocol parser validation with known messages
-- Route calculations and validations
-- Data transformations
-- Repository operations (mocked IndexedDB)
-- Redux reducers and actions
-
-### Integration Testing
-- Service Worker caching behavior
-- IndexedDB operations
-- Map interactions
-- State management flow
-- Component integration
-
-### E2E Testing
-- Complete user workflows (route planning, track recording)
-- Offline functionality
-- PWA installation
-- Cross-browser compatibility
-- Device API integration (mocked)
-
-### Performance Testing
-- Lighthouse audits (PWA score > 90)
-- Chart rendering FPS
-- Load time metrics
-- Memory usage profiling
+### Versioning
+One version for all platforms: `pwa/package.json`.
 
 ## Security Considerations
 
-1. **HTTPS Required**: All PWA features require secure context
-2. **Content Security Policy**: Restrict script sources
-3. **API Key Protection**: Use environment variables, not hardcoded
-4. **User Permissions**: Explicit prompts for device access
-5. **Data Privacy**: All data stored locally, optional cloud sync
-
-## Known Advantages Over React Native
-
-1. **No Build Toolchain Issues**: No Gradle, no Android SDK, no Xcode
-2. **Instant Updates**: Service Worker updates without app store
-3. **Universal Compatibility**: Works on any device with a browser
-4. **Easier Development**: Standard web development workflow
-5. **Better Windows Support**: No Java version conflicts
-6. **Simpler Deployment**: Static hosting, no app store submission
-7. **Cross-Platform**: True write-once-run-anywhere
+1. **HTTPS Required**: PWA features and device APIs need a secure context
+2. **User Permissions**: explicit prompts for device and location access
+3. **Data Privacy**: all navigation data stored locally on the device
+4. **Accounts**: only on the hosted browser version (`server/`)
+5. **Wi-Fi links are read-only**: nothing is sent to an autopilot by default
 
 ## Known Limitations
 
-1. **Device API Support**: Web Serial/Bluetooth not available in all browsers
-2. **Background Processing**: Limited compared to native apps
-3. **File System Access**: More restricted than native apps
-4. **Performance**: Slightly lower than native for intensive tasks
-5. **App Store Presence**: Not discoverable in app stores (can use PWABuilder for stores)
-
-## Migration Path
-
-The existing TypeScript code (protocol parsers, data models, calculations) can be reused with minimal changes. The main work is:
-1. Replace React Native UI with React web components
-2. Replace SQLite with IndexedDB (via Dexie)
-3. Replace native device APIs with Web APIs
-4. Add PWA infrastructure (Service Worker, manifest)
-5. Integrate Mapbox GL JS for charts
-
-## Next Steps
-
-1. Initialize Vite + React + TypeScript project
-2. Configure PWA with Workbox
-3. Set up IndexedDB with Dexie
-4. Port existing TypeScript code
-5. Build responsive UI with Tailwind
-6. Integrate Mapbox for charts
-7. Implement Web Serial/Bluetooth connections
-8. Add offline functionality
-9. Write comprehensive tests
-10. Deploy and test on target devices
+1. **Browser device APIs**: Web Serial and Web Bluetooth only in Chromium browsers; not in the Android app
+2. **Background in the browser**: a browser tab stops with the screen off; the Android app uses a foreground service
+3. **Windows installer**: unsigned (SmartScreen warning), no self-update yet
+4. **Not built yet**: AIS decoding and CPA (Phase 5), logbook (Phase 6), weather and tides (Phase 7), autopilot steering. `ROADMAP.md` "Next up" is the source for plans.

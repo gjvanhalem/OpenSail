@@ -7,7 +7,7 @@ S-57 cells (*.000 + updates) ──ogr2ogr──► GeoJSONSeq per object class 
                      DSID edition dates ──────────────────────────────────────────► <region>.json, index.json
 ```
 
-It runs in Docker (GDAL 3.10 and tippecanoe 2.79), so nothing needs to be installed on the host. It doesn't run in CI.
+It runs in Docker (GDAL 3.10 and tippecanoe 2.79), so nothing needs to be installed on the host. When this folder changes on main, [`pipeline-image.yml`](../../.github/workflows/pipeline-image.yml) publishes the image as `ghcr.io/gjvanhalem/opensail-enc-pipeline`.
 
 ## Use
 
@@ -39,7 +39,7 @@ The current downloads are listed as JSON at <https://www.vaarweginformatie.nl/fr
 | Waddenzee met diepte | 4801379797 | weekly | 25 MB → 76 MB | Full: depth areas, contours, about 430,000 soundings |
 | Zeeland met diepte | 4795409564 | weekly | 47 MB → 100 MB | Full, like the Waddenzee |
 
-File ids change with every new edition, so read them from the list. A later PR will make the app's update check compare `editionDate` against this list.
+File ids change with every new edition, so read them from the list. A rebuild with the new file id gives the region a newer `editionDate`; the app's update check compares that with the downloaded regions and offers an **Update**.
 
 ## What's in the tiles
 
@@ -53,19 +53,11 @@ Depths are in metres. In the Waddenzee data, negative depths are drying heights.
 
 ## Hosting
 
-The archives are too big for git, so they're attached to a GitHub release and copied into the Pages site when it deploys:
+The archives are too big for git. There are two places that serve them:
 
-1. Build every region into `tools/enc-pipeline/out/`.
-2. Upload the archives and `index.json` to the release tagged `charts` (create it once):
-   ```bash
-   gh release upload charts tools/enc-pipeline/out/*.pmtiles tools/enc-pipeline/out/index.json --clobber
-   ```
-3. The deploy workflow (`pwa-deploy.yml`, "Add chart archives") downloads them into `dist/charts/`, so the app gets them from its own origin (`/charts/index.json`). That means no CORS, and GitHub Pages serves the byte ranges PMTiles needs.
+- **The Windows and Android apps** read the public repository [gjvanhalem/opensail-charts](https://github.com/gjvanhalem/opensail-charts). Its workflow runs this image for `nl-inland` (looking up the current file id) and publishes `nl-inland.pmtiles`, `nl-inland.json` and `index.json` as a GitHub release. The apps read `releases/latest/download/index.json` (`VITE_CHART_CATALOG_URL` in `pwa/.env.native`). GitHub sends no CORS headers there, so the apps fetch it natively; a browser can't.
+- **The browser version** on the Zimablade reads `/charts/index.json` from its own server, so there's no CORS. The `charts` service in its Docker Compose file runs this image into the `charts/` folder: see [DEPLOY.md](../../DEPLOY.md#4-charts).
 
 To host them somewhere else (a CDN, S3 or R2 bucket), build the app with `VITE_CHART_CATALOG_URL=https://…/index.json`. Archives are looked up next to the catalog. The host has to allow CORS and `Range` requests.
 
-The desktop app (`desktop/`) reads the charts from the public repository [gjvanhalem/opensail-charts](https://github.com/gjvanhalem/opensail-charts) instead: its workflow runs this image for `nl-inland` (looking up the current file id), publishes `nl-inland.pmtiles`, `nl-inland.json` and `index.json` as a release, and the app reads `releases/latest/download/index.json`. GitHub sends no CORS headers there, so only the native apps can use it.
-
 For local development, copy the output to `pwa/public/charts/` (git-ignored).
-
-GitHub Pages limits a site to 1 GB. With the three Dutch regions at about 195 MB that's fine. If it grows, move to a bucket.

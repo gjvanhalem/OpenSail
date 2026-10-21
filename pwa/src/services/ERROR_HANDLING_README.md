@@ -35,7 +35,7 @@ try {
 }
 
 // Handle specific error types
-errorHandler.handleNetworkError(error, 'API.fetchData');
+errorHandler.handleNetworkError(error, 'Catalog.fetch');
 errorHandler.handleStorageError(error, 'Database.save');
 errorHandler.handleDeviceError(error, 'SerialConnection.connect', 'serial');
 errorHandler.handleParseError(error, 'NMEA0183Parser.parse', rawData);
@@ -52,25 +52,26 @@ const recentErrors = errorHandler.getRecentErrors(10);
 ### Error Types
 
 #### Network Errors
-- Automatically detected when network requests fail
-- Displays user-friendly message about offline mode
+- For failed network requests; the message says the app keeps working offline
 - Severity: warning
+- Not called anywhere yet
 
 #### Storage Errors
 - Detects quota exceeded errors
-- Provides guidance to clear cached data
+- Asks the user to clear cached data
 - Severity: error
 
 #### Device Errors
-- Handles Web Serial and Web Bluetooth API errors
-- Detects unsupported browsers
-- Provides browser recommendations
+- Handles Web Serial and Web Bluetooth API errors (`deviceType` is `'serial'` or `'bluetooth'`)
+- Detects no device selected, unsupported browser and permission denied
 - Severity: warning (unsupported) or error (connection failed)
+- Wi-Fi connections (WebSocket, native TCP) report their errors through the connection status instead
 
 #### Parse Errors
-- Handles protocol parsing errors (NMEA, SeaTalk)
+- For protocol parsing errors (NMEA, SeaTalk)
 - Logged but not displayed (too noisy)
 - Severity: warning
+- The parsers don't call it at present: they skip sentences they can't parse
 
 ## Notification System
 
@@ -158,11 +159,9 @@ The error handling system is integrated into:
 ### ChartDownloadService
 - Handles storage quota errors
 - Reports download failures
-- Provides user guidance
 
-### Protocol Parsers
-- Parse errors are logged but not displayed
-- Prevents notification spam from malformed data
+### GPS (GPSControl, useGpsAutoStart)
+- Reports geolocation errors and a GPS mode that couldn't be resumed after a restart
 
 ## Error Handler Hook
 
@@ -202,8 +201,8 @@ function App() {
 The ErrorHandler automatically converts technical error messages to user-friendly ones:
 
 - "Failed to fetch" → "Network connection failed"
-- "QuotaExceededError" → "Storage quota exceeded. Please clear some cached data."
-- "NotSupportedError" → "Web Serial API is not supported. Please use Chrome or Edge."
+- "QuotaExceededError" → "Storage quota exceeded. Please clear some cached data in Settings."
+- "NotSupportedError" → "Web Serial API is not supported in this browser. Please use Chrome or Edge."
 
 ### Error Logging
 
@@ -211,7 +210,7 @@ All errors are:
 1. Logged to console (with appropriate level)
 2. Stored in internal log (last 100 errors)
 3. Sent to registered callbacks
-4. Displayed as notifications (except parse errors)
+4. Displayed as notifications by `useErrorHandler` (except parse errors)
 
 ## Testing
 

@@ -1,135 +1,43 @@
-# PWA Infrastructure Setup
+# PWA Setup
 
-This document describes the PWA infrastructure that has been configured for OpenSail.
+How the browser version works offline and installs as an app. The Windows and Android apps don't use any of this: they are built with `npm run build:native` (`--mode native`, see `.env.native`), which turns the service worker and the web manifest off, because their files come with the installer or APK.
 
-## What Was Implemented
-
-### 1. Service Worker with Workbox
+## Service worker
 
 **Files:**
-- `vite.config.ts` - Configured with `vite-plugin-pwa`
-- `src/main.tsx` - Service worker registration
-- `public/offline.html` - Offline fallback page
+- `vite.config.ts` - `vite-plugin-pwa` (Workbox), `registerType: 'autoUpdate'`
+- `src/main.tsx` - registers the service worker (not in the native build) and asks to reload when a new version is ready
+- `public/offline.html` - a static offline page. It's precached but not wired up as a fallback: the precached app itself starts offline.
 
-**Features:**
-- Automatic service worker generation using Workbox
-- Cache-first strategy for app shell (HTML, CSS, JS)
-- Cache-first strategy for chart tiles with 90-day expiration
-- Network-first strategy for API data with cache fallback
-- Automatic updates with user notification
-- Offline fallback page
+**What it caches:**
+- **App shell**: every built JS, CSS, HTML, icon and font file is precached, so the app starts without a connection.
+- **Chart catalog** (`charts/index.json`): network first, 5 s timeout, so the download panel still lists the ENC regions offline.
+- **Base map TileJSON** (`tiles.openfreemap.org/planet`): network first, so a new weekly build is picked up.
 
-**Caching Strategies:**
-- **App Shell**: Cache-first, 30-day expiration, max 50 entries
-- **Chart Tiles**: Cache-first, 90-day expiration, max 500 entries
-- **API Data**: Network-first with 10s timeout, 24-hour expiration, max 100 entries
+**What it doesn't cache:**
+- **Chart tiles and fonts.** The map loads them through the `opensail://` protocol (`src/components/chart/tileProtocol.ts`), which serves downloaded regions from IndexedDB. Caching them in the service worker too would store every tile twice.
+- **PMTiles archives** under `/charts/`: they are read with range requests, which the Cache API can't store.
+- **The account pages and the API** (`/login`, `/setup`, `/invite`, `/api`): they always come from the OpenSail server (`server/`), never from the cached app.
 
-### 2. Web App Manifest
+On the hosted version, the server sends the app and the service worker only to signed-in users (see [DEPLOY.md](../DEPLOY.md)).
 
-**Files:**
-- `vite.config.ts` - Manifest configuration in VitePWA plugin
-- `index.html` - Meta tags for PWA
-- `public/icon.svg` - App icon source
-- `public/pwa-192x192.png` - 192x192 icon (placeholder)
-- `public/pwa-512x512.png` - 512x512 icon (placeholder)
-- `public/apple-touch-icon.png` - iOS icon (placeholder)
-- `public/mask-icon.svg` - Safari pinned tab icon
-- `public/favicon.ico` - Browser favicon (placeholder)
+## Web app manifest
 
-**Configuration:**
-- App name: "OpenSail Navigation"
-- Short name: "OpenSail"
-- Theme color: #0ea5e9 (sky blue)
-- Background color: #0c4a6e (dark blue)
-- Display mode: standalone
-- Orientation: any
-- Icons for all required sizes
+Set in `vite.config.ts`: name "OpenSail Navigation", short name "OpenSail", display `standalone`, orientation `any`, icons `public/pwa-192x192.png` and `public/pwa-512x512.png` (also maskable). `index.html` has the meta tags and `public/apple-touch-icon.png` is the iOS icon.
 
-### 3. PWA Installation Prompt
+## Installing
 
-**Files:**
-- `src/hooks/usePWAInstall.ts` - Custom hook for PWA installation
-- `src/components/PWAInstallPrompt.tsx` - Installation prompt UI
-- `src/vite-env.d.ts` - TypeScript declarations
+The browser offers it: Chrome or Edge **⋮ → Install app** (or the install icon in the address bar), Safari **Share → Add to Home Screen**. It needs HTTPS (or `localhost`).
 
-**Features:**
-- Detects PWA installability
-- Shows custom install prompt when app is installable
-- Handles beforeinstallprompt event
-- Tracks installation status
-- Dismissible prompt
-- Responsive design (mobile and desktop)
+`src/hooks/usePWAInstall.ts` and `src/components/PWAInstallPrompt.tsx` are an install button of the app's own; the layout doesn't show it at the moment.
 
-## How to Use
-
-### Development
-
-```bash
-npm run dev
-```
-
-The service worker is enabled in development mode for testing.
-
-### Production Build
+## Testing
 
 ```bash
 npm run build
+npm run preview
 ```
 
-This generates:
-- Optimized production bundle in `dist/`
-- Service worker (`dist/sw.js`)
-- Web app manifest (`dist/manifest.webmanifest`)
+Open `http://localhost:4173` in Chrome or Edge. DevTools → **Application** shows the manifest and the service worker; tick **Offline** under Network and reload to check that the app starts from the cache. `npm run dev` also registers the service worker (`devOptions.enabled`).
 
-### Testing PWA Features
-
-1. Build the app: `npm run build`
-2. Preview locally: `npm run preview`
-3. Open in Chrome/Edge at `http://localhost:4173`
-4. Check PWA installability in DevTools > Application > Manifest
-5. Test offline mode by stopping the server after first load
-
-### Installing the PWA
-
-**Desktop (Chrome/Edge):**
-1. Visit the app URL
-2. Click the install icon in the address bar, or
-3. Use the custom install prompt that appears
-
-**Mobile (Chrome/Safari):**
-1. Visit the app URL
-2. Tap the share/menu button
-3. Select "Add to Home Screen"
-
-## Browser Support
-
-- **Chrome 89+**: Full support
-- **Edge 89+**: Full support
-- **Safari 15.4+**: Full support
-- **Firefox 90+**: Full support
-
-## Requirements Met
-
-This implementation satisfies the following requirements from the spec:
-
-- **Requirement 1.3**: PWA installability with home screen icon
-- **Requirement 1.4**: Installation prompt and standalone mode
-- **Requirement 1.5**: Standalone mode without browser UI
-- **Requirement 2.1**: Service worker caching of critical assets
-- **Requirement 2.2**: Offline functionality with cached resources
-- **Requirement 2.5**: Background updates and user notifications
-
-## Next Steps
-
-1. **Generate Real Icons**: Replace placeholder PNG files with actual icons generated from `icon.svg`
-2. **Test Installation**: Test PWA installation on all target platforms
-3. **Customize Offline Page**: Enhance the offline fallback page with more features
-4. **Add Update Notification**: Create a better UI for service worker updates
-5. **Configure Cache Limits**: Adjust cache sizes based on actual usage patterns
-
-## Notes
-
-- The service worker is automatically updated when new versions are deployed
-- Users will be prompted to reload when updates are available
-- All PWA features require HTTPS in production
-- Icon placeholders need to be replaced with actual PNG files before deployment
+The Playwright tests `e2e/pwa-installation.spec.ts` and `e2e/offline.spec.ts` check this in CI.

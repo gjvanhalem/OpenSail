@@ -1,7 +1,25 @@
 # Plan: OpenSail as a phone app with direct TCP (Capacitor)
 
-**Status:** proposal, October 2026. Nothing is built yet. The owner decides whether, and in which order.
+**Status:** the **Android part is done**, released in v0.2.0 (October 2026); the **iOS part is still a plan**, not scheduled. The Windows app (Tauri 2, `desktop/`), listed below as an alternative, was built too. This document was the proposal; notes marked **Built** say what was done and where it differs.
 **Builds on:** PR #31 (Wi-Fi instruments: `WebSocketConnection`, `tools/opensail-bridge`, HDM/RSA/XDR).
+
+## What was built (v0.2.0) and what's open
+
+| Part | State |
+|---|---|
+| Android app (Capacitor 8) in `android/`, sideloaded signed APK | **Done**, see [`android/README.md`](../android/README.md) |
+| TCP plugin (Kotlin, `OpenSailTcp`), socket bound to Wi-Fi for local addresses | **Done** |
+| `NativeTcpConnection` with a shared line/backoff helper (`lineStream.ts`) | **Done**, also used by the Windows app |
+| Native chart downloads (no CORS), absolute chart catalog URL | **Done** (`pwa/src/platform/`, `.env.native`) |
+| Service worker off in the apps | **Done** (`VITE_NATIVE_APP`) |
+| Foreground service, background GPS, alarms as notifications | **Done** (own Kotlin plugin `OpenSailBackground`) |
+| CI: Kotlin tests, APK, signed release, emulator smoke test | **Done** (`.github/workflows/android.yml`, `release.yml`) |
+| Device checklist | **Done**, in the Android README |
+| UDP receive in the app | Open |
+| Writing to the autopilot ("steer this route") | Open: next on the roadmap |
+| Web Serial / Bluetooth in the app | Open: not available in the WebView |
+| Play Store | Not planned; only if wanted |
+| **iOS** (plugin, background location, local network, TestFlight) | **Plan only**, needs a Mac runner and the Apple developer account |
 
 ## Why
 
@@ -23,6 +41,8 @@ What exists (checked October 2026):
 
 **Recommendation: a small in-repo plugin, `opensail-tcp`.** It needs four calls and two events, about 150–250 lines per platform:
 
+> **Built (Android):** `OpenSailTcp` in `android/native/app/src/main/java/nl/gzeven/opensail/tcp/` (`TcpPlugin.kt`, `TcpSockets.kt`). The page chooses the socket id: `connect({ id, host, port })`, `write({ id, data })`, `disconnect({ id })`, events `tcp-data` `{ id, data }` and `tcp-closed` `{ id, error }`, the same calls as the Windows app's Rust code (`desktop/src-tauri/src/tcp.rs`). Keep-alive on, read timeout 30 s. iOS is not built.
+
 ```ts
 connect({ host, port, timeoutMs }) → { id }
 write({ id, data })                  // text, \r\n added by the caller
@@ -40,6 +60,8 @@ Polling `read` with a short timeout would also work as a stopgap (the gee1k plug
 
 ## 2. `NativeTcpConnection` in the app
 
+> **Built:** `pwa/src/services/connections/NativeTcpConnection.ts`, as planned. The runtime choice is `NativeTcpConnection.isSupported()` (`pwa/src/platform/nativeTcp.ts`), not `Capacitor.isNativePlatform()`, so it covers the Windows app too. Host and port are the settings `instrumentTcpHost` / `instrumentTcpPort`. It opens read-only (`allowWrites` off).
+
 A new class next to `WebSocketConnection` that implements the existing `InstrumentDataConnection` (`pwa/src/services/connections/types.ts`). Everything downstream (parsers, `InstrumentDataService`, navigation sources, alarms) stays as it is.
 
 - **Same behaviour as `WebSocketConnection`:** line splitting across chunks, a clear error when the first attempt fails ("join the `pcnautic_AP` Wi-Fi first"), and reconnect with backoff (1 s → 15 s) when the link drops. The splitting and backoff code moves into a shared helper both classes use.
@@ -50,6 +72,8 @@ A new class next to `WebSocketConnection` that implements the existing `Instrume
 
 Little, and nothing for PWA users:
 
+> **Built, with differences:** the Capacitor project is `android/` (config `android/capacitor.config.json`, native project `android/native`), not inside `pwa/`. `pwa/` has one extra build, `npm run build:native` (`--mode native`, `.env.native`: `VITE_NATIVE_APP=true` and `VITE_CHART_CATALOG_URL` pointing at the opensail-charts GitHub releases). Charts are fetched with native HTTP (`platformFetch.ts`, `FetchRangeSource.ts`), because GitHub sends no CORS headers. USB and Bluetooth are not available in the app.
+
 - **One repo, two build targets.** `pwa/` gets `capacitor.config.ts` and the generated `android/` and `ios/` projects. `npm run build` stays the PWA build; `npx cap sync` copies `dist/` into the native projects.
 - **Service worker off in the app.** The app ships its files inside the package, so the service worker adds nothing and its update logic would fight the store updates. Only register it when not native.
 - **Routing:** `BrowserRouter` works in Capacitor, which serves the app from `https://localhost` on Android and `capacitor://localhost` on iOS. Keep it.
@@ -59,17 +83,19 @@ Little, and nothing for PWA users:
 
 ## 4. Platform rules
 
-**iOS**
+**iOS** (plan, not built)
 - **Local network permission.** Any connection to `192.168.x.x` needs `NSLocalNetworkUsageDescription` in `Info.plist`, for example "OpenSail connects to your autopilot and instruments on the boat's Wi-Fi." iOS shows a prompt the first time. There's no API to ask beforehand or to read the answer, and a denied permission shows up only as a connection that never opens ([Apple TN3179](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy)). The app should explain this in its error ("Allow local network access in Settings → Privacy → Local Network"). Developer forums report the prompt sometimes not appearing until a real connection is attempted, so test on a physical iPhone, not only the simulator.
 - **The `pcnautic_AP` network has no internet.** iOS may then prefer mobile data for internet traffic, which is fine (tiles keep loading). But the app must connect to `192.168.14.1` explicitly over Wi-Fi: `NWConnection` with `requiredInterfaceType = .wifi`.
 
-**Android**
+**Android** (built: `INTERNET` and `ACCESS_NETWORK_STATE`; sockets to a local address are bound to the Wi-Fi network)
 - **Cleartext HTTP rules don't apply** to raw TCP sockets, so no `network_security_config` change is needed for port 20220.
 - **Permissions:** `INTERNET` and `ACCESS_NETWORK_STATE`. On a Wi-Fi without internet, Android 10+ can route traffic to mobile data. Bind the socket to the Wi-Fi network (`ConnectivityManager.bindProcessToNetwork`, or open the socket from the Wi-Fi `Network` object) so `192.168.14.1` is reached over Wi-Fi.
 
 ## 5. Background, alarms and the locked screen
 
 This is the biggest functional gain, and also the biggest risk for app-store review.
+
+> **Built (Android):** an own Kotlin plugin, `OpenSailBackground` (`android/native/app/src/main/java/nl/gzeven/opensail/background/`), with a foreground service of type `location|connectedDevice`, no third-party plugins. It runs while an anchor watch, man overboard, route, track recording or instrument connection is on, with the notification "OpenSail is running: ...". Alarms are notifications with the alarm sound and a full-screen intent, with a Silence action. GPS comes from `@capacitor/geolocation`. The app side is `pwa/src/platform/background.ts` and `pwa/src/services/backgroundMode.ts`. iOS is not built.
 
 - **Android:** a **foreground service** (type `location`, plus `connectedDevice` for the instrument link), with a permanent notification such as "OpenSail: anchor watch active". GPS, the TCP link and the anchor check keep running with the screen off. Alarms become a high-priority notification with an alarm sound and a full-screen intent, so they also wake the phone. Building blocks: [Capawesome's Android foreground service plugin](https://capawesome.io/docs/sdks/capacitor/android-foreground-service/) and a background geolocation plugin ([Capawesome](https://capawesome.io/docs/sdks/capacitor/background-geolocation/) or [community](https://github.com/capacitor-community/background-geolocation)).
 - **iOS:** the `location` background mode (`UIBackgroundModes`). The app keeps running while it receives location updates, and the TCP socket and the JavaScript anchor check run with it. A navigation app is a legitimate use, but review asks for a clear reason, and the user must grant "Always" location. Alarms use local notifications. A sound that breaks through silent mode needs Apple's **critical alerts** entitlement, which Apple grants on request and only to some apps; plan without it. Background audio is not an acceptable trick here and gets rejected.
@@ -85,6 +111,8 @@ This is the biggest functional gain, and also the biggest risk for app-store rev
 
 **Suggested order:** Android first as a sideloaded APK. That's free, it lets you test on the boat, and it needs no review. iOS and the stores only after the boat tests.
 
+> **Done:** Android ships as a signed APK on each GitHub release (no Play Store account). iOS and the stores are still open.
+
 ## 7. CI and tests
 
 - **Plugin unit tests:** Android JVM tests for the read loop and close handling; iOS XCTest for the `NWConnection` loop. Both against a local TCP server that plays the autopilot, like `tools/opensail-bridge/bridge.test.mjs` does.
@@ -92,7 +120,11 @@ This is the biggest functional gain, and also the biggest risk for app-store rev
 - **Build in CI:** a `build-android` job on `ubuntu-latest` (JDK 21, `./gradlew assembleDebug`) that uploads the APK as an artifact. Release builds are signed with a keystore from GitHub secrets. iOS needs a **macOS runner**. On a private repo, macOS minutes count 10× against the free allowance, so run iOS builds by hand or on release tags only.
 - **On a device:** an end-to-end check on a real phone stays manual: join `pcnautic_AP`, connect, see heading, rudder and heel, lock the screen, and trigger the anchor alarm. Write it down as a checklist in the user guide.
 
+> **Built (Android):** `.github/workflows/android.yml` runs the Kotlin unit tests (TCP sockets against a local server, alarm book) and builds the debug APK on every change; on release tags and manual runs it also runs an emulator smoke test (`android/smoke`) and signs the release APK with the key in the `ANDROID_KEYSTORE_*` secrets. `NativeTcpConnection` has Vitest tests with a fake plugin. The device checklist is in [`android/README.md`](../android/README.md). iOS CI is not set up.
+
 ## 8. Effort and risks
+
+Estimate from the proposal (the Android part is done):
 
 | Step | Effort (one developer) |
 |---|---|
@@ -115,11 +147,11 @@ This is the biggest functional gain, and also the biggest risk for app-store rev
 ## Alternatives considered
 
 - **Keep the bridge and run it on a Raspberry Pi on board**, with phones loading OpenSail over plain HTTP from the Pi. No app needed, but the phone loses the secure context (no GPS in the browser, no offline service worker), and it adds a device to power and maintain.
-- **A desktop app (Tauri or Electron) for the laptop**, which would make the bridge unnecessary there. Useful later, but it doesn't help phones.
+- **A desktop app (Tauri or Electron) for the laptop**, which would make the bridge unnecessary there. Useful later, but it doesn't help phones. *Built later as the Windows app (Tauri 2, `desktop/`), with direct TCP.*
 - **A Trusted Web Activity (TWA) on Android.** That's the PWA in a Chrome wrapper, and it has the same browser limits, so no TCP. Not an option.
 
 ## Decisions for the owner
 
-1. Go for **Android first** as a sideloaded APK (≈ 2.5–3 weeks), or Android and iOS together?
-2. Are store releases wanted at all, or is a sideloaded APK on your own phones enough for now?
-3. Should background mode (screen off) be part of the first milestone? It's most of the value, and most of the review risk.
+1. ~~Go for **Android first** as a sideloaded APK (≈ 2.5–3 weeks), or Android and iOS together?~~ **Decided:** Android first; done in v0.2.0. iOS not planned yet.
+2. Are store releases wanted at all, or is a sideloaded APK on your own phones enough for now? *So far a sideloaded APK; Play Store only if wanted.*
+3. ~~Should background mode (screen off) be part of the first milestone? It's most of the value, and most of the review risk.~~ **Decided:** yes, it shipped with the Android app.

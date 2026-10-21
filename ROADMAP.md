@@ -8,11 +8,11 @@ Effort is in **developer-weeks for one developer**. These are rough estimates, n
 
 ## Where we are today
 
-*Updated 2026-10-21, release [v0.2.0](https://github.com/gjvanhalem/OpenSail/releases/tag/v0.2.0).*
+*Updated 2026-10-21, release [v0.3.0](https://github.com/gjvanhalem/OpenSail/releases/tag/v0.3.0).*
 
 Phases 0–4 are done (milestones **M1** and **M2**), and OpenSail ships as a **Windows app and an Android app** from one codebase, plus a browser version on the Zimablade. It's tested on the boat with the Pcnautic autopilot over Wi-Fi.
 
-Still open: AIS (Phase 5), the logbook (Phase 6), weather and tides (Phase 7), the coastal depth layer, and hardening (Phase 8). Also in progress: a UI cleanup (one navigation model, consistent gauges), see [Next up](#next-up).
+Still open: AIS (Phase 5), the logbook (Phase 6), weather and tides (Phase 7), the coastal depth layer, and hardening (Phase 8). The UI was redesigned in v0.3.0 (one navigation model, redrawn gauges, night mode); next steps are under [Next up](#next-up).
 
 ### Requirement coverage
 
@@ -31,7 +31,7 @@ Still open: AIS (Phase 5), the logbook (Phase 6), weather and tides (Phase 7), t
 | R11 | Tides & currents | ⚪ Not started | 7 |
 | R12 | Man overboard | 🟢 Always-visible button, marker, bearing and distance, guidance back, alarm | 4 |
 | R13 | Logbook | 🔴 Placeholder page. Repository and CSV export exist | 6 |
-| R14 | Instrument display | 🟢 Units, min/max alerts, configurable panels (gauges being redesigned in the UI cleanup) | 1 |
+| R14 | Instrument display | 🟢 Units, min/max alerts, configurable panels; redrawn gauges (speed 0–12 kn adjustable, true wind) in v0.3.0 | 1 |
 | R15 | Chart management | 🟢 Regions, editions, update check, deletion; S-57 converted by the pipeline, not in the app | 3 |
 
 ---
@@ -224,10 +224,11 @@ All apps are the same `pwa/` build: the platform differences live only in `pwa/s
 
 In order, as agreed on 2026-10-21:
 
-1. **UI cleanup** (in progress): one navigation model instead of the duplicated sidebar and top bar, every control working, consistent and readable gauges, a clean modern layout on laptop, tablet and phone. Proposal first in `docs/ui-redesign.md`.
-2. **Autopilot steering**: send the active route to the Pcnautic / pypilot autopilot as `RMC` and `APB` over the TCP link (its Navigation mode). Off by default, behind a clear switch.
-3. **AIS (Phase 5)** with an own AIS receiver on board (the safe, offline route for collision warnings); optionally an online overview through an aisstream.io relay on the Zimablade, marked as not for collision avoidance. Otherwise **weather and tides (Phase 7)** first.
-4. **Logbook (Phase 6)**, then **hardening (Phase 8)**.
+- ~~**UI cleanup**~~ ✅ done in [v0.3.0](https://github.com/gjvanhalem/OpenSail/releases/tag/v0.3.0): one navigation model (top tabs / bottom bar, no sidebar), redrawn gauges with true wind, Layers panel and instrument strip on the chart, night mode. See [`docs/ui-redesign.md`](docs/ui-redesign.md).
+
+1. **Autopilot steering**: send the active route to the Pcnautic / pypilot autopilot as `RMC` and `APB` over the TCP link (its Navigation mode). Off by default, behind a clear switch.
+2. **AIS (Phase 5)** with an own AIS receiver on board (the safe, offline route for collision warnings); optionally an online overview through an aisstream.io relay on the Zimablade, marked as not for collision avoidance. Otherwise **weather and tides (Phase 7)** first.
+3. **Logbook (Phase 6)**, then **hardening (Phase 8)**.
 
 ---
 

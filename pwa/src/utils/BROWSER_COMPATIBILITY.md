@@ -1,10 +1,12 @@
 # Browser Compatibility Detection
 
-This module provides comprehensive browser feature detection for the PWA, ensuring users are informed about which features are available in their browser.
+This module detects which browser APIs the app can use, so users are told which features are available in their browser.
 
 ## Overview
 
-The browser compatibility system detects support for critical PWA and device APIs, displays warnings for unsupported features, and provides recommendations for optimal browser choices.
+The browser compatibility system detects support for core and device APIs, shows a warning for unsupported features and recommends a browser.
+
+It is about the **browser version** of the app. The Windows app (Tauri, WebView2) and the Android app (Capacitor, Android WebView) are not browsers: `CompatibilityWarning` shows nothing there (`NATIVE_BUILD`), and several browser limits don't apply (see [Native apps](#native-apps)).
 
 ## Components
 
@@ -21,52 +23,40 @@ console.log(capabilities.webSerial); // true/false
 
 // Get detailed support info with reasons
 const features = getFeatureSupport();
-console.log(features.webSerial.reason); // Error message if not supported
+console.log(features.webSerial.reason); // Message if not supported
 ```
 
 **Detected Features:**
-- Service Worker (offline functionality)
+- Service Worker (offline app files)
 - IndexedDB (local storage)
 - Web Serial API (USB instruments)
 - Web Bluetooth API (Bluetooth instruments)
 - Geolocation API (GPS)
-- Notifications API (alerts)
+- Notifications API
 - PWA Installability
 
 **Helper Functions:**
-- `hasMinimumRequirements()` - Check if core features are available
-- `hasDeviceConnectionSupport()` - Check if USB or Bluetooth is available
-- `getBrowserInfo()` - Get browser name and version
-- `isSecureContext()` - Check if running on HTTPS
+- `hasMinimumRequirements()` - Service Worker, IndexedDB and Geolocation are available
+- `hasDeviceConnectionSupport()` - USB or Bluetooth is available
+- `getBrowserInfo()` - Browser name and version
+- `getRecommendedBrowser()` - Recommendation for the missing features
+- `isSecureContext()` - Running on HTTPS (or localhost)
 
 ### 2. Compatibility Warning Component (`CompatibilityWarning.tsx`)
 
-Displays a dismissible banner at the top of the app when compatibility issues are detected.
+A banner at the top of the app when compatibility issues are detected. Shown in `App.tsx`.
 
 **Features:**
-- Shows critical issues (red banner) for missing core features
-- Shows warnings (yellow banner) for missing optional features
+- Critical issues (red banner) for missing core features or no HTTPS
+- Warnings (yellow banner) for missing optional features, with browser advice for Firefox and Safari
 - Provides browser recommendations
-- Auto-dismisses if no issues detected
+- Not shown if there are no issues, or in the native apps
 - Cannot be dismissed if critical issues exist
-
-**Usage:**
-```tsx
-import { CompatibilityWarning } from '@/components/CompatibilityWarning';
-
-function App() {
-  return (
-    <>
-      <CompatibilityWarning />
-      {/* Rest of app */}
-    </>
-  );
-}
-```
+- A dismissed warning stays dismissed (localStorage key `opensail.compatibilityWarningDismissed`); critical issues show on every load
 
 ### 3. Compatibility Info Component (`CompatibilityInfo.tsx`)
 
-Displays detailed compatibility information in the Settings page.
+Detailed compatibility information on the Settings page (About section).
 
 **Features:**
 - Shows browser name and version
@@ -74,64 +64,65 @@ Displays detailed compatibility information in the Settings page.
 - Displays critical issues and warnings
 - Provides browser recommendations
 
-**Usage:**
-```tsx
-import { CompatibilityInfo } from '@/components/CompatibilityInfo';
-
-function SettingsPage() {
-  return (
-    <div>
-      {/* Other settings */}
-      <CompatibilityInfo />
-    </div>
-  );
-}
-```
-
 ### 4. Compatibility Hook (`useCompatibility.ts`)
 
-React hook for accessing compatibility information in components.
+React hooks for compatibility information; the status is computed once on mount.
 
 ```typescript
 import { useCompatibility, useFeatureSupport } from '@/hooks/useCompatibility';
 
 function MyComponent() {
   const compatibility = useCompatibility();
-  
-  // Check overall status
+
   if (!compatibility.hasMinimumRequirements) {
     return <div>Browser not supported</div>;
   }
-  
-  // Check specific feature
+
   const hasSerial = useFeatureSupport('webSerial');
-  
   return <div>USB Support: {hasSerial ? 'Yes' : 'No'}</div>;
 }
 ```
 
 ## Browser Support Matrix
 
-| Feature | Chrome/Edge 89+ | Safari 15.4+ | Firefox 90+ |
-|---------|----------------|--------------|-------------|
+| Feature | Chrome / Edge | Safari | Firefox |
+|---------|---------------|--------|---------|
 | Service Worker | ✅ | ✅ | ✅ |
 | IndexedDB | ✅ | ✅ | ✅ |
 | Geolocation | ✅ | ✅ | ✅ |
 | PWA Install | ✅ | ✅ | ✅ |
 | Web Serial (USB) | ✅ | ❌ | ❌ |
-| Web Bluetooth | ✅ | Limited | ❌ |
+| Web Bluetooth | ✅ | ❌ | ❌ |
 | Notifications | ✅ | ✅ | ✅ |
+| Wi-Fi instruments (WebSocket) | ✅ | ✅ | ✅ |
+
+Browsers can't open TCP or UDP sockets. Wi-Fi instruments work in every browser through a WebSocket: to a gateway that offers one, or to the OpenSail bridge (`tools/opensail-bridge`) on `ws://localhost:10110`. A page loaded over HTTPS may only open an unencrypted `ws://` link to localhost.
+
+## Native apps
+
+The Windows and Android apps run the same `pwa/` build (`npm run build:native`) and replace several browser limits:
+
+| Browser limit | Windows app (WebView2) | Android app (WebView) |
+|---|---|---|
+| No TCP sockets: Wi-Fi only through a WebSocket or the bridge | Direct TCP (Rust) | Direct TCP (Kotlin plugin) |
+| Chart archives on other hosts need CORS | Native HTTP | Native HTTP (CapacitorHttp) |
+| Page stops in the background or with the screen off | Keeps running when minimised | Foreground service keeps GPS, instruments and anchor watch running; alarms as notifications |
+| Geolocation | `navigator.geolocation` (needs Windows location) | `@capacitor/geolocation` (fused location) |
+| Web Serial / Web Bluetooth | API present, picker not yet tested on hardware | Not available: use Wi-Fi instruments |
+| Service worker | None: files come with the installer | None: files come with the APK |
+
+See `desktop/README.md` and `android/README.md` for details. The platform code is in `src/platform/`.
 
 ## Integration Points
 
 ### 1. App.tsx
-The `CompatibilityWarning` component is displayed at the top level to catch users immediately when they open the app.
+`CompatibilityWarning` is shown at the top level.
 
 ### 2. Settings Page
-The `CompatibilityInfo` component provides detailed information for users who want to understand their browser's capabilities.
+`CompatibilityInfo` in the About section.
 
 ### 3. Instrument Manager
-Uses `useFeatureSupport` hook to disable USB/Bluetooth connection buttons when APIs are not available and shows inline warnings.
+Uses `useFeatureSupport('webSerial')` and `useFeatureSupport('webBluetooth')` to disable the USB and Bluetooth options when the APIs are not available. Wi-Fi uses `NativeTcpConnection.isSupported()` to choose between direct TCP (native apps) and WebSocket (browser).
 
 ## User Experience Flow
 
@@ -141,31 +132,13 @@ Uses `useFeatureSupport` hook to disable USB/Bluetooth connection buttons when A
 4. **Settings**: User can view detailed compatibility info anytime
 5. **Feature Usage**: Components check support before enabling features
 
-## Recommendations
-
-The system provides context-aware browser recommendations:
-
-- **Missing Device APIs**: Recommends Chrome 89+ or Edge 89+
-- **Missing Core Features**: Recommends updating browser
-- **All Features Supported**: No recommendations shown
-
 ## Security Context
 
-All PWA features require HTTPS (secure context). The system checks `window.isSecureContext` and shows a critical error if the app is accessed via HTTP.
+Geolocation, Web Serial, Web Bluetooth, the service worker and the wake lock need a secure context (HTTPS, or localhost). The system checks `window.isSecureContext` and shows a critical error over plain HTTP. The native apps are served from secure origins (`https://tauri.localhost`, `https://localhost`).
 
 ## Testing
 
-To test compatibility detection:
-
 1. **Chrome/Edge**: All features should be supported
-2. **Firefox**: Device APIs should show as unsupported
-3. **Safari**: USB should be unsupported, Bluetooth limited
+2. **Firefox**: USB and Bluetooth should show as unsupported
+3. **Safari**: USB and Bluetooth should show as unsupported
 4. **HTTP**: Should show secure context error
-
-## Future Enhancements
-
-Potential improvements:
-- Detect specific browser versions for more targeted recommendations
-- Add fallback options for unsupported features (file upload, manual data entry)
-- Store user's dismissal preference in localStorage
-- Add telemetry to track browser usage patterns

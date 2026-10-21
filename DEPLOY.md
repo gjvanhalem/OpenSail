@@ -20,14 +20,14 @@ OpenSail keeps its navigation data (routes, tracks, settings, downloaded chart r
 
 ## 1. The images (once)
 
-Every push to `main` that changes the app builds two images (`.github/workflows/image.yml`):
+GitHub Actions builds two images on pushes to `main`:
 
-| Image | What |
-|---|---|
-| `ghcr.io/gjvanhalem/opensail` | The web app and the OpenSail server (accounts) on port 8080 |
-| `ghcr.io/gjvanhalem/opensail-enc-pipeline` | The chart pipeline (GDAL + tippecanoe), to build charts on the Zimablade |
+| Image | What | Built by |
+|---|---|---|
+| `ghcr.io/gjvanhalem/opensail` | The web app and the OpenSail server (accounts) on port 8080 | `.github/workflows/image.yml`, when `pwa/`, `server/` or `deploy/` change |
+| `ghcr.io/gjvanhalem/opensail-enc-pipeline` | The chart pipeline (GDAL + tippecanoe), to build charts on the Zimablade | `.github/workflows/pipeline-image.yml`, when `tools/enc-pipeline/` changes |
 
-After the first build, make both packages **public**: GitHub → your profile → **Packages** → package → **Package settings** → **Change visibility**. They contain only code, no data or secrets. The repo stays private. Public images mean the Zimablade needs no `docker login`, which fails on ZimaOS because it can't write `/DATA/.docker`.
+After the first build, make both packages **public**: GitHub → your profile → **Packages** → package → **Package settings** → **Change visibility**. They contain only code, no data or secrets. Public images mean the Zimablade needs no `docker login`, which fails on ZimaOS because it can't write `/DATA/.docker`.
 
 ## 2. Cloudflare
 
@@ -107,8 +107,10 @@ Open https://opensail.g-zeven.nl. You land on **Set up OpenSail**: enter the set
 
 Open **https://opensail.g-zeven.nl** in Chrome (on Android or desktop) or Safari (on iPad or iPhone) and sign in. Then:
 - **Install it:** Chrome **⋮ → Install app**, or Safari **Share → Add to Home Screen**.
-- **Before you sail, download a chart region:** on the Chart page, **Offline Charts**. Charts and the app then work without internet.
+- **Before you sail, download a chart region:** on the Chart screen, the **Offline charts** button. Charts and the app then work without internet.
 - **Your Pcnautic autopilot:** run the bridge on the laptop (`node tools/opensail-bridge/bridge.mjs`), then go to **Instruments → Wi-Fi → `ws://localhost:10110`**. An HTTPS page may connect to `ws://localhost`, so this works from the hosted app too.
+
+The Windows and Android apps from the [GitHub release](https://github.com/gjvanhalem/OpenSail/releases) don't use this server or its accounts: they get their charts from GitHub and connect to the autopilot without the bridge. See [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Updating
 

@@ -1,6 +1,6 @@
 # OpenSail Developer Guide
 
-This guide provides comprehensive information for developers who want to contribute to OpenSail or understand its architecture.
+This guide is for developers who want to work on OpenSail or understand how it is built.
 
 ## Table of Contents
 
@@ -19,362 +19,168 @@ This guide provides comprehensive information for developers who want to contrib
 
 ### Prerequisites
 
-- **Node.js**: 18.x or higher
-- **npm**: 9.x or higher (comes with Node.js)
-- **Git**: For version control
-- **Modern Browser**: Chrome/Edge recommended for development
+- **Node.js**: 24 (the version CI uses; the server and its tests need it)
+- **npm**: comes with Node.js
+- **Git**
+- **Browser**: Chrome or Edge, for Web Serial and Web Bluetooth
+
+You don't need Rust, a JDK or the Android SDK: CI builds the Windows and Android apps.
 
 ### Initial Setup
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/yourusername/opensail.git
-   cd opensail/pwa
+   git clone https://github.com/gjvanhalem/OpenSail.git
+   cd OpenSail/pwa
    ```
 
 2. **Install Dependencies**:
    ```bash
-   npm install
+   npm ci
    ```
 
-3. **Configure Environment**:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your configuration:
-   ```
-   VITE_API_ENDPOINT=http://localhost:3000
-   VITE_ENVIRONMENT=development
-   ```
-
-4. **Start Development Server**:
+3. **Start Development Server**:
    ```bash
    npm run dev
    ```
-   
-   The app will be available at `http://localhost:5173`
+
+   The app runs at `http://localhost:5173`.
+
+No `.env` file is needed. The chart uses free OpenStreetMap tiles from OpenFreeMap, so there is no map token. `.env.native` holds the settings for the native build (`VITE_NATIVE_APP`, `VITE_CHART_CATALOG_URL`).
+
+To try everything without a boat, use the GPS simulator (Settings → GPS Control) and the instrument simulator (Instruments → Simulator).
 
 ### Development Tools
 
-- **VS Code**: Recommended IDE with extensions:
-  - ESLint
-  - Prettier
-  - TypeScript and JavaScript Language Features
-  - Tailwind CSS IntelliSense
-  - Vite
-
-- **Browser DevTools**:
-  - Chrome DevTools for debugging
-  - Redux DevTools extension for state inspection
-  - Lighthouse for PWA audits
+- **VS Code** with ESLint, Prettier and Tailwind CSS IntelliSense
+- **Browser DevTools**: Redux DevTools for state, the Application tab for IndexedDB and the service worker
 
 ---
 
 ## Project Structure
 
 ```
-pwa/
-├── public/                 # Static assets
-│   ├── manifest.json      # PWA manifest
-│   ├── icons/             # App icons (various sizes)
-│   └── offline.html       # Offline fallback page
-│
-├── src/
-│   ├── components/        # React components
-│   │   ├── chart/        # Map and chart components
-│   │   │   ├── ChartView.tsx
-│   │   │   ├── VesselMarker.tsx
-│   │   │   ├── RouteLayer.tsx
-│   │   │   ├── TrackLayer.tsx
-│   │   │   └── AISLayer.tsx
-│   │   │
-│   │   ├── instruments/  # Instrument display components
-│   │   │   ├── InstrumentPanel.tsx
-│   │   │   ├── SpeedGauge.tsx
-│   │   │   ├── DepthGauge.tsx
-│   │   │   ├── WindGauge.tsx
-│   │   │   └── HeadingCompass.tsx
-│   │   │
-│   │   ├── routes/       # Route planning components
-│   │   │   ├── RoutePlanner.tsx
-│   │   │   ├── RouteList.tsx
-│   │   │   ├── WaypointEditor.tsx
-│   │   │   └── RouteDetails.tsx
-│   │   │
-│   │   ├── tracks/       # Track recording components
-│   │   │   ├── TrackRecorder.tsx
-│   │   │   ├── TrackList.tsx
-│   │   │   └── TrackDetails.tsx
-│   │   │
-│   │   └── ui/           # Shared UI components
-│   │       ├── Layout.tsx
-│   │       ├── Navigation.tsx
-│   │       ├── Sidebar.tsx
-│   │       ├── Button.tsx
-│   │       ├── Modal.tsx
-│   │       └── Toast.tsx
-│   │
-│   ├── services/         # Business logic services
-│   │   ├── storage/      # IndexedDB repositories
-│   │   │   ├── database.ts
-│   │   │   ├── RouteRepository.ts
-│   │   │   ├── WaypointRepository.ts
-│   │   │   ├── TrackRepository.ts
-│   │   │   ├── AISRepository.ts
-│   │   │   ├── LogbookRepository.ts
-│   │   │   └── TileCache.ts
-│   │   │
-│   │   ├── connections/  # Device connection services
-│   │   │   ├── SerialConnection.ts
-│   │   │   ├── BluetoothConnection.ts
-│   │   │   └── ConnectionManager.ts
-│   │   │
-│   │   ├── protocols/    # Marine protocol parsers
-│   │   │   ├── NMEA0183Parser.ts
-│   │   │   ├── NMEA2000Parser.ts
-│   │   │   ├── SeaTalkParser.ts
-│   │   │   └── ProtocolStub.ts
-│   │   │
-│   │   └── workers/      # Web Workers
-│   │       ├── trackProcessor.worker.ts
-│   │       └── calculationWorker.ts
-│   │
-│   ├── store/            # Redux state management
-│   │   ├── index.ts      # Store configuration
-│   │   ├── navigationSlice.ts
-│   │   ├── routesSlice.ts
-│   │   ├── tracksSlice.ts
-│   │   ├── aisSlice.ts
-│   │   ├── instrumentsSlice.ts
-│   │   └── uiSlice.ts
-│   │
-│   ├── models/           # TypeScript data models
-│   │   ├── Position.ts
-│   │   ├── Route.ts
-│   │   ├── Waypoint.ts
-│   │   ├── Track.ts
-│   │   ├── AISTarget.ts
-│   │   └── LogbookEntry.ts
-│   │
-│   ├── utils/            # Utility functions
-│   │   ├── calculations.ts
-│   │   ├── coordinates.ts
-│   │   ├── validation.ts
-│   │   └── formatting.ts
-│   │
-│   ├── hooks/            # Custom React hooks
-│   │   ├── useGeolocation.ts
-│   │   ├── useInstruments.ts
-│   │   ├── useOfflineStatus.ts
-│   │   └── useLocalStorage.ts
-│   │
-│   ├── types/            # TypeScript type definitions
-│   │   ├── index.ts
-│   │   ├── api.ts
-│   │   └── global.d.ts
-│   │
-│   ├── App.tsx           # Root component
-│   ├── main.tsx          # Entry point
-│   └── index.css         # Global styles
-│
-├── e2e/                  # End-to-end tests
-│   ├── chart-display.spec.ts
-│   ├── route-planning.spec.ts
-│   ├── track-recording.spec.ts
-│   ├── offline.spec.ts
-│   └── pwa-installation.spec.ts
-│
-├── .env.example          # Environment variables template
-├── .eslintrc.json        # ESLint configuration
-├── .prettierrc           # Prettier configuration
-├── index.html            # HTML entry point
-├── package.json          # Dependencies and scripts
-├── playwright.config.ts  # Playwright configuration
-├── postcss.config.js     # PostCSS configuration
-├── tailwind.config.js    # Tailwind CSS configuration
-├── tsconfig.json         # TypeScript configuration
-├── vite.config.ts        # Vite configuration
-└── vitest.config.ts      # Vitest configuration
+OpenSail/
+├── pwa/                    # The one frontend: browser, Windows and Android
+│   ├── public/             # Icons, offline.html
+│   ├── e2e/                # Playwright tests, fixtures and helpers
+│   ├── scripts/            # deploy-check, performance-audit, device-test
+│   └── src/
+│       ├── pages/          # Chart, Routes, Tracks, Instruments, Settings, Logbook (hidden)
+│       ├── components/
+│       │   ├── layout/     # AppBar (top tabs), BottomNav, Layout
+│       │   ├── chart/      # ChartView, Layers panel, ENC layers, offline charts, tile protocol
+│       │   ├── instruments/# Gauges, panels, simulator controls
+│       │   ├── routes/     # Route planner, waypoint editor, summary, hazards
+│       │   ├── tracks/     # Track list and recording controls
+│       │   ├── safety/     # Man overboard, anchor watch, safety cluster
+│       │   ├── alerts/     # Alarm overlay, alert banner
+│       │   └── account/    # Account settings, user admin (browser version only)
+│       ├── platform/       # Tauri / Capacitor / browser differences (see below)
+│       ├── protocols/      # NMEA 0183, NMEA 2000 and SeaTalk parsers
+│       ├── services/       # Connections, GPS, alarms, chart downloads, simulator
+│       ├── store/          # Redux store and slices
+│       ├── database/       # Dexie database, repositories, tile cache
+│       ├── hooks/          # Custom React hooks
+│       ├── utils/          # Calculations, units, route guidance, GPX export
+│       └── workers/        # Web Worker for track processing
+├── desktop/                # Windows app (Tauri 2)
+├── android/                # Android app (Capacitor 8)
+├── server/                 # Web server with user accounts (Node 24, no dependencies)
+├── tools/
+│   ├── enc-pipeline/       # Rijkswaterstaat ENC → PMTiles (Docker, GDAL + tippecanoe)
+│   └── opensail-bridge/    # TCP/UDP → WebSocket relay for Wi-Fi instruments in the browser
+└── docs/                   # Releasing, chart sources, native app plan, UI redesign
 ```
+
+Some folders have their own README, for example `src/database/`, `src/store/`, `src/services/connections/` and `src/components/chart/OFFLINE_CHARTS_README.md`.
 
 ---
 
 ## Architecture Overview
 
-### High-Level Architecture
+### One Codebase, Three Ways to Ship
 
-OpenSail follows a modern React architecture with clear separation of concerns:
+`pwa/` is the only frontend. The same build runs:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Browser Environment                      │
-├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   React UI   │  │ Service      │  │  Web APIs    │     │
-│  │  Components  │  │ Worker       │  │ (Bluetooth,  │     │
-│  │              │  │              │  │  Serial, GPS)│     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                  │                  │              │
-│  ┌──────▼──────────────────▼──────────────────▼───────┐    │
-│  │           Application State (Redux)                 │    │
-│  └──────┬──────────────────┬──────────────────┬───────┘    │
-│         │                  │                  │              │
-│  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐     │
-│  │  IndexedDB   │  │  MapLibre GL │  │  Protocol    │     │
-│  │  Storage     │  │  JS          │  │  Parsers     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└─────────────────────────────────────────────────────────────┘
-```
+- **In the browser**, served by `server/` with user accounts (setup code, invites, admin and crew roles). See [DEPLOY.md](../DEPLOY.md).
+- **As a Windows app**: Tauri 2 in `desktop/` wraps the build in WebView2. See [desktop/README.md](../desktop/README.md).
+- **As an Android app**: Capacitor 8 in `android/`, with a Kotlin TCP plugin and a foreground service for background use. See [android/README.md](../android/README.md).
 
-### Design Patterns
+The native apps have no accounts. They use `npm run build:native`, which turns off the service worker and web manifest.
 
-#### 1. Repository Pattern
-All data access goes through repository classes that abstract IndexedDB operations:
+### The Platform Layer
 
-```typescript
-interface Repository<T> {
-  getAll(): Promise<T[]>;
-  getById(id: string): Promise<T | undefined>;
-  create(item: Omit<T, 'id'>): Promise<T>;
-  update(id: string, item: Partial<T>): Promise<T>;
-  delete(id: string): Promise<void>;
-}
-```
+All platform differences live in `src/platform/`. `platform.ts` detects Tauri, Capacitor or a browser at runtime, and features ask for a capability instead of checking the platform themselves:
 
-#### 2. Service Layer
-Business logic is encapsulated in service classes:
-- `ConnectionManager`: Handles device connections
-- `TrackRecorder`: Manages track recording
-- `RouteCalculator`: Performs navigation calculations
+- `platformFetch.ts` and `FetchRangeSource.ts`: native HTTP in the apps (no CORS), for chart downloads and PMTiles range requests
+- `nativeTcp.ts`: direct TCP to Wi-Fi instruments in the apps
+- `geolocation.ts`: device position
+- `background.ts`: keep running with the screen off (Android foreground service)
 
-#### 3. Redux State Management
-Centralized state with Redux Toolkit:
-- Slices for different domains (navigation, routes, tracks, etc.)
-- Async thunks for side effects
-- Selectors for derived state
+### Charts
 
-#### 4. Component Composition
-React components follow composition patterns:
-- Container components handle logic
-- Presentational components handle UI
-- Custom hooks for reusable logic
+- **Base map**: OpenFreeMap vector tiles (OpenStreetMap), drawn by MapLibre GL.
+- **Seamarks**: OpenSeaMap raster overlay.
+- **Depth areas and hazards**: Rijkswaterstaat inland ENC, converted by `tools/enc-pipeline` to PMTiles and published in the [opensail-charts](https://github.com/gjvanhalem/opensail-charts) releases. The Zimablade serves its own copy at `/charts/`.
+- **Offline**: downloaded regions are stored in IndexedDB and served to the map through an `opensail://` protocol (`src/components/chart/tileProtocol.ts`).
+
+### Instruments
+
+Parsers for NMEA 0183, NMEA 2000 and SeaTalk are in `src/protocols/`. Connections are in `src/services/connections/`:
+
+- `SerialConnection`: USB (Web Serial, Chromium browsers)
+- `BluetoothConnection`: Web Bluetooth
+- `NativeTcpConnection`: Wi-Fi over direct TCP in the Windows and Android apps
+- `WebSocketConnection`: Wi-Fi in the browser, through `tools/opensail-bridge` on `ws://localhost:10110`
+- `StubConnection`: the built-in simulator, which generates real protocol data
+
+### State and Storage
+
+- **Redux Toolkit** slices in `src/store/slices/` (navigation, instruments, routes, tracks, safety, alerts, settings, chart cache, UI and more).
+- **Dexie** (IndexedDB) in `src/database/`: routes, waypoints, tracks, safety events, settings, chart tiles and regions. Data access goes through repository classes in `src/database/repositories/`.
+- Everything stays on the device. The server only stores user accounts.
 
 ---
 
 ## Key Technologies
 
-### React 19.x
-- Functional components with hooks
-- Concurrent features for better performance
-- Suspense for lazy loading
-
-### TypeScript 5.9
-- Strict type checking enabled
-- Type-safe Redux with RTK
-- Interface-driven development
-
-### Vite 7.x
-- Fast HMR (Hot Module Replacement)
-- Optimized production builds
-- Plugin ecosystem
-
-### Redux Toolkit 2.x
-- Simplified Redux setup
-- Built-in immutability with Immer
-- RTK Query for API calls (optional)
-
-### Dexie.js 4.x
-- IndexedDB wrapper with better API
-- TypeScript support
-- Transactions and queries
-
-### MapLibre GL JS 5.x
-- WebGL-based vector maps
-- Custom layers and markers
-- Smooth animations
-
-### Tailwind CSS 3.x
-- Utility-first CSS
-- Responsive design
-- Custom theme configuration
-
-### Workbox 7.x
-- Service Worker generation
-- Caching strategies
-- Background sync
+- **React 19** and **TypeScript 5.9**
+- **Vite 7** with `vite-plugin-pwa` (Workbox) for the service worker
+- **Redux Toolkit 2**
+- **Dexie 4** for IndexedDB
+- **MapLibre GL 5** via `react-map-gl/maplibre`, with **PMTiles** for chart archives
+- **Tailwind CSS 4**
+- **React Router 7**
+- **Vitest 4** for unit tests, **Playwright** for end-to-end tests
+- **Tauri 2** (Windows) and **Capacitor 8** (Android)
 
 ---
 
 ## Development Workflow
 
-### Running the Development Server
+### Scripts
+
+Run these in `pwa/`:
 
 ```bash
-npm run dev
+npm run dev              # Dev server with HMR (http://localhost:5173)
+npm run build            # Type check and web build in dist/
+npm run build:native     # The build the Windows and Android apps wrap
+npm run preview          # Serve the production build (http://localhost:4173)
+npm run lint             # ESLint
+npm run format           # Prettier
+npx tsc -b               # Type check only
 ```
 
-Features:
-- Hot Module Replacement (HMR)
-- Fast refresh for React components
-- TypeScript type checking
-- ESLint integration
-
-### Code Style
-
-We use Prettier and ESLint for consistent code style:
-
-```bash
-# Format code
-npm run format
-
-# Lint code
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-```
-
-### Type Checking
-
-TypeScript is configured with strict mode:
-
-```bash
-# Check types
-npm run type-check
-```
+The root `package.json` has `dev`, `build`, `preview`, `test`, `test:e2e` and `lint` shortcuts that run in `pwa/`.
 
 ### Git Workflow
 
-1. **Create a Branch**:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Make Changes**:
-   - Write code
-   - Add tests
-   - Update documentation
-
-3. **Commit Changes**:
-   ```bash
-   git add .
-   git commit -m "feat: add your feature description"
-   ```
-   
-   Follow conventional commits:
-   - `feat:` New feature
-   - `fix:` Bug fix
-   - `docs:` Documentation
-   - `style:` Formatting
-   - `refactor:` Code restructuring
-   - `test:` Adding tests
-   - `chore:` Maintenance
-
-4. **Push and Create PR**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+1. Create a branch: `git checkout -b feat/your-feature`
+2. Make your changes, with tests
+3. Commit with [conventional commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+4. Push and open a pull request
 
 ---
 
@@ -382,460 +188,119 @@ npm run type-check
 
 ### Unit Tests (Vitest)
 
-Run unit tests:
 ```bash
-npm run test
+npm test                 # Run once
+npm run test:watch       # Watch mode
+npm run test:coverage    # With coverage
 ```
 
-Run with coverage:
-```bash
-npm run test:coverage
-```
-
-Watch mode:
-```bash
-npm run test:watch
-```
-
-Example unit test:
-```typescript
-import { describe, it, expect } from 'vitest';
-import { calculateDistance } from '../utils/calculations';
-
-describe('calculateDistance', () => {
-  it('calculates distance between two points', () => {
-    const point1 = { latitude: 0, longitude: 0 };
-    const point2 = { latitude: 1, longitude: 1 };
-    const distance = calculateDistance(point1, point2);
-    expect(distance).toBeCloseTo(157.2, 1);
-  });
-});
-```
-
-### Integration Tests
-
-Integration tests verify multiple components working together:
-
-```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { setupDatabase } from '../services/storage/database';
-import { RouteRepository } from '../services/storage/RouteRepository';
-
-describe('RouteRepository Integration', () => {
-  let repository: RouteRepository;
-
-  beforeEach(async () => {
-    const db = await setupDatabase();
-    repository = new RouteRepository(db);
-  });
-
-  it('creates and retrieves a route', async () => {
-    const route = await repository.create({
-      name: 'Test Route',
-      waypoints: []
-    });
-    
-    const retrieved = await repository.getById(route.id);
-    expect(retrieved).toEqual(route);
-  });
-});
-```
+Unit tests sit next to the code in `__tests__/` folders. Integration tests are in `src/test/integration/`.
 
 ### E2E Tests (Playwright)
 
-Run E2E tests:
 ```bash
+npm run build
 npm run test:e2e
 ```
 
-Run in UI mode:
+There are two Playwright projects that matter: `chromium` (the app on the preview server) and `accounts` (the server in `server/node.ts`, with sign-in and invites). CI runs both. See [e2e/README.md](e2e/README.md).
+
+### Server and Bridge Tests
+
+Run these from the repo root, with Node 24:
+
 ```bash
-npm run test:e2e:ui
-```
-
-Example E2E test:
-```typescript
-import { test, expect } from '@playwright/test';
-
-test('user can create a route', async ({ page }) => {
-  await page.goto('/');
-  
-  // Open route planner
-  await page.click('text=Routes');
-  await page.click('text=New Route');
-  
-  // Add waypoints
-  await page.click('.map-container', { position: { x: 100, y: 100 } });
-  await page.click('.map-container', { position: { x: 200, y: 200 } });
-  
-  // Save route
-  await page.fill('input[name="routeName"]', 'Test Route');
-  await page.click('text=Save');
-  
-  // Verify route appears in list
-  await expect(page.locator('text=Test Route')).toBeVisible();
-});
+node --test server/server.test.ts
+node --test tools/opensail-bridge/bridge.test.mjs
 ```
 
 ### Testing Best Practices
 
-1. **Write tests first** (TDD) when possible
-2. **Test behavior**, not implementation
-3. **Use meaningful test names**
-4. **Keep tests isolated** and independent
-5. **Mock external dependencies** (APIs, hardware)
-6. **Test edge cases** and error conditions
-7. **Maintain high coverage** (aim for >80%)
+1. **Test behavior**, not implementation
+2. **Use roles and labels** as selectors
+3. **Keep tests independent**
+4. **Mock hardware**: use the simulator and the stubbed tile servers, never real devices or external servers
 
 ---
 
 ## Build and Deployment
 
-### Production Build
+### Web
 
-Create an optimized production build:
+`npm run build` writes the web build to `dist/`. The browser version runs on the owner's Zimablade at https://opensail.g-zeven.nl, behind a Cloudflare Tunnel. It is served by `server/` from the Docker image `ghcr.io/gjvanhalem/opensail`, which `.github/workflows/image.yml` builds on every push to `main`. See [DEPLOY.md](../DEPLOY.md).
 
-```bash
-npm run build
-```
+Netlify and Vercel are no longer used.
 
-Output is in the `dist/` directory.
+### Windows and Android
 
-### Preview Production Build
+CI builds both apps from `npm run build:native`. Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`, which builds and tests both and publishes one GitHub release with the Windows installer (`OpenSail_<version>_x64-setup.exe`) and the signed APK (`OpenSail-<version>.apk`). There is one version for all platforms, in `pwa/package.json`. See [docs/RELEASING.md](../docs/RELEASING.md).
 
-Test the production build locally:
+### CI
 
-```bash
-npm run preview
-```
-
-### Build Configuration
-
-The build is configured in `vite.config.ts`:
-
-```typescript
-export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      manifest: {
-        name: 'OpenSail',
-        short_name: 'OpenSail',
-        theme_color: '#1e40af',
-        icons: [/* ... */]
-      },
-      workbox: {
-        runtimeCaching: [/* ... */]
-      }
-    })
-  ],
-  build: {
-    target: 'esnext',
-    minify: 'terser',
-    sourcemap: true
-  }
-});
-```
-
-### Deployment Options
-
-#### Netlify
-
-1. **Connect Repository**:
-   - Link your GitHub repository
-   - Set build command: `npm run build`
-   - Set publish directory: `dist`
-
-2. **Configure Environment**:
-   - Add environment variables in Netlify dashboard
-   - `VITE_API_ENDPOINT`
-
-3. **Deploy**:
-   - Automatic deployment on push to main branch
-   - Preview deployments for pull requests
-
-#### Vercel
-
-1. **Import Project**:
-   - Import from GitHub
-   - Framework preset: Vite
-   - Root directory: `pwa`
-
-2. **Configure**:
-   - Build command: `npm run build`
-   - Output directory: `dist`
-   - Add environment variables
-
-3. **Deploy**:
-   - Automatic deployments
-   - Preview URLs for branches
-
-#### Cloudflare Pages
-
-1. **Create Project**:
-   - Connect GitHub repository
-   - Build command: `npm run build`
-   - Build output: `dist`
-
-2. **Environment Variables**:
-   - Add in Cloudflare dashboard
-
-3. **Deploy**:
-   - Automatic deployments
-   - Global CDN distribution
-
-### Environment Variables
-
-Required for production:
-
-```
-VITE_API_ENDPOINT=https://api.yourdomain.com
-VITE_ENVIRONMENT=production
-```
-
-### HTTPS Requirement
-
-PWA features require HTTPS. All recommended hosting providers provide automatic HTTPS.
-
-For self-hosting, use:
-- Let's Encrypt for free SSL certificates
-- Nginx or Apache as reverse proxy
-- Certbot for automatic certificate renewal
+| Workflow | What |
+|---|---|
+| `pwa-deploy.yml` | Lint, `tsc -b`, unit tests, server and bridge tests, Playwright (`chromium` and `accounts`), build |
+| `android.yml` | Kotlin tests and APK; emulator smoke test only on tags or manual runs |
+| `desktop.yml` | Rust fmt, clippy and tests when `desktop/` changes; installer and smoke test only on tags or manual runs |
+| `release.yml` | Tags `v*`: builds, tests and publishes the release |
+| `image.yml` | Docker image for the web version, on `main` |
+| `pipeline-image.yml` | Chart pipeline image, when `tools/enc-pipeline` changes |
 
 ---
 
 ## Contributing
 
-### Getting Started
+### Code Review
 
-1. **Fork the Repository**
-2. **Clone Your Fork**
-3. **Create a Branch**
-4. **Make Changes**
-5. **Write Tests**
-6. **Submit Pull Request**
-
-### Code Review Process
-
-1. **Automated Checks**:
-   - TypeScript compilation
-   - ESLint checks
-   - Unit tests
-   - E2E tests
-   - Build verification
-
-2. **Manual Review**:
-   - Code quality
-   - Architecture fit
-   - Documentation
-   - Test coverage
-
-3. **Approval and Merge**:
-   - At least one approval required
-   - All checks must pass
-   - Squash and merge to main
+Every pull request runs lint, type checks, unit tests and the end-to-end tests. All checks must pass before merging.
 
 ### Contribution Guidelines
 
-#### Code Style
+- Follow existing patterns, and keep functions small
+- Put platform-specific code in `src/platform/`, not in features
+- Add unit tests for new logic and an E2E test for new user workflows
+- Update the docs and the [User Guide](USER_GUIDE.md) for features people will see
 
-- Follow existing patterns
-- Use TypeScript strictly
-- Write self-documenting code
-- Add comments for complex logic
-- Keep functions small and focused
+### What's Next
 
-#### Documentation
-
-- Update README if needed
-- Add JSDoc comments for public APIs
-- Update user guide for new features
-- Include inline code comments
-
-#### Testing
-
-- Write unit tests for new functions
-- Add integration tests for features
-- Include E2E tests for user workflows
-- Maintain or improve coverage
-
-#### Commit Messages
-
-Follow conventional commits:
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation only
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `perf`: Performance improvement
-- `test`: Adding tests
-- `chore`: Maintenance tasks
-
-### Areas for Contribution
-
-#### High Priority
-- Additional marine protocol support
-- Chart source integrations
-- Weather data providers
-- Performance optimizations
-
-#### Medium Priority
-- UI/UX improvements
-- Additional instrument gauges
-- Export/import formats
-- Internationalization
-
-#### Low Priority
-- Theme customization
-- Advanced route planning
-- Social features
-- Analytics
-
-### Getting Help
-
-- **GitHub Discussions**: Ask questions
-- **GitHub Issues**: Report bugs
-- **Pull Requests**: Propose changes
-- **Documentation**: Read the docs
-
----
-
-## Performance Optimization
-
-### Bundle Size
-
-Monitor bundle size:
-```bash
-npm run build -- --mode analyze
-```
-
-Optimization techniques:
-- Code splitting by route
-- Lazy loading components
-- Tree shaking unused code
-- Minification and compression
-
-### Runtime Performance
-
-- Use React.memo for expensive components
-- Implement virtual scrolling for long lists
-- Debounce frequent updates
-- Use Web Workers for heavy computations
-
-### Memory Management
-
-- Clean up event listeners
-- Limit AIS history retention
-- Implement LRU cache for tiles
-- Monitor memory usage in DevTools
+Plans and open work are in [ROADMAP.md](../ROADMAP.md). The original requirements (R1–R15) are in `.kiro/specs/marine-navigation-system/requirements.md`; the Kiro specs are historical design documents, not the current architecture.
 
 ---
 
 ## Debugging
 
-### Browser DevTools
-
-- **Console**: Log messages and errors
-- **Network**: Monitor API calls and tile loading
-- **Application**: Inspect Service Worker, IndexedDB, storage
-- **Performance**: Profile rendering and JavaScript execution
-- **Lighthouse**: Audit PWA, performance, accessibility
-
-### Redux DevTools
-
-- Inspect state changes
-- Time-travel debugging
-- Action replay
-- State diff visualization
-
 ### Common Issues
 
 #### Service Worker Not Updating
 
+In development, unregister it in DevTools → Application → Service Workers, or run:
+
 ```javascript
-// Force update in development
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(reg => reg.unregister());
-  });
-}
+navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
 ```
 
 #### IndexedDB Quota Exceeded
 
+Downloaded chart regions take the most space. Check usage with:
+
 ```javascript
-// Check storage usage
-if ('storage' in navigator && 'estimate' in navigator.storage) {
-  const estimate = await navigator.storage.estimate();
-  console.log(`Using ${estimate.usage} of ${estimate.quota} bytes`);
-}
+const estimate = await navigator.storage.estimate();
+console.log(`Using ${estimate.usage} of ${estimate.quota} bytes`);
 ```
-
----
-
-## Security Considerations
-
-### API Keys
-
-- Never commit API keys to repository
-- Use environment variables
-- Rotate keys regularly
-- Restrict key permissions
-
-### Content Security Policy
-
-Configure CSP headers:
-```
-Content-Security-Policy: 
-  default-src 'self';
-  script-src 'self' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data: https:;
-  connect-src 'self' https://tiles.openfreemap.org;
-```
-
-### Data Privacy
-
-- All data stored locally by default
-- No tracking or analytics without consent
-- Clear privacy policy
-- GDPR compliance
 
 ---
 
 ## Resources
 
-### Documentation
-
-- [React Documentation](https://react.dev)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Vite Guide](https://vitejs.dev/guide/)
+- [React](https://react.dev)
+- [Vite](https://vite.dev/guide/)
 - [Redux Toolkit](https://redux-toolkit.js.org/)
 - [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/)
+- [PMTiles](https://docs.protomaps.com/pmtiles/)
 - [Dexie.js](https://dexie.org/)
-- [Workbox](https://developers.google.com/web/tools/workbox)
-
-### Marine Protocols
-
-- [NMEA0183 Reference](http://www.nmea.org/)
-- [NMEA2000 Documentation](https://www.nmea.org/content/STANDARDS/NMEA_2000)
-- [SeaTalk Protocol](https://www.thomasknauf.de/seatalk.htm)
-
-### PWA Resources
-
-- [PWA Documentation](https://web.dev/progressive-web-apps/)
-- [Service Worker Cookbook](https://serviceworke.rs/)
-- [Web.dev](https://web.dev/)
+- [Tauri](https://tauri.app/)
+- [Capacitor](https://capacitorjs.com/)
+- [SeaTalk protocol](https://www.thomasknauf.de/seatalk.htm)
 
 ---
 

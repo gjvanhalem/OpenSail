@@ -2,6 +2,7 @@
 
 **Status:** decided by the project owner on 2026-10-15; see [Decision](#decision). The options and recommendation below are the input that decision was based on.
 **Date:** October 2026. **Time box:** about 1 day of research. Nothing here was prototyped, so the effort figures are estimates.
+**Since then (v0.3.0):** the decision is built: MapLibre GL JS through `react-map-gl/maplibre` on the OpenFreeMap base map (no Mapbox, no token), OpenSeaMap seamarks with a "not for navigation" notice, and Rijkswaterstaat inland ENCs converted by `tools/enc-pipeline` to PMTiles. What the chart is made of now is in [`chart-sources.md`](chart-sources.md). The coastal depth layer is decided but not built yet. The text below describes the situation before the decision.
 
 ## The question
 

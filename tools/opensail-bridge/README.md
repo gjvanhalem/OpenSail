@@ -8,6 +8,8 @@ autopilot / gateway ──TCP 20220──► bridge (on your laptop) ──ws://
 
 It has no dependencies. Node.js 18 or newer is enough.
 
+Only the browser version needs it. The [Windows](../../desktop/README.md) and [Android](../../android/README.md) apps open the TCP connection themselves: Instruments → Wi-Fi, host and port.
+
 ## Pcnautic Easy Tiller Pilot (pypilot)
 
 The autopilot makes its own Wi-Fi network, `pcnautic_AP`, and runs an NMEA 0183 server on **192.168.14.1, TCP port 20220**. Those are the bridge's defaults.
@@ -19,7 +21,7 @@ The autopilot makes its own Wi-Fi network, `pcnautic_AP`, and runs an NMEA 0183 
    ```
    It prints `Connected to 192.168.14.1:20220` once the autopilot answers, and keeps retrying if it doesn't.
 3. In OpenSail: **Instruments → Wi-Fi**, address `ws://localhost:10110`, protocol **NMEA 0183**, then **Connect over Wi-Fi**.
-4. In **Settings → Navigation Sources**, set the **magnetic variation**. The autopilot sends a *magnetic* heading (`HDM`). In the Netherlands the variation is about 2° east.
+4. In **Settings → Navigation sources**, set the **magnetic variation**. The autopilot sends a *magnetic* heading (`HDM`). In the Netherlands the variation is about 2° east.
 
 What the autopilot sends, according to Pcnautic's manual: magnetic heading (`APHDM`), rudder angle (`APRSA`), heel and pitch (`APXDR`) and, if a wind sensor is connected to the pilot, wind (`APMWV`). It sends **no position or depth**: keep the laptop's GPS on for those. If the autopilot joined another network (client mode), its address is shown in the ControlHead's Wi-Fi menu. Use that address with `--target`.
 
@@ -46,7 +48,7 @@ Any website open in your browser can reach `ws://localhost` too, so the bridge d
 
 ## Phones and tablets
 
-A phone can't run the bridge, and its browser can't open TCP. On a phone, OpenSail would need to be packaged as an installable app that opens the TCP connection itself. That's planned separately. A laptop or Raspberry Pi on board can run the bridge with `--listen 0.0.0.0` for other devices. But a page loaded over HTTPS may only open an unencrypted `ws://` link to `localhost`, so the phone would have to load OpenSail over plain HTTP from the boat's network.
+A phone can't run the bridge, and its browser can't open TCP. On Android, use the [Android app](../../android/README.md), which connects to the gateway directly. A laptop or Raspberry Pi on board can run the bridge with `--listen 0.0.0.0` for other devices. But a page loaded over HTTPS may only open an unencrypted `ws://` link to `localhost`, so the phone would have to load OpenSail over plain HTTP from the boat's network.
 
 ## Tests
 
