@@ -9,7 +9,7 @@ export interface VesselMarkerProps {
 }
 
 export const VesselMarker: React.FC<VesselMarkerProps> = React.memo(
-  ({ position, heading = null, size = 24 }) => {
+  ({ position, heading = null, size = 36 }) => {
     const vesselIcon = useMemo(() => {
       return (
         <svg

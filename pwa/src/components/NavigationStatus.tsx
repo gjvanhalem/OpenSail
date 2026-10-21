@@ -85,9 +85,9 @@ export function NavigationStatus() {
         </div>
         <button
           onClick={() => dispatch(stopNavigation())}
-          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 shrink-0"
+          className="min-h-11 px-3 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-50 shrink-0"
         >
-          Stop
+          Stop route
         </button>
       </div>
 

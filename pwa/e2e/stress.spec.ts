@@ -37,13 +37,9 @@ test('100 hours of track data loads and converts to a route (R9.2)', async ({ pa
   await page.getByRole('button', { name: 'Convert to route' }).click();
   await expect(page.getByRole('status')).toContainText('Route “Summer cruise (route)” created');
 
-  // The chart draws every saved track, this one included, and the new
-  // route can be started from there
-  await page.click('a[href="/chart"]');
-  await expect(page.getByLabel('Route to navigate')).toHaveValue(/.+/);
-  await expect(page.getByLabel('Route to navigate').locator('option')).toHaveText([
-    'Summer cruise (route)',
-  ]);
+  // The new route is saved and can be started from the Routes page
+  await page.click('a[href="/routes"]');
+  await expect(page.getByRole('button', { name: 'Navigate Summer cruise (route)' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -67,6 +63,5 @@ test('12 saved routes are all there offline (R5.3)', async ({ page, context }) =
   for (let i = 1; i <= 12; i++) {
     await expect(page.getByRole('heading', { name: `Passage ${i}`, exact: true })).toBeVisible();
   }
-  await page.click('a[href="/chart"]');
-  await expect(page.getByLabel('Route to navigate').locator('option')).toHaveCount(12);
+  await expect(page.getByRole('button', { name: /^Navigate Passage \d+$/ })).toHaveCount(12);
 });

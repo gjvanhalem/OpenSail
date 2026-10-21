@@ -28,6 +28,8 @@ async function markerOffsetFromCenter(page: Page): Promise<number> {
   return Math.hypot(dx, dy);
 }
 
+const follow = (page: Page) => page.getByRole('button', { name: 'Follow vessel' });
+
 test.describe('Chart follows the vessel', () => {
   test('centers on the vessel and keeps it centered as it moves', async ({ page }) => {
     await startSimulator(page);
@@ -44,9 +46,9 @@ test.describe('Chart follows the vessel', () => {
     expect(await markerOffsetFromCenter(page)).toBeLessThan(5);
   });
 
-  test('panning stops following and Recenter brings the vessel back', async ({ page }) => {
+  test('panning stops following and Follow vessel brings the vessel back', async ({ page }) => {
     await startSimulator(page);
-    await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
+    await expect(follow(page)).toHaveAttribute('aria-pressed', 'true');
 
     const map = await page.locator('.maplibregl-canvas').boundingBox();
     if (!map) throw new Error('map not on screen');
@@ -58,13 +60,13 @@ test.describe('Chart follows the vessel', () => {
     await page.mouse.move(x - 200, y - 150, { steps: 10 });
     await page.mouse.up();
 
-    await expect(page.getByRole('button', { name: 'Recenter' })).toBeVisible();
+    await expect(follow(page)).toHaveAttribute('aria-pressed', 'false');
     // Stays panned away even while the vessel keeps moving
     await page.waitForTimeout(1500);
     expect(await markerOffsetFromCenter(page)).toBeGreaterThan(100);
 
-    await page.getByRole('button', { name: 'Recenter' }).click();
-    await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
+    await follow(page).click();
+    await expect(follow(page)).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => markerOffsetFromCenter(page)).toBeLessThan(5);
   });
 
@@ -72,7 +74,7 @@ test.describe('Chart follows the vessel', () => {
     page,
   }) => {
     await startSimulator(page);
-    await expect(page.getByRole('button', { name: 'Centered' })).toBeVisible();
+    await expect(follow(page)).toHaveAttribute('aria-pressed', 'true');
 
     const map = await page.locator('.maplibregl-canvas').boundingBox();
     if (!map) throw new Error('map not on screen');
@@ -85,7 +87,7 @@ test.describe('Chart follows the vessel', () => {
     await page.mouse.move(x - 200, y - 150, { steps: 10 });
     await page.mouse.up();
 
-    await expect(page.getByRole('button', { name: 'Recenter' })).toBeVisible();
+    await expect(follow(page)).toHaveAttribute('aria-pressed', 'false');
     expect(await markerOffsetFromCenter(page)).toBeGreaterThan(100);
   });
 });
@@ -147,33 +149,27 @@ test.describe('Chart orientation', () => {
 
   test('heading-up turns the chart to the course, north-up turns it back', async ({ page }) => {
     await startSimulator(page);
-    const orientation = page.getByRole('group', { name: 'Chart orientation' });
-    await expect(orientation.getByRole('button', { name: 'North up' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    // One button: pressed is heading up, not pressed north up
+    const headingUp = page.getByRole('button', { name: 'Heading up' });
+    await expect(headingUp).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => bearing(page)).toBe(0);
 
-    await orientation.getByRole('button', { name: 'Heading up' }).click();
-    await expect(orientation.getByRole('button', { name: 'Heading up' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    await headingUp.click();
+    await expect(headingUp).toHaveAttribute('aria-pressed', 'true');
     // The harbor track's first leg runs north-east; the simulator has no
     // heading sensor, so heading-up uses course over ground
     await expect.poll(async () => Math.abs(await bearing(page))).toBeGreaterThan(10);
     // The vessel still sits in the center, with the bow pointing up the screen
     expect(await markerOffsetFromCenter(page)).toBeLessThan(5);
 
-    await orientation.getByRole('button', { name: 'North up' }).click();
+    await headingUp.click();
+    await expect(headingUp).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => bearing(page)).toBe(0);
   });
 
   test('the orientation is saved in settings', async ({ page }) => {
     await page.goto('/chart');
-    const headingUp = page
-      .getByRole('group', { name: 'Chart orientation' })
-      .getByRole('button', { name: 'Heading up' });
+    const headingUp = page.getByRole('button', { name: 'Heading up' });
     await headingUp.click();
     // The button updates once the setting is stored
     await expect(headingUp).toHaveAttribute('aria-pressed', 'true');

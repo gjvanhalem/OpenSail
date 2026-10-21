@@ -53,9 +53,10 @@ test('a simulated passage over a 5-waypoint route', async ({ page }) => {
   await page.getByLabel('Longitude (°)').fill('4');
   // The first leg starts where the boat is when the route starts
   await expect(page.getByTestId('position-readout')).toHaveText("51°59.400' N004°00.000' E");
+  // Routes are started on the Routes page; the guidance shows on the chart
+  await page.click('a[href="/routes"]');
+  await page.getByRole('button', { name: 'Navigate Coastal passage' }).click();
   await page.click('a[href="/chart"]');
-
-  await page.getByRole('button', { name: 'Start route' }).click();
   const panel = page.getByRole('region', { name: 'Route guidance' });
   await expect(panel).toBeVisible();
   await expect(waypoint(page)).toHaveText('To 1/5: WP1');

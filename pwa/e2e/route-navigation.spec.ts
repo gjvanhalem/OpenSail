@@ -18,16 +18,18 @@ test.describe('Route navigation', () => {
     await expect(page.getByText('Navigating', { exact: true })).toBeHidden();
   });
 
-  test('starts and stops a saved route from the chart', async ({ page }) => {
+  test('a route started on the Routes page can be stopped from the chart', async ({ page }) => {
     await page.goto('/routes');
     await createRoute(page, 'Chart run', WAYPOINTS);
+    await page.getByRole('button', { name: 'Navigate Chart run' }).click();
 
-    // Reload on the chart: saved routes load without visiting the Routes page
-    await page.goto('/chart');
-    await expect(page.getByLabel('Route to navigate')).toHaveValue(/.+/);
-    await page.getByRole('button', { name: 'Start route' }).click();
-    await page.getByRole('button', { name: 'Stop route' }).click();
-    await expect(page.getByRole('button', { name: 'Start route' })).toBeVisible();
+    await page.click('a[href="/chart"]');
+    const guidance = page.getByRole('region', { name: 'Route guidance' });
+    await expect(guidance).toContainText('Chart run');
+    await guidance.getByRole('button', { name: 'Stop route' }).click();
+    await expect(guidance).toBeHidden();
+    // The chart has no route picker of its own: one place to start a route
+    await expect(page.getByLabel('Route to navigate')).toHaveCount(0);
   });
 });
 

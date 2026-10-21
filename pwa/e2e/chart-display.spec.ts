@@ -40,8 +40,8 @@ test.describe('Chart Display', () => {
   });
 
   test('should have zoom controls', async ({ page }) => {
-    await expect(page.locator('.maplibregl-ctrl-zoom-in')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('.maplibregl-ctrl-zoom-out')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'Zoom out' })).toBeVisible();
   });
 
   test('should display vessel position marker when available', async ({ page }) => {

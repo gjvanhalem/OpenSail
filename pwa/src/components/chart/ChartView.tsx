@@ -59,8 +59,14 @@ export interface ChartViewProps {
   cursor?: string;
   /** Draw OpenSeaMap seamarks (buoys, beacons, lights). On by default. */
   showSeamarks?: boolean;
+  /** Draw the inland ENC charts (Rijkswaterstaat). On by default. */
+  showEnc?: boolean;
   /** Shallow, safety and deep contours for shading ENC depth areas */
   encDepths?: EncDepthSettings;
+  /** MapLibre's zoom buttons; off where the page draws its own */
+  zoomControl?: boolean;
+  /** Shown top left, above the chart notes (the chart page's route guidance) */
+  topLeft?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -83,7 +89,10 @@ export const ChartView: React.FC<ChartViewProps> = ({
   onClick,
   cursor,
   showSeamarks = true,
+  showEnc = true,
   encDepths,
+  zoomControl = true,
+  topLeft,
   children,
 }) => {
   const mapRef = useRef<MapRef>(null);
@@ -225,11 +234,13 @@ export const ChartView: React.FC<ChartViewProps> = ({
         // Collapsed to an (i) button, so the attribution never covers the disclaimer
         attributionControl={{ compact: true }}
       >
-        <NavigationControl position="bottom-right" showCompass={false} />
-        <EncLayers regions={chartRegions} depths={encDepths} />
+        {zoomControl && <NavigationControl position="bottom-right" showCompass={false} />}
+        {showEnc && <EncLayers regions={chartRegions} depths={encDepths} />}
         {children}
       </Map>
-      <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-1">
+      {/* Top left, so the bottom corners stay free for the safety buttons and the instruments */}
+      <div className="pointer-events-none absolute top-3 left-3 z-10 flex max-w-[calc(100%-5rem)] flex-col items-start gap-2 [&>*]:pointer-events-auto">
+        {topLeft}
         <ChartUpdateNotice />
         <ConnectionStatus />
         <ChartDisclaimer />

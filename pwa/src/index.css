@@ -134,6 +134,17 @@ body {
   height: 44px;
 }
 
+/* The map attribution sits above the chart page's instrument strip (plain CSS:
+   MapLibre's stylesheet is not in a layer, so it wins over Tailwind utilities) */
+.chart-page .maplibregl-ctrl-bottom-right {
+  bottom: 156px;
+}
+@media (min-width: 768px) {
+  .chart-page .maplibregl-ctrl-bottom-right {
+    bottom: 76px;
+  }
+}
+
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);

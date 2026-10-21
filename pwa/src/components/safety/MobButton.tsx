@@ -4,7 +4,7 @@ import { activateMob } from '@/store/slices/safetySlice';
 
 /**
  * The man-overboard button: large, red and always on screen, on every page
- * and in fullscreen mode (it sits in the SafetyCluster, above the chart's bottom-left notes). One tap records the position (R12.1).
+ * and in fullscreen mode (it sits in the SafetyCluster). One tap records the position (R12.1).
  */
 export const MobButton: React.FC = () => {
   const dispatch = useAppDispatch();
