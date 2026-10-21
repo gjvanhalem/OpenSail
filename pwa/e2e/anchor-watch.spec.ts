@@ -51,7 +51,7 @@ const status = (page: Page) => page.getByTestId('anchor-status');
 const overlay = (page: Page) => page.getByRole('alertdialog');
 
 async function dropAnchor(page: Page, radius: string) {
-  await page.getByRole('button', { name: /Anchor Watch$/ }).click();
+  await page.getByRole('button', { name: 'Anchor watch', exact: true }).click();
   await panel(page).getByLabel('Anchor watch radius (m)').fill(radius);
   await panel(page).getByLabel('Anchor watch radius (m)').press('Enter');
   await panel(page).getByRole('button', { name: 'Drop anchor here' }).click();

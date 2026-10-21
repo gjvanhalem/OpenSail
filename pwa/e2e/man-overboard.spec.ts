@@ -157,9 +157,9 @@ test.describe('Man overboard', () => {
     await expect(panel(page)).toBeHidden();
   });
 
-  test('the sidebar button also raises it, before any fix', async ({ page }) => {
+  test('it can be raised before any fix', async ({ page }) => {
     await page.goto('/chart');
-    await page.getByRole('button', { name: /Man Overboard$/ }).click();
+    await mobButton(page).click();
     await expect(page.getByRole('alertdialog')).toContainText('MAN OVERBOARD');
     await page.getByRole('alertdialog').getByRole('button', { name: 'Silence' }).click();
     await expect(page.getByTestId('mob-waiting')).toHaveText('Waiting for a position fix…');

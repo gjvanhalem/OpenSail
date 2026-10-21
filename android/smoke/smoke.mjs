@@ -163,15 +163,9 @@ async function launch() {
   }
 }
 
-/** Go to a page through the navigation bar, or through the menu on a phone-sized screen */
+/** Go to a page through the main navigation: tabs on a tablet, the bottom bar on a phone */
 async function go(page, path) {
-  const link = page.locator(`nav a[href="${path}"]`).first();
-  if (!(await link.isVisible())) {
-    await page.getByRole('button', { name: 'Toggle mobile menu' }).click();
-    await page.locator(`#mobile-menu a[href="${path}"]`).click();
-  } else {
-    await link.click();
-  }
+  await page.getByRole('navigation', { name: 'Main' }).locator(`a[href="${path}"]`).click();
 }
 
 async function screenshot(page, name) {
@@ -334,8 +328,8 @@ try {
   // The background: anchor watch on the position from the instruments (the TCP link), then the
   // screen goes off. Not the emulator's GPS: its Play services sometimes freeze on the runner.
   currentStep = 'anchor watch';
-  await page.getByRole('button', { name: 'Toggle sidebar' }).click();
-  await page.getByRole('button', { name: /Anchor Watch$/ }).click();
+  // One tap: the anchor button next to MOB, on every page
+  await page.getByRole('button', { name: 'Anchor watch', exact: true }).click();
   const anchorPanel = page.getByRole('region', { name: 'Anchor watch' });
   await anchorPanel.getByLabel('Anchor watch radius (m)').fill('30');
   await anchorPanel.getByLabel('Anchor watch radius (m)').press('Enter');
