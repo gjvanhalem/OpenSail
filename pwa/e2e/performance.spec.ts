@@ -1,6 +1,9 @@
 import { test, expect } from './fixtures/test';
 import type { Page } from '@playwright/test';
 
+/** The app shell is up: its main navigation shows on every page (the chart page has no heading) */
+const appShell = (page: Page) => page.getByRole('navigation', { name: 'Main' });
+
 /**
  * Wait until the chart has loaded its style and tiles and stopped drawing, so
  * frame rates measure steady rendering, not the first tile loads and shader
@@ -26,7 +29,7 @@ test.describe('Performance Testing', () => {
       await page.goto('/');
       
       // Wait for main content to be visible
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(appShell(page)).toBeVisible();
       
       const loadTime = Date.now() - startTime;
       
@@ -96,7 +99,7 @@ test.describe('Performance Testing', () => {
       await page.goto('/');
       
       // Find an interactive element
-      const button = page.getByRole('button', { name: 'Toggle sidebar' });
+      const button = page.getByRole('button', { name: 'Anchor watch', exact: true });
       await button.waitFor({ state: 'visible' });
       
       // Measure inside the page, from the click to the next painted frame,
@@ -126,7 +129,7 @@ test.describe('Performance Testing', () => {
       for (const route of routes) {
         const startTime = Date.now();
         await page.goto(route);
-        await expect(page.locator('h1, h2').first()).toBeVisible();
+        await expect(appShell(page)).toBeVisible();
         const navTime = Date.now() - startTime;
         navigationTimes.push(navTime);
         console.log(`Navigation to ${route}: ${navTime}ms`);
@@ -349,7 +352,7 @@ test.describe('Performance Testing', () => {
       const startTime = Date.now();
       
       // Wait for track list to be visible
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(appShell(page)).toBeVisible();
       
       const renderTime = Date.now() - startTime;
       
@@ -418,7 +421,7 @@ test.describe('Performance Testing', () => {
     test('should load quickly from cache when offline', async ({ page, context }) => {
       // First visit online to cache
       await page.goto('/');
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(appShell(page)).toBeVisible();
       await page.waitForTimeout(2000); // Wait for service worker
       
       // Go offline
@@ -427,7 +430,7 @@ test.describe('Performance Testing', () => {
       // Measure offline load time
       const startTime = Date.now();
       await page.reload();
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(appShell(page)).toBeVisible();
       const offlineLoadTime = Date.now() - startTime;
       
       console.log(`Offline load time: ${offlineLoadTime}ms`);
@@ -452,7 +455,7 @@ test.describe('Performance Testing', () => {
       for (const route of routes) {
         const startTime = Date.now();
         await page.goto(route);
-        await expect(page.locator('h1, h2').first()).toBeVisible();
+        await expect(appShell(page)).toBeVisible();
         const navTime = Date.now() - startTime;
         
         console.log(`Offline navigation to ${route}: ${navTime}ms`);

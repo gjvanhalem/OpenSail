@@ -13,8 +13,6 @@ export type ModalType =
   | null;
 
 export interface UIState {
-  sidebarOpen: boolean;
-  sidebarCollapsed: boolean;
   activeModal: ModalType;
   modalData: unknown;
   fullscreenMode: boolean;
@@ -35,8 +33,6 @@ export interface UIState {
 }
 
 const initialState: UIState = {
-  sidebarOpen: true,
-  sidebarCollapsed: false,
   activeModal: null,
   modalData: null,
   fullscreenMode: false,
@@ -54,18 +50,6 @@ const uiSlice = createSlice({
   name: 'ui',
   initialState,
   reducers: {
-    toggleSidebar: (state) => {
-      state.sidebarOpen = !state.sidebarOpen;
-    },
-    setSidebarOpen: (state, action: PayloadAction<boolean>) => {
-      state.sidebarOpen = action.payload;
-    },
-    toggleSidebarCollapsed: (state) => {
-      state.sidebarCollapsed = !state.sidebarCollapsed;
-    },
-    setSidebarCollapsed: (state, action: PayloadAction<boolean>) => {
-      state.sidebarCollapsed = action.payload;
-    },
     openModal: (state, action: PayloadAction<{ type: ModalType; data?: unknown }>) => {
       state.activeModal = action.payload.type;
       state.modalData = action.payload.data ?? null;
@@ -144,10 +128,6 @@ const uiSlice = createSlice({
 });
 
 export const {
-  toggleSidebar,
-  setSidebarOpen,
-  toggleSidebarCollapsed,
-  setSidebarCollapsed,
   openModal,
   closeModal,
   toggleFullscreen,

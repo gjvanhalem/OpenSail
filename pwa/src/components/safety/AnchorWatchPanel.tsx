@@ -129,10 +129,11 @@ export const AnchorWatchPanel: React.FC = () => {
     );
   }
 
+  // On a phone the panel opens at the top, so it never covers the MOB button
   return (
     <section
       aria-label="Anchor watch"
-      className="fixed z-[80] right-3 bottom-24 w-80 max-w-[calc(100vw-1.5rem)] rounded-lg bg-surface shadow-2xl border border-gray-200 text-sm text-gray-900"
+      className="fixed z-[80] left-3 right-3 top-16 sm:left-auto sm:top-auto sm:bottom-24 sm:w-80 rounded-lg bg-surface shadow-2xl border border-gray-200 text-sm text-gray-900"
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
         <h2 className="font-semibold flex items-center gap-2"><Icon name="anchor" className="w-5 h-5" /> Anchor watch</h2>

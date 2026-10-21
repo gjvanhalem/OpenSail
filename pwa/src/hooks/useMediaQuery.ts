@@ -1,0 +1,17 @@
+import { useSyncExternalStore } from 'react';
+
+/** Whether a CSS media query matches, updated when it changes */
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const list = window.matchMedia(query);
+      list.addEventListener('change', onChange);
+      return () => list.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(query).matches,
+    () => false
+  );
+}
+
+/** Wide screens (desktop, landscape tablet) get top tabs; narrower ones a bottom bar */
+export const WIDE_SCREEN = '(min-width: 1024px)';

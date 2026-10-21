@@ -1,3 +1,3 @@
 export { Layout } from './Layout';
-export { Navigation } from './Navigation';
-export { Sidebar } from './Sidebar';
+export { AppBar } from './AppBar';
+export { BottomNav } from './BottomNav';

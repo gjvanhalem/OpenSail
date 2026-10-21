@@ -19,9 +19,9 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL('/tracks');
     await expect(page.locator('h1, h2').filter({ hasText: /track/i }).first()).toBeVisible();
     
-    // Navigate to logbook page
-    await page.click('a[href="/logbook"]');
-    await expect(page).toHaveURL('/logbook');
+    // The logbook is not in the navigation until it is built, but its address still works
+    await expect(page.locator('a[href="/logbook"]')).toHaveCount(0);
+    await page.goto('/logbook');
     await expect(page.locator('h1, h2').filter({ hasText: /logbook/i }).first()).toBeVisible();
     
     // Navigate to instruments page

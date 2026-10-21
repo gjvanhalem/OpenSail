@@ -29,13 +29,8 @@ test.describe('Responsive Design', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto('/');
       
-      // Below the md breakpoint the links live in the mobile menu
-      if (viewport.width < 768) {
-        await page.getByRole('button', { name: 'Toggle mobile menu' }).click();
-      }
-      
-      // Navigate to routes (desktop and mobile menus both render a link; use the visible one)
-      await page.locator('nav a[href="/routes"]:visible').click();
+      // Top tabs or the bottom bar: one navigation, always visible
+      await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Routes' }).click();
       await expect(page).toHaveURL('/routes');
     });
   }
@@ -59,30 +54,23 @@ test.describe('Responsive Design', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('should show mobile menu on small screens', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
+  test('should use a bottom bar below 1024 px', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
-    
-    // Desktop links are hidden below the md breakpoint
-    await expect(page.locator('nav a[href="/routes"]:visible')).toHaveCount(0);
-
-    const menuButton = page.getByRole('button', { name: 'Toggle mobile menu' });
-    await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
-    await menuButton.click();
-
-    // Menu should open
-    await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    const menu = page.locator('#mobile-menu');
-    await expect(menu).toBeVisible();
-    await expect(menu.getByRole('link', { name: /Routes/ })).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav).toHaveCount(1);
+    const box = await nav.boundingBox();
+    expect(box!.y).toBeGreaterThan(900);
   });
 
-  test('should hide mobile menu on large screens', async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
+  test('should put the tabs in the top bar from 1024 px', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto('/');
-    
-    // Mobile menu toggle should be hidden; desktop links always visible
-    await expect(page.getByRole('button', { name: 'Toggle mobile menu' })).toBeHidden();
-    await expect(page.locator('nav a[href="/routes"]:visible')).toHaveCount(1);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav).toHaveCount(1);
+    const box = await nav.boundingBox();
+    expect(box!.y).toBeLessThan(60);
+    // The logbook is hidden until it is built
+    await expect(nav.getByRole('link', { name: 'Logbook' })).toHaveCount(0);
   });
 });
