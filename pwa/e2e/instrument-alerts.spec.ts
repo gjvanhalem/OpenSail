@@ -36,7 +36,7 @@ test.describe('Instrument alerts', () => {
 
   test('a max wind speed set in settings, in the chosen units', async ({ page }) => {
     await page.goto('/settings');
-    await page.getByLabel('Units').selectOption('metric');
+    await page.getByLabel('Units', { exact: true }).selectOption('metric');
     const section = page.locator('fieldset', { hasText: 'Wind speed' });
     await section.getByLabel('Wind speed alert on').check();
     // 37 km/h is about 20 knots

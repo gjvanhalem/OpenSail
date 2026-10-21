@@ -583,14 +583,14 @@ export function InstrumentManager() {
         </div>
       )}
 
-      {/* Received Data Display */}
+      {/* What the instruments send, for checking a connection: folded away */}
       {activeConnectionId && Object.keys(dataStreams).length > 0 && (
-        <div className="bg-surface p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Received Data
-          </h3>
+        <details className="bg-surface rounded-lg shadow-sm border border-gray-200">
+          <summary className="flex min-h-12 cursor-pointer items-center px-6 text-lg font-semibold text-gray-900">
+            Raw data
+          </summary>
 
-          <div className="space-y-3">
+          <div className="space-y-3 px-6 pb-6">
             {Object.entries(dataStreams).map(([type, data]) => {
               const dataArray = data as InstrumentData[];
               const latest = dataArray[dataArray.length - 1];
@@ -598,12 +598,12 @@ export function InstrumentManager() {
 
               return (
                 <div key={type} className="p-3 bg-gray-50 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <span className="text-sm font-medium text-gray-700 uppercase">
                         {type}
                       </span>
-                      <div className="text-lg font-semibold text-gray-900 mt-1">
+                      <div className="text-sm font-mono text-gray-900 mt-1 break-all">
                         {typeof latest.value === 'object'
                           ? JSON.stringify(latest.value)
                           : `${latest.value} ${latest.unit}`}
@@ -617,14 +617,15 @@ export function InstrumentManager() {
               );
             })}
           </div>
-        </div>
+        </details>
       )}
 
       {/* Help Text */}
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">
-          Connection Tips
-        </h4>
+      <details className="bg-blue-50 rounded-lg border border-blue-200">
+        <summary className="flex min-h-12 cursor-pointer items-center px-4 text-sm font-semibold text-blue-900">
+          Connection help
+        </summary>
+        <div className="px-4 pb-4">
         <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
           <li>USB: Connect your instrument before clicking "Connect to USB Port"</li>
           <li>Bluetooth: Make sure your device is powered on and in pairing mode</li>
@@ -644,7 +645,8 @@ export function InstrumentManager() {
             </ul>
           </div>
         )}
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

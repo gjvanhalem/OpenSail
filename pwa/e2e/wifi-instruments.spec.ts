@@ -43,6 +43,8 @@ test('connects over Wi-Fi and shows the autopilot heading, corrected for variati
   // Magnetic 100° + 2° east = 102° true
   await expect(page.getByTestId('heading-readout')).toHaveText('102°');
   // Rudder and attitude arrive as instrument data
+  // What the instruments send is folded away under Raw data
+  await page.getByText('Raw data', { exact: true }).click();
   await expect(page.getByText('rudder', { exact: true })).toBeVisible();
   await expect(page.getByText('attitude', { exact: true })).toBeVisible();
   // Read-only: the app sends nothing to the autopilot

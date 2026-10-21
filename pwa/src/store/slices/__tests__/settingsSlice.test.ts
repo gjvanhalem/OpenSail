@@ -11,7 +11,7 @@ import {
   settingsRepository,
   type AppSettings,
 } from '@/database/repositories/SettingsRepository';
-import { db } from '@/database/db';
+import { db, REMOVED_SETTINGS } from '@/database/db';
 
 const createStore = () => configureStore({ reducer: { settings: settingsReducer } });
 
@@ -59,15 +59,15 @@ describe('settings changed while the initial load runs', () => {
     const store = createStore();
     const load = store.dispatch(loadSettings());
     store.dispatch(setSettingOptimistic({ key: 'units', value: 'metric' }));
-    await store.dispatch(updateMultipleSettings({ gpsMode: 'simulator', baudRate: 38400 }));
+    await store.dispatch(updateMultipleSettings({ gpsMode: 'simulator', speedGaugeMax: 20 }));
 
-    stored.resolve({ ...DEFAULT_SETTINGS, units: 'nautical', gpsMode: 'off', baudRate: 4800 });
+    stored.resolve({ ...DEFAULT_SETTINGS, units: 'nautical', gpsMode: 'off', speedGaugeMax: 12 });
     await load;
 
     const { settings } = store.getState().settings;
     expect(settings.units).toBe('metric');
     expect(settings.gpsMode).toBe('simulator');
-    expect(settings.baudRate).toBe(38400);
+    expect(settings.speedGaugeMax).toBe(20);
   });
 
   it('takes the loaded values once loaded, and later loads replace them', async () => {
@@ -97,5 +97,11 @@ describe('SettingsRepository.initialize', () => {
       settingsRepository.set('chartRotation', 'heading-up'),
     ]);
     expect((await settingsRepository.getAll()).chartRotation).toBe('heading-up');
+  });
+});
+
+describe('removed settings', () => {
+  it('are not settings any more, so the version 4 migration may delete them', () => {
+    for (const key of REMOVED_SETTINGS) expect(key in DEFAULT_SETTINGS).toBe(false);
   });
 });

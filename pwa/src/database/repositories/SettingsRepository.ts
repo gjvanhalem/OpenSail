@@ -13,18 +13,9 @@ export interface AppSettings {
   units: 'nautical' | 'metric' | 'imperial';
   chartRotation: 'north-up' | 'heading-up';
   defaultZoom: number;
-  theme: 'light' | 'dark' | 'auto';
+  /** Chart layers (the Layers panel): OpenSeaMap seamarks, and the inland ENC charts */
   showNavigationAids: boolean;
   showDepthContours: boolean;
-  
-  // Instrument preferences
-  instrumentProtocol: 'nmea0183' | 'nmea2000' | 'seatalk';
-  instrumentConnectionType: 'serial' | 'bluetooth' | 'network';
-  serialPort: string;
-  networkHost: string;
-  networkPort: number;
-  baudRate: number;
-  autoReconnect: boolean;
 
   // Navigation data sources: GPS, instruments, or auto (instruments while they report)
   positionSource: NavigationSourceChoice;
@@ -55,7 +46,6 @@ export interface AppSettings {
   anchorWatchRadius: number;
   enableAnchorAlarm: boolean;
   enableCollisionAlarm: boolean;
-  collisionWarningDistance: number;
   /** Min / max alerts per instrument value (depth in m, speeds in knots) */
   alertThresholds: AlertThresholds;
 
@@ -63,11 +53,6 @@ export interface AppSettings {
   instrumentPanelLayout: PanelLayout;
   /** Top of the speed gauge's scale, knots (one of SPEED_GAUGE_RANGES) */
   speedGaugeMax: number;
-  enableWeatherAlerts: boolean;
-  
-  // Offline mode
-  offlineMode: boolean;
-  autoSync: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -75,18 +60,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   units: 'nautical',
   chartRotation: 'north-up',
   defaultZoom: 12,
-  theme: 'light',
   showNavigationAids: true,
   showDepthContours: true,
-  
-  // Instrument preferences
-  instrumentProtocol: 'nmea0183',
-  instrumentConnectionType: 'serial',
-  serialPort: '',
-  networkHost: '',
-  networkPort: 10110,
-  baudRate: 4800,
-  autoReconnect: true,
 
   // Navigation data sources
   positionSource: 'auto',
@@ -106,15 +81,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   anchorWatchRadius: 50,
   enableAnchorAlarm: false,
   enableCollisionAlarm: true,
-  collisionWarningDistance: 2,
   alertThresholds: DEFAULT_ALERT_THRESHOLDS,
   instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
   speedGaugeMax: DEFAULT_SPEED_GAUGE_MAX,
-  enableWeatherAlerts: true,
-  
-  // Offline mode
-  offlineMode: false,
-  autoSync: false,
 };
 
 export class SettingsRepository {

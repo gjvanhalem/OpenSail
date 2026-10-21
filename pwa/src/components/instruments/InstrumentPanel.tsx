@@ -41,7 +41,7 @@ const SIZE_STYLES: Record<GaugeSize, { span: string; zoom: number }> = {
 const SIZE_NAMES: Record<GaugeSize, string> = { small: 'Small', medium: 'Medium', large: 'Large' };
 
 /**
- * Instrument gauges in the layout saved in settings (R14.2). Configure lets
+ * Instrument gauges in the layout saved in settings (R14.2). Edit layout lets
  * the user choose which gauges show, their order and their size.
  */
 export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
@@ -84,7 +84,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
           <button
             onClick={() => setIsConfigOpen(!isConfigOpen)}
             aria-expanded={isConfigOpen}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+            className="min-h-11 px-4 bg-surface border border-line text-ink hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -95,7 +95,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
               />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Configure
+            Edit layout
           </button>
         </div>
       )}
@@ -103,7 +103,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
       {/* Configuration panel */}
       {isConfigOpen && (
         <div className="mb-4 p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-3">Gauge Configuration</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">Gauge layout</h3>
           <ol className="space-y-2">
             {gauges.map((gauge, index) => {
               const name = GAUGE_NAMES[gauge.type];
@@ -182,7 +182,7 @@ export const InstrumentPanel: React.FC<InstrumentPanelProps> = ({
         </div>
       ) : (
         <div className="text-center py-12 text-gray-400">
-          No gauges enabled. Click Configure to enable gauges.
+          No gauges enabled. Use Edit layout to show gauges.
         </div>
       )}
     </div>

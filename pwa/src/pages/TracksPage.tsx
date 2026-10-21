@@ -133,152 +133,154 @@ export const TracksPage: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-6 p-6">
-      {/* Left Panel - Track List */}
-      <div className="flex-1 overflow-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Tracks</h1>
-          <p className="text-gray-600">
-            View and manage your recorded navigation tracks
-          </p>
+    <div className="h-full overflow-y-auto">
+      <div className="flex flex-col lg:flex-row gap-6 p-4 pb-32 md:p-6 md:pb-32">
+        {/* Left Panel - Track List */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold mb-2">Tracks</h1>
+            <p className="text-gray-600">
+              View and manage your recorded navigation tracks
+            </p>
+          </div>
+
+          <TrackList
+            tracks={dbTracks}
+            onSelectTrack={handleSelectTrack}
+            onDeleteTrack={handleDeleteTrack}
+            onExportTrack={handleExportTrack}
+            selectedTrackId={selectedTrack?.id}
+          />
         </div>
 
-        <TrackList
-          tracks={dbTracks}
-          onSelectTrack={handleSelectTrack}
-          onDeleteTrack={handleDeleteTrack}
-          onExportTrack={handleExportTrack}
-          selectedTrackId={selectedTrack?.id}
-        />
-      </div>
+        {/* Right Panel - Recording Controls & Track Details */}
+        <div className="lg:w-96 space-y-6">
+          <TrackRecordingControls
+            onTrackSaved={(track) => setDbTracks((prev) => [track, ...prev])}
+          />
 
-      {/* Right Panel - Recording Controls & Track Details */}
-      <div className="lg:w-96 space-y-6">
-        <TrackRecordingControls
-          onTrackSaved={(track) => setDbTracks((prev) => [track, ...prev])}
-        />
-
-        {/* Selected Track Details */}
-        {selectedTrack && (
-          <div className="bg-surface border border-gray-200 rounded-lg p-4">
-            <h3 className="font-semibold text-lg mb-4">Track Details</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500">Name</p>
-                <p className="text-sm font-medium">{selectedTrack.name}</p>
-              </div>
+          {/* Selected Track Details */}
+          {selectedTrack && (
+            <div className="bg-surface border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-4">Track Details</h3>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">Distance</p>
-                  <p className="text-sm font-medium">
-                    {units.format('distance', selectedTrack.distance)}
+                  <p className="text-xs text-gray-500">Name</p>
+                  <p className="text-sm font-medium">{selectedTrack.name}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Distance</p>
+                    <p className="text-sm font-medium">
+                      {units.format('distance', selectedTrack.distance)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Avg Speed</p>
+                    <p className="text-sm font-medium">
+                      {units.format('speed', selectedTrack.avgSpeed)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Max Speed</p>
+                    <p className="text-sm font-medium">
+                      {units.format('speed', selectedTrack.maxSpeed)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Points</p>
+                    <p className="text-sm font-medium">{selectedPoints.length}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500">Start Time</p>
+                  <p className="text-sm">
+                    {new Date(selectedTrack.startTime).toLocaleString()}
                   </p>
                 </div>
+
                 <div>
-                  <p className="text-xs text-gray-500">Avg Speed</p>
-                  <p className="text-sm font-medium">
-                    {units.format('speed', selectedTrack.avgSpeed)}
+                  <p className="text-xs text-gray-500">End Time</p>
+                  <p className="text-sm">
+                    {new Date(selectedTrack.endTime).toLocaleString()}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">Max Speed</p>
-                  <p className="text-sm font-medium">
-                    {units.format('speed', selectedTrack.maxSpeed)}
+              </div>
+
+              <fieldset className="mt-4">
+                <legend className="text-xs text-gray-500 mb-1">Colour on the chart</legend>
+                <div className="flex flex-wrap gap-2">
+                  {TRACK_COLORS.map(({ value, name }) => (
+                    <button
+                      key={value}
+                      onClick={() => handleColorChange(selectedTrack, value)}
+                      aria-label={name}
+                      aria-pressed={trackColor(selectedTrack) === value}
+                      className={`w-7 h-7 rounded-full border-2 ${
+                        trackColor(selectedTrack) === value
+                          ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-400'
+                          : 'border-white shadow'
+                      }`}
+                      style={{ backgroundColor: value }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-medium mb-2">Convert to route</h4>
+                <label htmlFor="simplify-tolerance" className="block text-xs text-gray-500 mb-1">
+                  Simplify: keep points off a straight line by more than ({units.label('distance')})
+                </label>
+                <input
+                  id="simplify-tolerance"
+                  type="number"
+                  min="0.001"
+                  step="0.01"
+                  value={Number(units.toDisplay('distance', tolerance).toFixed(3))}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (Number.isFinite(value) && value > 0) {
+                      setTolerance(units.fromDisplay('distance', value));
+                    }
+                  }}
+                  className="w-28 px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <p className="text-xs text-gray-600 mt-1" data-testid="convert-preview">
+                  {selectedPoints.length} track points → {previewWaypoints} waypoints
+                  {previewWaypoints === MAX_CONVERTED_WAYPOINTS && ' (the most a converted route gets)'}
+                </p>
+                <button
+                  onClick={() => handleConvertToRoute(selectedTrack)}
+                  disabled={previewWaypoints < 2}
+                  className="mt-2 w-full px-4 py-2 border border-blue-600 text-blue-700 rounded hover:bg-blue-50 transition-colors font-medium disabled:opacity-50"
+                >
+                  Convert to route
+                </button>
+                {convertedRoute && (
+                  <p role="status" className="text-sm text-green-700 mt-2">
+                    Route “{convertedRoute.name}” created with {convertedRoute.waypoints} waypoints.{' '}
+                    <Link to="/routes" className="underline">
+                      Open Routes
+                    </Link>
                   </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Points</p>
-                  <p className="text-sm font-medium">{selectedPoints.length}</p>
-                </div>
+                )}
               </div>
 
-              <div>
-                <p className="text-xs text-gray-500">Start Time</p>
-                <p className="text-sm">
-                  {new Date(selectedTrack.startTime).toLocaleString()}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">End Time</p>
-                <p className="text-sm">
-                  {new Date(selectedTrack.endTime).toLocaleString()}
-                </p>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => handleExportTrack(selectedTrack)}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Export as GPX
+                </button>
               </div>
             </div>
-
-            <fieldset className="mt-4">
-              <legend className="text-xs text-gray-500 mb-1">Colour on the chart</legend>
-              <div className="flex flex-wrap gap-2">
-                {TRACK_COLORS.map(({ value, name }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleColorChange(selectedTrack, value)}
-                    aria-label={name}
-                    aria-pressed={trackColor(selectedTrack) === value}
-                    className={`w-7 h-7 rounded-full border-2 ${
-                      trackColor(selectedTrack) === value
-                        ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-400'
-                        : 'border-white shadow'
-                    }`}
-                    style={{ backgroundColor: value }}
-                  />
-                ))}
-              </div>
-            </fieldset>
-
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-medium mb-2">Convert to route</h4>
-              <label htmlFor="simplify-tolerance" className="block text-xs text-gray-500 mb-1">
-                Simplify: keep points off a straight line by more than ({units.label('distance')})
-              </label>
-              <input
-                id="simplify-tolerance"
-                type="number"
-                min="0.001"
-                step="0.01"
-                value={Number(units.toDisplay('distance', tolerance).toFixed(3))}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (Number.isFinite(value) && value > 0) {
-                    setTolerance(units.fromDisplay('distance', value));
-                  }
-                }}
-                className="w-28 px-2 py-1 border border-gray-300 rounded text-sm"
-              />
-              <p className="text-xs text-gray-600 mt-1" data-testid="convert-preview">
-                {selectedPoints.length} track points → {previewWaypoints} waypoints
-                {previewWaypoints === MAX_CONVERTED_WAYPOINTS && ' (the most a converted route gets)'}
-              </p>
-              <button
-                onClick={() => handleConvertToRoute(selectedTrack)}
-                disabled={previewWaypoints < 2}
-                className="mt-2 w-full px-4 py-2 border border-blue-600 text-blue-700 rounded hover:bg-blue-50 transition-colors font-medium disabled:opacity-50"
-              >
-                Convert to route
-              </button>
-              {convertedRoute && (
-                <p role="status" className="text-sm text-green-700 mt-2">
-                  Route “{convertedRoute.name}” created with {convertedRoute.waypoints} waypoints.{' '}
-                  <Link to="/routes" className="underline">
-                    Open Routes
-                  </Link>
-                </p>
-              )}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => handleExportTrack(selectedTrack)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
-              >
-                Export as GPX
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,26 +1,27 @@
 import React from 'react';
 import { InstrumentManager, InstrumentPanel } from '@/components/instruments';
 
+/** The gauges first, then the connection to the boat's instruments */
 export const InstrumentsPage: React.FC = () => {
   return (
-    <div className="h-full p-6 overflow-y-auto">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Instruments</h1>
-        <p className="text-gray-600 mb-6">
-          Connect and manage marine instruments via USB or Bluetooth
-        </p>
-        
-        {/* Instrument Panel with Gauges */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Instrument Display</h2>
-          <InstrumentPanel showConfig={true} layout="grid" />
-        </div>
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-7xl space-y-8 p-4 pb-32 md:p-6 md:pb-32">
+        <h1 className="text-3xl font-bold text-ink">Instruments</h1>
 
-        {/* Connection Manager */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Connection Manager</h2>
+        <InstrumentPanel showConfig={true} layout="grid" />
+
+        <section aria-labelledby="instrument-connection" className="space-y-4">
+          <div>
+            <h2 id="instrument-connection" className="text-xl font-semibold text-ink">
+              Connection
+            </h2>
+            <p className="text-sm text-muted">
+              USB, Bluetooth, Wi-Fi (in the Windows and Android apps also straight to the autopilot)
+              or the built-in simulator.
+            </p>
+          </div>
           <InstrumentManager />
-        </div>
+        </section>
       </div>
     </div>
   );
