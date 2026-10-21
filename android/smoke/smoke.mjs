@@ -305,6 +305,8 @@ try {
   await page.getByRole('button', { name: 'Connect over Wi-Fi' }).click();
   try {
     await page.getByText(`Wi-Fi NMEA0183 (${TCP_HOST}:${tcpPort})`).waitFor({ timeout: 20000 });
+    // What the instruments send is folded away under Raw data, which shows once data arrives
+    await page.getByText('Raw data', { exact: true }).click({ timeout: 15000 });
     await page.getByText('rudder', { exact: true }).waitFor({ timeout: 15000 });
     report('TCP instruments: data arrives', `rudder and heading received from ${TCP_HOST}`, true, true);
   } finally {

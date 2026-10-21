@@ -208,6 +208,8 @@ try {
   await page.fill('#wifi-port', String(tcpPort));
   await page.getByRole('button', { name: 'Connect over Wi-Fi' }).click();
   await page.getByText(`Wi-Fi NMEA0183 (127.0.0.1:${tcpPort})`).waitFor({ timeout: 15000 });
+  // What the instruments send is folded away under Raw data, which shows once data arrives
+  await page.getByText('Raw data', { exact: true }).click({ timeout: 15000 });
   await page.getByText('rudder', { exact: true }).waitFor({ timeout: 15000 });
   report('TCP instruments: data arrives', 'rudder and heading received');
   await page.screenshot({ path: `${out}/instruments.png` });
