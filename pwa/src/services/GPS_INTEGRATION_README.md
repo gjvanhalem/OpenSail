@@ -1,155 +1,108 @@
 # GPS Integration Guide
 
-This document describes the GPS integration features implemented in the marine navigation system.
+This document describes how the app gets the vessel's position from the device's GPS or from the GPS simulator.
 
 ## Overview
 
-The system now supports two GPS modes:
-1. **Real GPS**: Uses the browser's Geolocation API to get actual device position
-2. **GPS Simulator**: Generates simulated GPS data for development and testing
+The system supports three GPS modes (setting `gpsMode`):
+1. **Off**
+2. **Real GPS**: the device's own location (`GeolocationService`)
+3. **Simulator**: simulated tracks on the IJsselmeer, for development and testing (`GPSSimulator`)
+
+Position, COG/SOG and heading can also come from instruments. Which source is used for each value is set under Settings → Navigation sources (`positionSource`, `cogSogSource`, `headingSource`: auto, GPS or instrument).
 
 ## Components
 
+### Platform geolocation (`platform/geolocation.ts`)
+
+`platformGeolocation()` returns the location source of the platform the app runs on, with the callback API of `navigator.geolocation`:
+- **Browser and Windows app**: `navigator.geolocation`
+- **Android app**: `@capacitor/geolocation`, which asks for the location permission itself and uses Android's fused location provider. It keeps working while the app runs in the background (foreground service).
+
 ### GeolocationService
 
-The `GeolocationService` wraps the browser's Geolocation API and provides:
+Wraps the platform geolocation:
 - Continuous position tracking via `watchPosition`
-- Position accuracy monitoring
-- Error handling with user-friendly messages
-- Redux integration for state management
-- Permission request handling
+- Accuracy check (`minAccuracy`)
+- Errors as `NavigationError`, passed to an `onError` callback
+- Readings go to Redux through `reportNavigation('gps', ...)`, which applies the navigation source settings
 
 **Usage:**
 ```typescript
 import { getGeolocationService } from '@/services';
-import { useAppDispatch } from '@/store/hooks';
 
-const dispatch = useAppDispatch();
 const geoService = getGeolocationService();
-
-// Initialize with Redux dispatch
 geoService.initialize(dispatch);
-
-// Start tracking
 await geoService.start();
-
-// Stop tracking
 geoService.stop();
-
-// Get last known position
 const position = geoService.getLastPosition();
 ```
 
-**Configuration:**
+**Configuration (defaults):**
 ```typescript
 const geoService = getGeolocationService({
-  enableHighAccuracy: true,  // Request high accuracy GPS
-  timeout: 10000,            // Timeout in milliseconds
-  maximumAge: 0,             // Don't use cached positions
-  minAccuracy: 50,           // Minimum acceptable accuracy in meters
+  enableHighAccuracy: true,
+  timeout: 10000,      // ms
+  maximumAge: 0,       // don't use cached positions
+  minAccuracy: 50,     // metres
 });
 ```
 
 ### GPSSimulator
 
-The `GPSSimulator` generates realistic GPS position updates for development:
-- Simulates vessel movement along predefined tracks
-- Configurable speed and update intervals
-- Three predefined scenarios: Harbor, Coastal, Open Water
-- Smooth interpolation between waypoints
+Moves a simulated vessel along a predefined track:
+- Update interval configurable, default 1 second
+- Interpolates between waypoints at the track's speed
 
 **Usage:**
 ```typescript
 import { getGPSSimulator, GPSSimulator } from '@/services';
-import { useAppDispatch } from '@/store/hooks';
 
-const dispatch = useAppDispatch();
 const simulator = getGPSSimulator();
-
-// Initialize with Redux dispatch
 simulator.initialize(dispatch);
-
-// Get predefined tracks
 const tracks = GPSSimulator.getPredefinedTracks();
-
-// Start simulation with a track
-simulator.start(tracks[0]); // Harbor track
-
-// Stop simulation
+simulator.start(tracks[0]);
 simulator.stop();
 ```
 
 **Predefined Tracks:**
-1. **Harbor Navigation**: 3 knots, tight turns, harbor environment
-2. **Coastal Cruise**: 6 knots, moderate speed, coastal navigation
-3. **Open Water Passage**: 7.5 knots, straight course, open water
+1. **Harbor Navigation**: 3 knots, out of Stavoren harbour onto the IJsselmeer
+2. **Coastal Cruise**: 6 knots, Stavoren to Hindeloopen along the Frisian coast
+3. **Open Water Passage**: 7.5 knots, Stavoren to Enkhuizen across the IJsselmeer
 
-**Custom Tracks:**
-```typescript
-const customTrack = {
-  name: 'My Custom Track',
-  description: 'Custom navigation scenario',
-  speed: 5, // knots
-  waypoints: [
-    { latitude: 51.5, longitude: -0.1, accuracy: 5, timestamp: Date.now() },
-    { latitude: 51.51, longitude: -0.09, accuracy: 5, timestamp: Date.now() },
-    // ... more waypoints
-  ],
-};
+### gpsMode and useGpsAutoStart
 
-simulator.start(customTrack);
-```
+- `startGpsMode(mode, trackName, dispatch)` in `services/gpsMode.ts` stops whatever source runs and starts the chosen mode. Used by the GPS settings and on start-up.
+- `useGpsAutoStart()` resumes the saved GPS mode (and simulator track, `gpsSimulatorTrack`) when the app starts, so a reload never silently stops the position, and with it the chart, anchor watch and MOB guidance.
 
 ## UI Components
 
 ### GPSControl Component
 
-The `GPSControl` component provides a user interface for:
-- Switching between Real GPS, Simulator, and Off modes
-- Selecting simulation tracks
-- Viewing current GPS status and position
-- Displaying accuracy information
+On the Settings page, under **Navigation sources**:
+- Off / Real GPS / Simulator
+- Simulator track selection
+- Current GPS status, position and accuracy
 - Error messages
-
-**Location:** Added to the Settings page
-
-**Features:**
-- Radio button selection for GPS mode
-- Real-time position display
-- Accuracy monitoring
-- Track selection dropdown (when in simulator mode)
-- Visual status indicators
 
 ## Chart Integration
 
-### Auto-Centering
+### Follow Vessel
 
-The ChartPage now includes auto-centering functionality:
-- Automatically centers the map on vessel position when GPS is active
-- Disables when user manually pans the map
-- Re-enable with the "Recenter" button
-- Visual indicator shows when auto-center is active
+The chart follows the vessel while a position is known. Panning the map stops following; the Follow vessel button on the chart turns it back on.
 
-### Heading-Up Mode
+### North-Up and Heading-Up
 
-When chart rotation is set to "Heading-Up" in settings:
-- Map rotates to align with vessel heading
-- Vessel icon always points up
-- North direction rotates around the vessel
+The heading-up button on the chart (and setting `chartRotation`) turns the chart so the bow points up. It uses the true heading, or COG when there is no heading.
 
 ### Vessel Marker
 
-The `VesselMarker` component:
-- Displays vessel position on the map
-- Shows heading indicator (red line)
-- Smooth rotation animation
-- Updates in real-time from Redux state
+`VesselMarker` draws the vessel at its position with a heading line, from the Redux state.
 
 ## Redux Integration
 
 ### Navigation Slice
 
-The `navigationSlice` stores GPS-related state:
 ```typescript
 interface NavigationState {
   position: Position | null;
@@ -160,129 +113,57 @@ interface NavigationState {
   accuracy: number | null;
   timestamp: number | null;
   isGPSActive: boolean;
+  sources: Record<'position' | 'cogSog' | 'heading', 'gps' | 'instrument' | null>;
+  lastSeen: ...; // when each source last reported each value
 }
 ```
 
 **Actions:**
-- `updatePosition`: Update vessel position
-- `updateHeading`: Update vessel heading
-- `updateSpeed`: Update vessel speed
-- `updateCourse`: Update vessel course
-- `setGPSActive`: Set GPS active status
-- `resetNavigation`: Reset all navigation data
+- `reportNavigation(source, reading)`: thunk for GPS and instrument readings; applies the source choices
+- `navigationReading`: the reducer behind it
+- `updatePosition`, `updateHeading`, `updateSpeed`, `updateCourse`
+- `setGPSActive`, `resetNavigation`
 
 ## Error Handling
 
-Both services integrate with the `ErrorHandler`:
-- Permission denied errors
-- Position unavailable errors
-- Timeout errors
-- Browser compatibility errors
+`GeolocationService` reports permission denied, position unavailable, timeout and "not supported". `GPSControl` and `useGpsAutoStart` pass them to the `ErrorHandler`, which shows them as notifications (see `ERROR_HANDLING_README.md`).
 
-Errors are:
-1. Logged to console
-2. Displayed in the UI
-3. Stored in error log
-4. Categorized by severity
+## Platform Notes
 
-## Browser Compatibility
-
-### Full Support (Recommended)
-- Chrome 89+
-- Edge 89+
-- Safari 15.4+
-
-### Geolocation API Support
-- All modern browsers support the Geolocation API
-- Requires HTTPS (or localhost for development)
-- User must grant location permission
-
-### Known Limitations
-- iOS Safari may have reduced accuracy in web apps
-- Background location tracking is limited in browsers
-- High accuracy mode may drain battery faster
+- The browser needs HTTPS (or localhost) and the user's location permission
+- In a browser, location stops when the tab is in the background or the screen is off; the Android app keeps it running with a foreground service
+- High accuracy mode uses more battery
 
 ## Testing
 
 ### Development Testing
-1. Open Settings page
-2. Select "Simulator" mode
-3. Choose a predefined track
-4. Navigate to Chart page
-5. Observe vessel moving along the track
+1. Open Settings → Navigation sources
+2. Select "Simulator" and choose a track
+3. Open the Chart page and watch the vessel move along the track
 
 ### Real GPS Testing
-1. Open Settings page
-2. Select "Real GPS" mode
-3. Grant location permission when prompted
-4. Navigate to Chart page
-5. Observe vessel at your actual location
-
-### Accuracy Monitoring
-- Check the GPS Control panel for accuracy values
-- Typical accuracy: 5-50 meters
-- High accuracy mode: 5-10 meters (may take longer to acquire)
-
-## Performance Considerations
-
-### Update Intervals
-- Real GPS: Updates as provided by device (typically 1-5 seconds)
-- Simulator: Configurable, default 1 second
-
-### Battery Impact
-- High accuracy mode uses more battery
-- Continuous tracking impacts battery life
-- Consider disabling GPS when not actively navigating
-
-### Memory Usage
-- Position history is not stored in memory
-- Only current position is kept in Redux state
-- Track recording stores positions in IndexedDB
-
-## Future Enhancements
-
-Potential improvements:
-1. Dead reckoning when GPS signal is lost
-2. Kalman filtering for smoother position updates
-3. Speed and course calculation from position history
-4. GPS quality indicators (satellite count, HDOP)
-5. Waypoint arrival detection
-6. Route following with cross-track error
-7. Custom simulation track editor
-8. GPS track recording and playback
+1. Open Settings → Navigation sources
+2. Select "Real GPS" and grant location permission
+3. Open the Chart page; the vessel is at your location
 
 ## Troubleshooting
 
 ### GPS Not Working
-1. Check browser compatibility
-2. Ensure HTTPS connection (or localhost)
-3. Grant location permission
-4. Check GPS Control panel for errors
-5. Try simulator mode to verify system works
+1. Ensure HTTPS (or localhost) in the browser
+2. Grant location permission (in Android: app settings → Location)
+3. Check the GPS Control panel for errors
+4. Try simulator mode to verify the rest works
 
-### Poor Accuracy
-1. Enable high accuracy mode in settings
-2. Ensure clear view of sky (for device GPS)
-3. Wait for GPS to acquire satellites
-4. Check accuracy value in GPS Control panel
-
-### Auto-Center Not Working
-1. Click the "Recenter" button
-2. Ensure GPS is active (check status)
-3. Verify position updates in GPS Control panel
-4. Check browser console for errors
-
-### Simulator Not Moving
-1. Verify simulator mode is selected
-2. Check that a track is selected
-3. Look for error messages
-4. Try switching tracks
-5. Restart the simulator
+### Chart Not Following
+1. Tap the Follow vessel button
+2. Check that a position is coming in (GPS Control panel)
 
 ## API Reference
 
-See the TypeScript interfaces in:
+- `src/platform/geolocation.ts`
 - `src/services/GeolocationService.ts`
 - `src/services/GPSSimulator.ts`
+- `src/services/gpsMode.ts`
+- `src/hooks/useGpsAutoStart.ts`
 - `src/store/slices/navigationSlice.ts`
 - `src/models/index.ts` (Position interface)

@@ -1,5 +1,7 @@
 # Release Notes - v2.0.0 PWA-Only
 
+> **History.** This was the note for the February 2026 cleanup that removed the old React Native app; "v2.0.0-pwa-only" was a git tag for that cleanup, not an app release (app releases are v0.x, see [RELEASING.md](../RELEASING.md)).
+
 **Release Date:** February 21, 2026  
 **Tag:** v2.0.0-pwa-only
 
@@ -53,7 +55,7 @@ If you were working with the React Native version:
 1. All development now happens in the `pwa/` directory
 2. Use `cd pwa && npm install` to install dependencies
 3. Use `npm run dev` from root or `cd pwa && npm run dev` to start development
-4. See [pwa/DEVELOPER_GUIDE.md](pwa/DEVELOPER_GUIDE.md) for complete setup
+4. See [pwa/DEVELOPER_GUIDE.md](../../pwa/DEVELOPER_GUIDE.md) for complete setup
 
 ## Verification
 

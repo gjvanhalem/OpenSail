@@ -1,30 +1,59 @@
 # E2E Tests with Playwright
 
-This directory contains end-to-end tests for the PWA using Playwright.
+This directory contains the end-to-end tests for the app, run with Playwright against the production build.
 
 ## Test Coverage
 
-### User Workflows
-- **navigation.spec.ts**: Tests navigation between pages and browser history
-- **route-planning.spec.ts**: Tests route creation, waypoint management, and persistence
-- **track-recording.spec.ts**: Tests track recording, display, and export functionality
-- **chart-display.spec.ts**: Tests map rendering, interaction, and vessel position display
-- **settings.spec.ts**: Tests settings management and persistence
+### Chart
+- **chart-display.spec.ts**, **chart-controls.spec.ts**, **chart-follow.spec.ts**: map rendering, zoom buttons, Layers panel, instrument strip, following the vessel, north-up / heading-up
+- **chart-enc.spec.ts**: inland ENC depth areas and hazards
+- **chart-management.spec.ts**: offline chart regions, editions and updates
+- **offline.spec.ts**: the app and downloaded charts without a network
 
-### PWA Features
-- **pwa-installation.spec.ts**: Tests PWA manifest, service worker, and installability
-- **offline.spec.ts**: Tests offline functionality and data caching
+### Routes and Tracks
+- **route-planning.spec.ts**, **route-navigation.spec.ts**, **route-passage.spec.ts**, **route-hazards.spec.ts**: planning, active navigation, route summary, hazard warnings
+- **track-recording.spec.ts**, **track-to-route.spec.ts**: recording, GPX export, colours, converting a track to a route
 
-### Cross-Platform
-- **responsive-design.spec.ts**: Tests responsive layout across different screen sizes
-- **browser-compatibility.spec.ts**: Tests feature detection and browser-specific behavior
+### Instruments
+- **instrument-stub.spec.ts**: the simulator's NMEA 0183, NMEA 2000 and SeaTalk data reaching the display
+- **instrument-panels.spec.ts**, **instrument-alerts.spec.ts**, **units.spec.ts**: panels, min/max alerts, units
+- **navigation-sources.spec.ts**, **wifi-instruments.spec.ts**: which source each value comes from, Wi-Fi connections and magnetic variation
+
+### Safety
+- **man-overboard.spec.ts**, **anchor-watch.spec.ts**, **safety-alarms.spec.ts**
+
+### App and Layout
+- **navigation.spec.ts**, **responsive-design.spec.ts**, **phone-layout.spec.ts**: top tabs on wide screens, bottom bar below 1024 px
+- **night-mode.spec.ts**, **settings.spec.ts**
+- **pwa-installation.spec.ts**, **browser-compatibility.spec.ts**
+- **performance.spec.ts**, **stress.spec.ts**: load times, frame rates, large routes and tracks
+
+### Accounts
+- **accounts.spec.ts**: setup, sign-in, invites and crew roles on the OpenSail server (`server/node.ts`)
+
+## Projects
+
+`playwright.config.ts` defines these projects:
+
+- **chromium**: every test except `accounts.spec.ts`, against `npm run preview` on port 4173
+- **accounts**: only `accounts.spec.ts`, against the OpenSail server on port 4176, with a fresh data folder for each run
+
+CI runs these two. The config also has `firefox`, `webkit`, `Mobile Chrome` and `Mobile Safari` projects, which CI doesn't run.
 
 ## Running Tests
 
-### Run all tests
+### Build the app first
+Tests run against the production build in `dist/`:
 ```bash
-npm run test:e2e
+npm run build
 ```
+
+### Run the tests CI runs
+```bash
+npx playwright test --project=chromium --project=accounts
+```
+
+`npm run test:e2e` runs every project, including the browsers CI doesn't run. Playwright starts the preview server and the accounts server itself.
 
 ### Run tests in UI mode (interactive)
 ```bash
@@ -36,59 +65,34 @@ npm run test:e2e:ui
 npm run test:e2e:headed
 ```
 
-### Run tests for specific browser
-```bash
-npm run test:e2e:chromium
-npm run test:e2e:firefox
-npm run test:e2e:webkit
-```
-
 ### Run specific test file
 ```bash
-npx playwright test navigation.spec.ts
+npx playwright test --project=chromium route-planning.spec.ts
 ```
 
 ### Run tests matching a pattern
 ```bash
-npx playwright test --grep "route"
+npx playwright test --project=chromium --grep "route"
 ```
 
-## Test Requirements
+## Fixtures and Helpers
 
-1. **Build the app first**: Tests run against the production build
-   ```bash
-   npm run build
-   ```
-
-2. **Preview server**: Tests automatically start the preview server, but you can run it manually:
-   ```bash
-   npm run preview
-   ```
-
-## Browser Support
-
-Tests run on multiple browsers by default:
-- Chromium (Chrome/Edge)
-- Firefox
-- WebKit (Safari)
-- Mobile Chrome (Pixel 5 emulation)
-- Mobile Safari (iPhone 12 emulation)
+- **fixtures/test.ts**: import `test` and `expect` from here, not from `@playwright/test`. It answers every request to the external tile servers (OpenFreeMap, OpenSeaMap) locally, so tests never depend on them. `serveChartFixtures()` serves a small ENC region (Stavoren) from `fixtures/charts/`.
+- **fixtures/storage-state.json**: starts each test with the browser-compatibility banner dismissed.
+- **helpers/**: shared steps for charts, routes and tracks (for example seeding a track straight into IndexedDB).
 
 ## Test Structure
 
-Each test file follows this pattern:
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 
 test.describe('Feature Name', () => {
   test.beforeEach(async ({ page }) => {
-    // Setup before each test
     await page.goto('/');
   });
 
-  test('should do something', async ({ page }) => {
-    // Test implementation
-    await expect(page.locator('selector')).toBeVisible();
+  test('does something', async ({ page }) => {
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Routes' })).toBeVisible();
   });
 });
 ```
@@ -97,7 +101,7 @@ test.describe('Feature Name', () => {
 
 ### Debug specific test
 ```bash
-npx playwright test --debug navigation.spec.ts
+npx playwright test --project=chromium --debug navigation.spec.ts
 ```
 
 ### View test report
@@ -106,38 +110,38 @@ npx playwright show-report
 ```
 
 ### Generate trace
-Tests automatically generate traces on first retry. View them:
+Tests generate traces on the first retry. View them:
 ```bash
 npx playwright show-trace trace.zip
 ```
 
 ## CI/CD Integration
 
-Tests are configured for CI environments:
+`.github/workflows/pwa-deploy.yml` runs the `chromium` and `accounts` projects on every pull request and push to `main`, with:
 - Retries: 2 attempts on failure
 - Workers: 1 (sequential execution)
-- Screenshots: Captured on failure
-- Traces: Captured on first retry
+- A 15-minute global timeout
+- Screenshots on failure, traces on the first retry, and the HTML report as a build artifact
+
+Headless Chromium runs with `--use-angle=swiftshader`, because its default WebGL backend can't compile one of MapLibre's shaders.
 
 ## Known Limitations
 
-1. **Web Serial/Bluetooth**: Cannot be fully tested in automated tests (requires user interaction)
-2. **Geolocation**: Mocked in tests, may not reflect real device behavior
-3. **Service Worker**: May require additional wait time in some browsers
-4. **IndexedDB**: Cleared between test runs for isolation
+1. **Web Serial/Bluetooth**: can't be tested automatically (they need a user gesture and a device). Use the instrument simulator instead.
+2. **Geolocation**: mocked or simulated in tests.
+3. **Native apps**: these tests cover the browser build. The Windows and Android apps have their own smoke tests in `desktop/smoke/` and `android/smoke/`.
 
 ## Adding New Tests
 
 1. Create a new `.spec.ts` file in the `e2e` directory
-2. Import test utilities: `import { test, expect } from '@playwright/test';`
-3. Write test cases following the existing patterns
-4. Run tests to verify: `npm run test:e2e`
+2. Import `test` and `expect` from `./fixtures/test`
+3. Use the helpers for common steps
+4. Run it: `npx playwright test --project=chromium your-test.spec.ts`
 
 ## Best Practices
 
 - Use semantic selectors (roles, labels) over CSS selectors
-- Add appropriate waits for async operations
+- Wait on conditions (`expect.poll`, `toBeVisible`), not fixed timeouts
 - Test user workflows, not implementation details
 - Keep tests independent and isolated
-- Use page object pattern for complex pages
 - Add meaningful test descriptions

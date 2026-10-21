@@ -1,13 +1,14 @@
 {
   "name": "opensail",
-  "version": "2.0.0",
-  "description": "Open-source marine navigation PWA",
   "private": true,
+  "description": "Open-source marine navigation: one React app for the browser, Windows (Tauri) and Android (Capacitor). The app version lives in pwa/package.json.",
+  "license": "MIT",
   "scripts": {
     "dev": "cd pwa && npm run dev",
     "build": "cd pwa && npm run build",
     "preview": "cd pwa && npm run preview",
     "test": "cd pwa && npm run test",
+    "test:e2e": "cd pwa && npm run test:e2e",
     "lint": "cd pwa && npm run lint"
   },
   "keywords": [
@@ -16,34 +17,12 @@
     "pwa",
     "nmea",
     "gps",
-    "chart"
+    "chart",
+    "tauri",
+    "capacitor",
+    "maplibre"
   ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@reduxjs/toolkit": "^2.2.0",
-    "react": "^18.2.0",
-    "react-redux": "^9.1.0",
-    "redux": "^5.0.1",
-    "rxjs": "^7.8.1",
-    "uuid": "^9.0.1"
-  },
-  "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/react": "^18.2.0",
-    "@types/uuid": "^9.0.8",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-react": "^7.34.0",
-    "jest": "^29.7.0",
-    "prettier": "^3.2.0",
-    "ts-jest": "^29.1.2",
-    "typescript": "~5.4.0"
-  },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=22"
   }
 }

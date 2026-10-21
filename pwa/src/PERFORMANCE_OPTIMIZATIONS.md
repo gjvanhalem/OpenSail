@@ -1,11 +1,11 @@
 # Performance Optimizations
 
-This document describes the performance optimizations implemented in the PWA.
+This document describes the performance optimizations in the app. How they are tested is in [PERFORMANCE_TESTING.md](../PERFORMANCE_TESTING.md).
 
 ## Code Splitting
 
 ### Route-Based Splitting
-All page components are lazy-loaded using React's `lazy()` and `Suspense`:
+All page components are lazy-loaded with React's `lazy()` and `Suspense` (`src/App.tsx`):
 - ChartPage
 - RoutesPage
 - TracksPage
@@ -13,212 +13,92 @@ All page components are lazy-loaded using React's `lazy()` and `Suspense`:
 - SettingsPage
 - InstrumentsPage
 
-This reduces the initial bundle size and improves Time to Interactive (TTI).
+This keeps the initial bundle small and improves Time to Interactive.
 
 ### Vendor Chunking
-Large dependencies are split into separate chunks:
+Large dependencies are split into separate chunks in `vite.config.ts`:
 - `vendor-react`: React, React DOM, React Router
 - `vendor-redux`: Redux Toolkit, React Redux
-- `vendor-map`: MapLibre GL JS
-- `vendor-db`: Dexie, Dexie React Hooks
-- `protocols`: NMEA parsers
-- `connections`: Serial/Bluetooth connections
-
-### Configuration
-See `vite.config.ts` for the complete chunking strategy.
+- `vendor-map`: MapLibre GL
+- `vendor-db`: Dexie
+- `protocols`: NMEA 0183, NMEA 2000 and SeaTalk parsers
+- `connections`: Serial and Bluetooth connections
 
 ## Rendering Performance
 
 ### React.memo
-Expensive components are wrapped with `React.memo` to prevent unnecessary re-renders:
-- `VesselMarker`: Only re-renders when position/heading changes
-- `SpeedGauge`: Only re-renders when speed changes
-- `DepthGauge`: Only re-renders when depth changes
-- `WindGauge`: Only re-renders when wind data changes
-- `HeadingCompass`: Only re-renders when heading changes
-- `TrackList`: Memoized with individual track items
-- `TrackItem`: Memoized to prevent re-rendering all tracks
+Components that update often or are expensive to draw are wrapped in `React.memo`:
+- Chart layers: `VesselMarker`, `RouteLayer`, `RouteHazardLayer`, `EncLayers`, `AISLayer`
+- Gauges: `SpeedGauge`, `DepthGauge`, `WindGauge`, `HeadingCompass`, `PositionDisplay`
+- `TrackList` and its `TrackItem` rows
 
 ### Debouncing
-Map viewport updates are debounced to reduce rendering frequency:
-- `useDebounce` hook with 100ms delay
-- Prevents excessive map re-renders during pan/zoom
-- Maintains smooth user experience
+The chart page debounces the map viewport (`useDebounce`, 100ms) before passing it to the chart, so panning and zooming don't re-render everything on every frame.
 
-### Web Workers
-Heavy computations are offloaded to Web Workers:
-- Track compression using Douglas-Peucker algorithm
-- Track statistics calculation
-- Track simplification for display
+## Chart Tiles
 
-Usage:
-```typescript
-import { useTrackProcessor } from '@/hooks/useTrackProcessor';
-
-const { compressTrack, calculateStats, simplifyTrack } = useTrackProcessor();
-
-// Compress track points
-const compressed = await compressTrack(points, 0.0001);
-
-// Calculate statistics
-const stats = await calculateStats(points);
-
-// Simplify for display
-const simplified = await simplifyTrack(points, 0.0001);
-```
+- **Offline tiles in IndexedDB:** the map loads tiles through the `opensail://` protocol (`src/components/chart/tileProtocol.ts`), which serves downloaded regions from IndexedDB and fetches the rest from the network.
+- **No double caching:** chart tiles and glyphs are deliberately left out of the service worker cache, because the protocol already stores downloaded regions.
+- **PMTiles:** ENC charts are single PMTiles archives, read with range requests. In the Windows and Android apps these go through native HTTP (`src/platform/FetchRangeSource.ts`).
 
 ## Storage Optimizations
 
 ### Batch Writes
-IndexedDB writes are batched to reduce transaction overhead:
-- Track updates are batched (10 writes or 1 second delay)
-- Automatic flushing when batch size is reached
-- Reduces database lock contention
+`TrackRepository` batches new tracks that are still being recorded and writes them together: after 10 writes or a 1 second delay. Completed tracks are written straight away.
 
-### Data Compression
-Track points are compressed using Douglas-Peucker algorithm:
-- Reduces storage size by 50-90%
-- Maintains visual accuracy
-- Configurable tolerance parameter
+### Track Point Thinning
+Before a track is stored, `TrackRepository` drops points that are closer than a small distance to the previous kept point. This is a simple distance filter, not a full Douglas-Peucker simplification.
 
-### Efficient Queries
-Database queries use proper indexes:
-- `tracks`: Indexed by `startTime`, `endTime`
-- `chartTiles`: Composite index on `[z+x+y]`
-- `logbook`: Indexed by `timestamp`, `type`
-- `aisTargets`: Indexed by `lastUpdate`
+### Indexes
+Database queries use indexes (`src/database/db.ts`):
+- `tracks`: `startTime`, `endTime`
+- `routes`: `createdAt`, `updatedAt`
+- `waypoints`: `routeId`
+- `chartTiles`: `source`, `timestamp`, and a multi-entry index on `regions`
+- `safetyEvents`: `timestamp`, `type`, `sessionId`
 
-### Storage Monitoring
-Automatic storage monitoring and cleanup:
-```typescript
-import { getStorageStats, autoCleanupIfNeeded } from '@/utils/storageMonitor';
+## Helpers That Aren't Used Yet
 
-// Get current storage usage
-const stats = await getStorageStats();
-console.log(`Using ${stats.percentage}% of quota`);
-
-// Auto-cleanup if storage is low
-const cleaned = await autoCleanupIfNeeded(85); // 85% threshold
-```
-
-### Memory Management
-Track repository includes memory monitoring:
-```typescript
-const stats = await trackRepository.getMemoryStats();
-console.log(`Compression ratio: ${stats.compressionRatio}`);
-```
-
-## Performance Monitoring
-
-### Built-in Monitoring
-The app includes a performance monitor:
-```typescript
-import { performanceMonitor } from '@/utils/performanceMonitor';
-
-// Get current metrics
-const metrics = performanceMonitor.getMetrics();
-console.log(`FPS: ${metrics.fps}`);
-console.log(`Memory: ${metrics.memoryUsage * 100}%`);
-console.log(`Render time: ${metrics.renderTime}ms`);
-
-// Check if performance is degraded
-if (performanceMonitor.isPerformanceDegraded()) {
-  console.warn('Performance degraded!');
-}
-```
-
-### React Hook
-Use the performance monitor in components:
-```typescript
-import { usePerformanceMonitor } from '@/utils/performanceMonitor';
-
-const { measureRender, getMetrics } = usePerformanceMonitor();
-
-// Measure expensive operations
-const result = measureRender(() => {
-  // Expensive computation
-  return computeResult();
-});
-```
-
-## Performance Targets
-
-### Achieved Targets
-- ✅ First Contentful Paint: < 1.5s
-- ✅ Time to Interactive: < 3s
-- ✅ Chart rendering: 60 FPS (stable)
-- ✅ Map updates: Debounced to 100ms
-- ✅ Bundle size: Optimized with code splitting
-
-### Monitoring
-- FPS monitoring: Continuous
-- Memory usage: Available in Chrome/Edge
-- Render time: Tracked per component
-- DB query time: Tracked per operation
+These exist in the code but nothing in the app calls them yet:
+- `src/utils/performanceMonitor.ts`: FPS, memory and render-time monitor (it starts FPS monitoring when imported)
+- `src/utils/storageMonitor.ts`: storage usage and automatic cleanup
+- `src/hooks/useTrackProcessor.ts` with `src/workers/trackProcessor.worker.ts`: Douglas-Peucker track compression and statistics in a Web Worker
 
 ## Best Practices
 
 ### Component Optimization
-1. Use `React.memo` for expensive components
+1. Use `React.memo` for components that get frequent updates
 2. Use `useMemo` for expensive calculations
-3. Use `useCallback` for event handlers
-4. Avoid inline object/array creation in render
+3. Use `useCallback` for handlers passed to memoized children
+4. Avoid creating new objects and arrays in render for memoized props
 
 ### State Management
-1. Use Redux selectors efficiently
-2. Avoid unnecessary state updates
+1. Select only the slice of state a component needs
+2. Avoid unnecessary state updates, especially at instrument data rates
 3. Batch related state updates
-4. Use normalized state shape
 
 ### Database Operations
 1. Use batch operations for multiple writes
-2. Leverage indexes for queries
-3. Compress large data (tracks, history)
-4. Clean up old data regularly
+2. Query by indexed fields
+3. Clean up old data, such as chart regions that are no longer needed
 
 ### Map Performance
 1. Debounce viewport updates
-2. Use viewport-based rendering
-3. Limit visible features
-4. Optimize layer rendering
+2. Keep layer counts and visible features low
+3. Let people turn layers off (Layers panel)
 
 ## Troubleshooting
 
 ### Low FPS
-- Check if too many features are visible
-- Reduce map complexity
-- Check for memory leaks
+- Turn layers off to find an expensive one
+- Check for re-renders with the React DevTools Profiler
 - Profile with Chrome DevTools
 
 ### High Memory Usage
-- Clear old tracks/tiles
-- Check for memory leaks
-- Reduce cache sizes
-- Use compression
-
-### Slow Database Queries
-- Verify indexes are used
-- Reduce query complexity
-- Use batch operations
-- Monitor query times
+- Delete old tracks or chart regions
+- Check for leaked listeners and timers
 
 ### Large Bundle Size
-- Check bundle analyzer
-- Verify code splitting
+- Check the `npm run build` output
+- Check that the pages are still lazy loaded
 - Remove unused dependencies
-- Optimize imports
-
-## Future Optimizations
-
-### Planned
-- [ ] Virtual scrolling for long lists
-- [ ] Progressive image loading
-- [ ] Service Worker cache optimization
-- [ ] IndexedDB query optimization
-- [ ] WebGL acceleration for charts
-
-### Under Consideration
-- [ ] WebAssembly for heavy computations
-- [ ] Shared Web Workers
-- [ ] Background sync for data
-- [ ] Predictive prefetching

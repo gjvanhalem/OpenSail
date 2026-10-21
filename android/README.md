@@ -23,16 +23,16 @@ Android 7 (API 24) or newer. Tested on the emulator in CI with Android 14.
 
 ## First run
 
-- **Location permission.** Settings › GPS › **Real GPS** asks for the location permission. Choose **While using the app** and keep **Precise** on. That is enough for the screen-off mode: the app counts as in use while its notification shows.
+- **Location permission.** Settings › Navigation sources › GPS Mode › **Real GPS** asks for the location permission. Choose **While using the app** and keep **Precise** on. That is enough for the screen-off mode: the app counts as in use while its notification shows.
 - **Notifications.** The first anchor watch, route or instrument connection asks to allow notifications. Allow them: the alarms come as notifications when the screen is off.
-- **Charts.** The base map and seamarks load online. For the water, download a region at home over Wi-Fi: Chart › Offline charts › select an area › Download. It's stored in the app and works without internet.
-- **Magnetic variation.** The autopilot sends a magnetic heading (HDM). Set Settings › Magnetic variation (° east, negative for west) so the chart shows true heading. In the Netherlands it's about +2°.
+- **Charts.** The base map, seamarks and Rijkswaterstaat inland ENC load online. For the water, download a region at home over Wi-Fi: on the Chart screen, the **Offline charts** button › **Select Region on Map** › **Select This Area** › **Start Download**. It's stored in the app and works without internet.
+- **Magnetic variation.** The autopilot sends a magnetic heading (HDM). Set Settings › Navigation sources › Magnetic variation (° east, negative for west) so the chart shows true heading. In the Netherlands it's about +2°.
 
 ## Connecting to the autopilot (Pcnautic Easy Tiller Pilot)
 
 1. Switch the autopilot on and join its Wi-Fi: **`pcnautic_AP`**. Android says the network has no internet: choose **Stay connected** (or "Keep Wi-Fi connection"). Mobile data keeps working for the base map.
 2. In OpenSail: **Instruments** › **Wi-Fi**. Host **`192.168.14.1`**, port **`20220`** (the defaults), protocol NMEA 0183 › **Connect over Wi-Fi**.
-3. Heading (HDM), rudder (RSA), pitch/roll (XDR) and wind (MWV) appear under Received Data and on the chart. The address is remembered once it worked.
+3. Heading (HDM) and wind (MWV) appear in the gauges and the instrument strip on the chart; rudder (RSA) and pitch/roll (XDR) are listed under **Raw data** on the Instruments page. The address is remembered once it worked.
 
 The app opens connections to a local address (`192.168.x.x`, `10.x.x.x`, `172.16–31.x.x`) over the Wi-Fi network, also when Android prefers mobile data because the boat's Wi-Fi has no internet. When the Wi-Fi drops, the app reconnects by itself (after 1 s, 2 s, 4 s … up to 15 s), and it closes a link that sends nothing for 30 s. OpenSail only reads: it sends nothing to the autopilot.
 
@@ -52,16 +52,16 @@ Running in the background uses noticeably more battery (GPS and Wi-Fi stay on). 
 
 ## Testing on the boat (checklist)
 
-1. Install the APK, open it, Settings › GPS › Real GPS: position appears on the chart.
-2. Join `pcnautic_AP`, Instruments › Wi-Fi › Connect: heading, rudder and heel appear. The "OpenSail is running: Instruments on" notification shows.
+1. Install the APK, open it, Settings › Navigation sources › Real GPS: position appears on the chart.
+2. Join `pcnautic_AP`, Instruments › Wi-Fi › **Connect over Wi-Fi**: the heading shows in the instrument strip, rudder and heel under Raw data. The "OpenSail is running: Instruments on" notification shows.
 3. Switch Wi-Fi off and on: the app reconnects by itself.
-4. Drop anchor, lock the screen for a few minutes, unlock: the anchor watch is still running and its log has no gaps.
+4. Drop anchor (the anchor button, bottom left), lock the screen for a few minutes, unlock: the anchor watch is still running and its log has no gaps.
 5. Drop anchor with a small circle, lock the screen and move away: the alarm rings and lights the screen. Silence it from the notification.
-6. Chart › Offline charts: download a region at home, then check it shows with mobile data off.
+6. Chart › **Offline charts**: download a region at home, then check it shows with mobile data off.
 
 ## What works how (Android WebView)
 
-CI starts the debug APK on an Android 14 emulator and checks these; the table is in the job summary of the [Android app workflow](../.github/workflows/android.yml), screenshots and logcat in its `android-smoke-output` artifact.
+On a release tag or a manual run, CI starts the debug APK on an Android 14 emulator and checks these; the table is in the job summary of the [Android app workflow](../.github/workflows/android.yml), screenshots and logcat in its `android-smoke-output` artifact.
 
 | Feature | In the app |
 |---|---|
@@ -74,11 +74,12 @@ CI starts the debug APK on an Android 14 emulator and checks these; the table is
 
 ## Build
 
-The Android SDK and JDK aren't needed on the dev laptop: CI builds and tests everything ([`.github/workflows/android.yml`](../.github/workflows/android.yml)). Every pull request that touches `android/` or `pwa/`, and main:
+The Android SDK and JDK aren't needed on the dev laptop: CI builds and tests everything ([`.github/workflows/android.yml`](../.github/workflows/android.yml)). Every pull request and push to main that touches `android/` or `pwa/`:
 
 - Kotlin unit tests (`native/app/src/test`: the TCP sockets against a local server);
-- the debug APK, downloadable as the `opensail-android-debug` artifact. It installs **next to** the released app as "OpenSail (test)", with its own storage;
-- the smoke test (`smoke/smoke.mjs`) on a Pixel 6 emulator: TCP, charts, GPS, and the screen-off anchor alarm.
+- the debug APK, downloadable as the `opensail-android-debug` artifact. It installs **next to** the released app as "OpenSail (test)", with its own storage.
+
+The smoke test (`smoke/smoke.mjs`) on an Android 14 emulator (TCP, charts, GPS and the screen-off anchor alarm) takes about 20 minutes, so it only runs on a release tag and by hand (**Actions › Android app › Run workflow**).
 
 Releases: see [docs/RELEASING.md](../docs/RELEASING.md).
 

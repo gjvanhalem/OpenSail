@@ -1,6 +1,6 @@
 # Releasing OpenSail
 
-OpenSail is one web app (`pwa/`) in three shells: the browser (PWA, deployed by `pwa-deploy.yml`), Windows (`desktop/`, Tauri) and Android (`android/`, Capacitor). The native apps get **one version** and **one release** with both installers.
+OpenSail is one web app (`pwa/`) in three shells: the browser (the Docker image `ghcr.io/gjvanhalem/opensail`, built on every push to main and picked up by the Zimablade, see [DEPLOY.md](../DEPLOY.md)), Windows (`desktop/`, Tauri) and Android (`android/`, Capacitor). The native apps get **one version** and **one release** with both installers. The browser version has no release step: it follows main.
 
 ## The version
 
@@ -10,7 +10,7 @@ The one version lives in **`pwa/package.json`**. Everything else reads it:
 |---|---|
 | The app itself (Settings › About) | `__APP_VERSION__`, set by `pwa/vite.config.ts` |
 | Windows | `desktop/src-tauri/tauri.conf.json` has `"version": "../../pwa/package.json"` |
-| Android | `android/native/app/build.gradle` reads it: `versionName` 0.2.3, `versionCode` 203 (major × 10000 + minor × 100 + patch) |
+| Android | `android/native/app/build.gradle` reads it: `versionName` 0.3.0, `versionCode` 300 (major × 10000 + minor × 100 + patch) |
 | The release tag | `v<version>`, checked by `release.yml` |
 
 Don't put a version anywhere else. (`Cargo.toml` needs one for Rust and has `0.0.0`; it isn't used.) Android only installs an update with a higher `versionCode`, so versions only go up.
@@ -20,37 +20,38 @@ Don't put a version anywhere else. (`Cargo.toml` needs one for Rust and has `0.0
 1. Bump the version on a branch and merge it:
 
    ```bash
-   npm version 0.3.0 --no-git-tag-version --prefix pwa
+   npm version 0.4.0 --no-git-tag-version --prefix pwa
    ```
 
 2. Tag the merged main and push the tag:
 
    ```bash
-   git tag v0.3.0 origin/main
+   git tag v0.4.0 origin/main
    ```
 
    ```bash
-   git push origin v0.3.0
+   git push origin v0.4.0
    ```
 
-3. [`release.yml`](../.github/workflows/release.yml) checks that the tag matches `pwa/package.json`, runs the full [Desktop app](../.github/workflows/desktop.yml) and [Android app](../.github/workflows/android.yml) workflows (tests, builds and both smoke tests), and only then creates the GitHub release **OpenSail 0.3.0** with:
-   - `OpenSail_0.3.0_x64-setup.exe` (Windows installer)
-   - `OpenSail-0.3.0.apk` (Android, signed with the release key)
+3. [`release.yml`](../.github/workflows/release.yml) checks that the tag matches `pwa/package.json`, runs the full [Desktop app](../.github/workflows/desktop.yml) and [Android app](../.github/workflows/android.yml) workflows (tests, builds and both smoke tests), and only then creates the GitHub release **OpenSail 0.4.0** with:
+   - `OpenSail_0.4.0_x64-setup.exe` (Windows installer)
+   - `OpenSail-0.4.0.apk` (Android, signed with the release key)
 
-If a job fails, nothing is published. Fix it, then move the tag: `git tag -f v0.3.0 origin/main` and `git push -f origin v0.3.0`.
+If a job fails, nothing is published. Fix it, then move the tag: `git tag -f v0.4.0 origin/main` and `git push -f origin v0.4.0`.
 
-## What runs when (Actions minutes)
+## What runs when
 
-The repo is private, so CI uses the account's Actions minutes; Windows minutes count double and the emulator test is slow. So the heavy checks only run when they matter:
+The Windows installer and its smoke test (Windows minutes count double) and the Android emulator test (about 20 minutes) are slow and costly, so the heavy checks only run when they matter:
 
 | | Pull requests and main | Release tag `v*` | By hand (**Actions → workflow → Run workflow**) |
 |---|---|---|---|
-| Web app: lint, types, unit tests, Playwright, server tests | ✓ | (on main) | ✓ |
-| Android: Kotlin tests, debug APK (`opensail-android-debug`) | ✓ | ✓ (signed) | ✓ |
+| Web app: lint, types, unit tests, Playwright, server and bridge tests | when `pwa/`, `server/` or the bridge change | (on main) | ✓ |
+| Android: Kotlin tests, debug APK (`opensail-android-debug`) | when `android/` or `pwa/` change | ✓ (signed) | ✓ |
 | Android emulator smoke test | | ✓ | ✓ (choose *repeat 3* to check it's reliable) |
 | Windows: Rust fmt, clippy, tests | when `desktop/` changes | ✓ | ✓ |
 | Windows installer (`opensail-desktop-windows`) and smoke test | | ✓ | ✓ |
 | Lighthouse | | | ✓ |
+| Web image `ghcr.io/gjvanhalem/opensail` | on main, when `pwa/`, `server/` or `deploy/` change | | ✓ |
 | Chart pipeline image | when `tools/enc-pipeline/` changes | | ✓ |
 
 Before tagging a release after big changes to `pwa/`, run the Desktop app and Android app workflows by hand on `main`, so a broken smoke test shows up before the tag does:
@@ -65,7 +66,7 @@ gh workflow run android.yml --ref main -f repeat=1
 
 The debug APK from a pull request installs next to the released app as "OpenSail (test)".
 
-The old `desktop-v*` tags are gone: `desktop-v0.1.0` stays as the first Windows release, later ones are `v*`.
+Releases so far: `desktop-v0.1.0` (the first Windows build, from before this flow), `v0.2.0` (Windows and Android) and `v0.3.0`. The `v2.0.0-pwa-only` tag marks a cleanup in February 2026 and isn't an app release.
 
 ## The Android release key
 
