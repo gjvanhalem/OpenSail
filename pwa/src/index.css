@@ -122,6 +122,102 @@
   --color-sky-900: var(--blue-900);
 }
 
+/*
+ * Night mode (docs/ui-redesign.md 2.4): red on black, nothing white, to keep
+ * night vision. Only the variables change; Tailwind's own colour variables
+ * (green, amber, red, white, ...) are overridden here too.
+ */
+:root[data-theme="night"] {
+  color-scheme: dark;
+  --canvas: #000000;
+  --surface: #120100;
+  --ink: #ff6b5e;
+  --muted: #b3473d;
+  --line: #3d0d08;
+  --bar: #0a0000;
+  --bar-ink: #ff6b5e;
+  --bar-muted: #a1332a;
+  --accent: #8f1d16;
+  --accent-strong: #a8261d;
+  --accent-ink: #ffc9c4;
+  --danger: #c81e14;
+  --ok: #d9534a;
+  --warn: #e0663b;
+
+  --gauge-bg: #0a0000;
+  --gauge-ink: #ff6b5e;
+  --gauge-muted: #9e3a31;
+  --gauge-track: #2a0805;
+  --gauge-accent: #ff6b5e;
+  --gauge-port: #ff3b30;
+  --gauge-starboard: #ffa199;
+  --gauge-warning: #ff8c66;
+  --gauge-danger: #ff3b30;
+
+  /* Lightest (backgrounds) to darkest (text) in day mode, so dark to bright here */
+  --gray-50: #0d0000;
+  --gray-100: #160201;
+  --gray-200: #250604;
+  --gray-300: #3d0d08;
+  --gray-400: #6b1d15;
+  --gray-500: #8f2a20;
+  --gray-600: #b3473d;
+  --gray-700: #cc5a4f;
+  --gray-800: #e0675b;
+  --gray-900: #ff6b5e;
+
+  --blue-50: #140000;
+  --blue-100: #1f0402;
+  --blue-200: #3d0d08;
+  --blue-300: #6b1d15;
+  --blue-400: #a8261d;
+  --blue-500: #b3261e;
+  --blue-600: #8f1d16;
+  --blue-700: #c2342a;
+  --blue-800: #ff8a80;
+  --blue-900: #ff9d94;
+
+  --color-white: #ffc9c4;
+  --color-red-50: #1a0402;
+  --color-red-100: #1f0402;
+  --color-red-200: #4a120c;
+  --color-red-300: #6b1d15;
+  --color-red-400: #ff6b5e;
+  --color-red-500: #c81e14;
+  --color-red-600: #a8160d;
+  --color-red-700: #c81e14;
+  --color-red-800: #ff8a80;
+  --color-red-900: #ff9d94;
+  --color-green-50: #1a0402;
+  --color-green-100: #1f0402;
+  --color-green-500: #d9534a;
+  --color-green-600: #b3473d;
+  --color-green-700: #d9534a;
+  --color-green-800: #ff8a80;
+  --color-amber-50: #1a0402;
+  --color-amber-400: #e0663b;
+  --color-amber-800: #ff8a80;
+  --color-amber-900: #ff9d94;
+  --color-yellow-50: #1a0402;
+  --color-yellow-300: #e0663b;
+  --color-yellow-600: #b3473d;
+  --color-yellow-700: #ff8a80;
+  --color-yellow-800: #ff8a80;
+  --color-yellow-900: #ff9d94;
+  --color-orange-100: #1f0402;
+  --color-orange-500: #c2410c;
+  --color-orange-700: #ff8a80;
+  --color-orange-800: #ff8a80;
+}
+
+/* The chart: inverted (dark water), dimmed and red; markers included, they live in the canvas container */
+:root[data-theme="night"] .maplibregl-canvas-container {
+  filter: invert(1) grayscale(1) brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(6) brightness(0.6);
+}
+:root[data-theme="night"] .maplibregl-ctrl-attrib {
+  filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(5);
+}
+
 body {
   background: var(--canvas);
   color: var(--ink);

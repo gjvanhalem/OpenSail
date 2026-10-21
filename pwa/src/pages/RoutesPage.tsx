@@ -213,7 +213,7 @@ export const RoutesPage: React.FC = () => {
                           handleStopRoute();
                         }}
                         aria-label={`Stop navigating ${route.name}`}
-                        className="flex-1 px-2 py-1 text-xs bg-gray-700 text-white rounded hover:bg-gray-800"
+                        className="flex-1 px-2 py-1 text-xs bg-gauge text-gauge-ink rounded hover:opacity-90"
                       >
                         Stop
                       </button>

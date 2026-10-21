@@ -41,6 +41,7 @@ const initialState: SettingsState = {
     alertThresholds: DEFAULT_ALERT_THRESHOLDS,
     instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
     speedGaugeMax: DEFAULT_SPEED_GAUGE_MAX,
+    displayMode: 'day',
   },
   isLoading: false,
   error: null,

@@ -14,7 +14,7 @@ export const ConnectionStatus: React.FC = () => {
       role="status"
       aria-live="polite"
       title="No network connection. The chart shows the regions downloaded for offline use."
-      className="flex items-center gap-1.5 rounded bg-gray-800/90 px-2 py-1 text-xs font-semibold text-white shadow"
+      className="flex items-center gap-1.5 rounded bg-gauge/90 px-2 py-1 text-xs font-semibold text-gauge-ink shadow"
     >
       <span className="inline-block h-2 w-2 rounded-full bg-amber-400" aria-hidden="true" />
       Offline: downloaded charts only

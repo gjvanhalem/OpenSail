@@ -7,6 +7,8 @@ import { DEFAULT_ARRIVAL_RADIUS_NM } from '@/utils/routeGuidance';
 
 export type GpsMode = 'off' | 'real' | 'simulator';
 
+export type DisplayMode = 'day' | 'night' | 'auto';
+
 // Settings type definitions
 export interface AppSettings {
   // Map preferences
@@ -53,6 +55,8 @@ export interface AppSettings {
   instrumentPanelLayout: PanelLayout;
   /** Top of the speed gauge's scale, knots (one of SPEED_GAUGE_RANGES) */
   speedGaugeMax: number;
+  /** Day colours, red-on-black night colours, or night from dusk to dawn at the boat's position */
+  displayMode: DisplayMode;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -84,6 +88,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   alertThresholds: DEFAULT_ALERT_THRESHOLDS,
   instrumentPanelLayout: DEFAULT_PANEL_LAYOUT,
   speedGaugeMax: DEFAULT_SPEED_GAUGE_MAX,
+  displayMode: 'day',
 };
 
 export class SettingsRepository {
