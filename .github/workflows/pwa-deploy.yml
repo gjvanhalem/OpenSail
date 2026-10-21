@@ -121,7 +121,8 @@ jobs:
   lighthouse:
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'pull_request'
+    # Manual runs only, to save Actions minutes
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout code

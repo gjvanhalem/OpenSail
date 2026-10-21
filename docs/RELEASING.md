@@ -39,7 +39,31 @@ Don't put a version anywhere else. (`Cargo.toml` needs one for Rust and has `0.0
 
 If a job fails, nothing is published. Fix it, then move the tag: `git tag -f v0.3.0 origin/main` and `git push -f origin v0.3.0`.
 
-Pull requests build the same things without publishing: the artifacts `opensail-desktop-windows` and `opensail-android-debug` (a debug APK that installs next to the released app as "OpenSail (test)").
+## What runs when (Actions minutes)
+
+The repo is private, so CI uses the account's Actions minutes; Windows minutes count double and the emulator test is slow. So the heavy checks only run when they matter:
+
+| | Pull requests and main | Release tag `v*` | By hand (**Actions → workflow → Run workflow**) |
+|---|---|---|---|
+| Web app: lint, types, unit tests, Playwright, server tests | ✓ | (on main) | ✓ |
+| Android: Kotlin tests, debug APK (`opensail-android-debug`) | ✓ | ✓ (signed) | ✓ |
+| Android emulator smoke test | | ✓ | ✓ (choose *repeat 3* to check it's reliable) |
+| Windows: Rust fmt, clippy, tests | when `desktop/` changes | ✓ | ✓ |
+| Windows installer (`opensail-desktop-windows`) and smoke test | | ✓ | ✓ |
+| Lighthouse | | | ✓ |
+| Chart pipeline image | when `tools/enc-pipeline/` changes | | ✓ |
+
+Before tagging a release after big changes to `pwa/`, run the Desktop app and Android app workflows by hand on `main`, so a broken smoke test shows up before the tag does:
+
+```bash
+gh workflow run desktop.yml --ref main
+```
+
+```bash
+gh workflow run android.yml --ref main -f repeat=1
+```
+
+The debug APK from a pull request installs next to the released app as "OpenSail (test)".
 
 The old `desktop-v*` tags are gone: `desktop-v0.1.0` stays as the first Windows release, later ones are `v*`.
 

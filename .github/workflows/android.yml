@@ -1,7 +1,8 @@
 name: Android app
 # OpenSail for Android (android/, Capacitor 8). The Android SDK and JDK only run here, not on
 # the dev laptop. Pull requests and main: Kotlin unit tests, the debug APK (artifact
-# opensail-android-debug), an unsigned release build and a smoke test on an emulator.
+# opensail-android-debug) and an unsigned release build. The emulator smoke test is slow
+# (~20 min), so it only runs on release tags and when started by hand (Run workflow).
 # Release tags v*: release.yml calls this workflow with release: true, which signs the release
 # APK with the key in the ANDROID_KEYSTORE_* secrets (artifact opensail-android-release).
 on:
@@ -109,6 +110,8 @@ jobs:
   smoke:
     name: Smoke test (emulator)${{ inputs.repeat == '3' && format(' {0}', matrix.run) || '' }}
     needs: apk
+    # Saves Actions minutes: releases (release.yml, on a v* tag) and manual runs only
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     # Boot takes up to 5 minutes; smoke.mjs gives up after 15 minutes and names the step that hung
     timeout-minutes: 30
