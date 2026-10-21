@@ -31,7 +31,7 @@ const LinkBox: React.FC<{ label: string; link: string; onClose: () => void }> = 
           value={link}
           aria-label="Link to send"
           onFocus={(e) => e.target.select()}
-          className="flex-1 min-w-0 px-2 py-1 font-mono text-xs border border-blue-200 rounded bg-white"
+          className="flex-1 min-w-0 px-2 py-1 font-mono text-xs border border-blue-200 rounded bg-surface"
         />
         <button onClick={copy} className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">
           {copied ? 'Copied' : 'Copy'}
@@ -93,7 +93,7 @@ export const UserAdmin: React.FC<{ currentUserId: string }> = ({ currentUserId }
   };
 
   return (
-    <section className="bg-white rounded-lg shadow-sm p-6 mb-6" aria-labelledby="users-heading">
+    <section className="bg-surface rounded-lg shadow-sm p-6 mb-6" aria-labelledby="users-heading">
       <h2 id="users-heading" className="text-xl font-semibold text-gray-900 mb-1">Users</h2>
       <p className="text-sm text-gray-500 mb-4">
         Only people with an account can open OpenSail. Admins manage users; crew can use everything else.

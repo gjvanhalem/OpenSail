@@ -153,7 +153,7 @@ export const RoutesPage: React.FC = () => {
   return (
     <div className="h-full flex">
       {/* Sidebar - Route List */}
-      <div className="w-80 bg-white border-r flex flex-col">
+      <div className="w-80 bg-surface border-r flex flex-col">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">Routes</h1>

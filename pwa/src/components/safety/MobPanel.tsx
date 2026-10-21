@@ -63,7 +63,7 @@ export const MobPanel: React.FC = () => {
     <section
       aria-label="Man overboard"
       className="fixed z-[85] bottom-3 left-1/2 -translate-x-1/2 w-[min(28rem,calc(100vw-7rem))]
-        ml-10 rounded-xl border-4 border-red-600 bg-white shadow-2xl text-gray-900"
+        ml-10 rounded-xl border-4 border-red-600 bg-surface shadow-2xl text-gray-900"
     >
       <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-red-600 text-white">
         <h2 className="font-extrabold tracking-wide">MAN OVERBOARD</h2>

@@ -16,7 +16,7 @@ export const CompatibilityInfo: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-surface rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold mb-4">Browser Compatibility</h2>
 
       <div className="mb-6">

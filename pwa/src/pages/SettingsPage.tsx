@@ -64,7 +64,7 @@ export const SettingsPage: React.FC = () => {
         <AccountSettings />
 
         {/* Map Preferences Section */}
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Map Preferences
           </h2>
@@ -197,7 +197,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Instrument Preferences Section */}
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Instrument Preferences
           </h2>
@@ -327,7 +327,7 @@ export const SettingsPage: React.FC = () => {
         <InstrumentAlertSettings />
 
         {/* Route navigation */}
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Route Navigation</h2>
           <label htmlFor="arrival-radius" className="block text-sm font-medium text-gray-700 mb-1">
             Arrival radius ({units.label('distance')})
@@ -354,7 +354,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Alarms Section */}
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Alarms</h2>
           
           <div className="space-y-4">
@@ -462,7 +462,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Offline Mode Section */}
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <section className="bg-surface rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Offline Mode
           </h2>

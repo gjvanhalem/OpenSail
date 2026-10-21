@@ -18,7 +18,7 @@ export const RouteNavigationControl: React.FC = () => {
     return (
       <button
         onClick={() => dispatch(stopNavigation())}
-        className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 text-sm"
+        className="bg-surface px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 text-sm"
       >
         Stop route
       </button>
@@ -34,7 +34,7 @@ export const RouteNavigationControl: React.FC = () => {
     navigable[0].id;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-2 flex flex-col gap-2 text-sm">
+    <div className="bg-surface rounded-lg shadow-lg p-2 flex flex-col gap-2 text-sm">
       <select
         aria-label="Route to navigate"
         value={selectedId}

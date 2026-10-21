@@ -348,7 +348,7 @@ export function InstrumentManager() {
   return (
     <div className="space-y-6">
       {/* Connection Controls */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-surface p-6 rounded-lg shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Connect Instrument
         </h3>
@@ -366,7 +366,7 @@ export function InstrumentManager() {
                 className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                   connectionType === 'serial'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 bg-surface text-gray-700 hover:bg-gray-50'
                 } ${!isSerialSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 USB Serial
@@ -378,7 +378,7 @@ export function InstrumentManager() {
                 className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                   connectionType === 'bluetooth'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 bg-surface text-gray-700 hover:bg-gray-50'
                 } ${!isBluetoothSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Bluetooth
@@ -389,7 +389,7 @@ export function InstrumentManager() {
                 className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                   connectionType === 'network'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 bg-surface text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 Wi-Fi
@@ -399,7 +399,7 @@ export function InstrumentManager() {
                 className={`flex-1 px-4 py-2 rounded-md border-2 transition-colors ${
                   connectionType === 'stub'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 bg-surface text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 Simulator
@@ -519,7 +519,7 @@ export function InstrumentManager() {
 
       {/* Active Connections */}
       {connections.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-surface p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Active Connections
           </h3>
@@ -585,7 +585,7 @@ export function InstrumentManager() {
 
       {/* Received Data Display */}
       {activeConnectionId && Object.keys(dataStreams).length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-surface p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Received Data
           </h3>

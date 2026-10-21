@@ -160,7 +160,7 @@ export const TracksPage: React.FC = () => {
 
         {/* Selected Track Details */}
         {selectedTrack && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-surface border border-gray-200 rounded-lg p-4">
             <h3 className="font-semibold text-lg mb-4">Track Details</h3>
             
             <div className="space-y-3">

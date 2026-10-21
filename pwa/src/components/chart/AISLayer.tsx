@@ -76,7 +76,7 @@ export const AISLayer: React.FC<AISLayerProps> = React.memo(
 
                 {/* Target info popup */}
                 {isSelected && (
-                  <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap z-10">
+                  <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-surface px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap z-10">
                     <div className="font-bold">{target.name || `MMSI: ${target.mmsi}`}</div>
                     <div className="text-gray-600">Speed: {units.format('speed', target.speed)}</div>
                     <div className="text-gray-600">Heading: {target.heading.toFixed(0)}°</div>

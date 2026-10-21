@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Icon } from '@/components/icons';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   dropAnchor,
@@ -123,7 +124,7 @@ export const AnchorWatchPanel: React.FC = () => {
         data-testid="anchor-status-pill"
         className={`fixed z-[80] right-3 bottom-24 px-3 py-2 rounded-full shadow-lg font-semibold text-sm ${status.className}`}
       >
-        ⚓ {m(watch.distanceM)} / {m(watch.radiusM)} · {status.text}
+        <Icon name="anchor" className="inline w-4 h-4 mr-1 -mt-0.5" />{m(watch.distanceM)} / {m(watch.radiusM)} · {status.text}
       </button>
     );
   }
@@ -131,10 +132,10 @@ export const AnchorWatchPanel: React.FC = () => {
   return (
     <section
       aria-label="Anchor watch"
-      className="fixed z-[80] right-3 bottom-24 w-80 max-w-[calc(100vw-1.5rem)] rounded-lg bg-white shadow-2xl border border-gray-200 text-sm text-gray-900"
+      className="fixed z-[80] right-3 bottom-24 w-80 max-w-[calc(100vw-1.5rem)] rounded-lg bg-surface shadow-2xl border border-gray-200 text-sm text-gray-900"
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
-        <h2 className="font-semibold">⚓ Anchor watch</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Icon name="anchor" className="w-5 h-5" /> Anchor watch</h2>
         <button
           onClick={() => dispatch(setAnchorPanelOpen(false))}
           className="px-2 py-1 rounded hover:bg-gray-100"

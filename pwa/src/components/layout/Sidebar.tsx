@@ -16,7 +16,7 @@ export const Sidebar: React.FC = () => {
     <>
       <aside
         className={`
-          bg-white border-r border-gray-200 shadow-lg
+          bg-surface border-r border-gray-200 shadow-lg
           transition-all duration-300 ease-in-out
           ${sidebarCollapsed ? 'w-16' : 'w-64'}
           fixed md:relative h-full z-40
