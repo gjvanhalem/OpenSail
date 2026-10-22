@@ -1,4 +1,7 @@
-name: PWA Build and Deploy
+name: Web app
+# The shared frontend (pwa/), the accounts server (server/) and the OpenSail bridge.
+# Pull requests and main that touch them: lint, types, unit tests, server and bridge tests,
+# Playwright (chromium, accounts) and a build. Lighthouse runs on manual runs only.
 
 on:
   push:
@@ -19,8 +22,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # Build and test job
@@ -100,22 +101,6 @@ jobs:
           name: pwa-build
           path: pwa/dist/
           retention-days: 7
-      
-      # Chart archives are too big for git: tools/enc-pipeline builds them and
-      # they are attached to the release tagged "charts" (docs/chart-sources.md)
-      - name: Add chart archives
-        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p pwa/dist/charts
-          gh release download charts --repo "${{ github.repository }}"             --pattern '*.pmtiles' --pattern 'index.json' --dir pwa/dist/charts             || echo "No 'charts' release yet: the app runs without ENC regions"
-
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: pwa/dist
 
   # Lighthouse audit job
   lighthouse:
@@ -137,7 +122,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli
@@ -154,22 +139,3 @@ jobs:
           name: lighthouse-results
           path: .lighthouseci/
           retention-days: 7
-
-  # Deploy to GitHub Pages: manual only (Actions > Run workflow) until hosting is decided
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
-    # Allow one concurrent deployment
-    concurrency:
-      group: "pages"
-      cancel-in-progress: true
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

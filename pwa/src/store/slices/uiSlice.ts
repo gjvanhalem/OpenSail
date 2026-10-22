@@ -21,13 +21,6 @@ export interface UIState {
   showRoutes: boolean;
   showTracks: boolean;
   showAIS: boolean;
-  notifications: Array<{
-    id: string;
-    message: string;
-    type: 'info' | 'warning' | 'error' | 'success';
-    timestamp: Date;
-    dismissed: boolean;
-  }>;
   isLoading: boolean;
   loadingMessage: string | null;
 }
@@ -41,7 +34,6 @@ const initialState: UIState = {
   showRoutes: true,
   showTracks: true,
   showAIS: true,
-  notifications: [],
   isLoading: false,
   loadingMessage: null,
 };
@@ -94,32 +86,6 @@ const uiSlice = createSlice({
     setShowAIS: (state, action: PayloadAction<boolean>) => {
       state.showAIS = action.payload;
     },
-    addNotification: (
-      state,
-      action: PayloadAction<{
-        id: string;
-        message: string;
-        type: 'info' | 'warning' | 'error' | 'success';
-      }>
-    ) => {
-      state.notifications.push({
-        ...action.payload,
-        timestamp: new Date(),
-        dismissed: false,
-      });
-    },
-    dismissNotification: (state, action: PayloadAction<string>) => {
-      const notification = state.notifications.find((n) => n.id === action.payload);
-      if (notification) {
-        notification.dismissed = true;
-      }
-    },
-    removeNotification: (state, action: PayloadAction<string>) => {
-      state.notifications = state.notifications.filter((n) => n.id !== action.payload);
-    },
-    clearNotifications: (state) => {
-      state.notifications = [];
-    },
     setLoading: (state, action: PayloadAction<{ isLoading: boolean; message?: string }>) => {
       state.isLoading = action.payload.isLoading;
       state.loadingMessage = action.payload.message ?? null;
@@ -142,10 +108,6 @@ export const {
   setShowTracks,
   toggleAIS,
   setShowAIS,
-  addNotification,
-  dismissNotification,
-  removeNotification,
-  clearNotifications,
   setLoading,
 } = uiSlice.actions;
 

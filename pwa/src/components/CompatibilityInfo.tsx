@@ -129,7 +129,7 @@ export const CompatibilityInfo: React.FC = () => {
           <li>Microsoft Edge 89 or later</li>
         </ul>
         <p className="text-sm text-blue-800 mt-2">
-          Core navigation features work on Safari 15.4+ and Firefox 90+, but device connections are limited.
+          Core navigation features work on Safari 15.4+ and Firefox 90+, but without USB or Bluetooth instrument connections.
         </p>
       </div>
     </div>

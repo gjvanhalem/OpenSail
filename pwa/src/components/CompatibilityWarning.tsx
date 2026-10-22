@@ -75,7 +75,7 @@ function computeCompatibilityIssues(): CompatibilityIssues {
 
   if (!features.webBluetooth.supported) {
     newWarnings.push(
-      'Bluetooth instrument connections not available. Use Chrome, Edge, or Safari 15.4+ for Bluetooth support.'
+      'Bluetooth instrument connections not available. Use Chrome or Edge for Bluetooth support.'
     );
   }
 
@@ -90,7 +90,7 @@ function computeCompatibilityIssues(): CompatibilityIssues {
     );
   } else if (browserInfo.name === 'Safari') {
     newWarnings.push(
-      'Safari has limited Bluetooth support and no USB support. For full functionality, use Chrome or Edge.'
+      'Safari does not support USB or Bluetooth instrument connections. For full functionality, use Chrome or Edge.'
     );
   }
 

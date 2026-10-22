@@ -147,7 +147,7 @@ jobs:
           target: google_apis
           arch: x86_64
           # The default device: a small phone screen (320 x 640), so the smoke test uses the phone
-          # layout (navigation behind the menu). Larger profiles are too slow with software rendering.
+          # layout (navigation in the bottom bar). Larger profiles are too slow with software rendering.
           disable-animations: true
           emulator-boot-timeout: 600
           # A cold boot every time (no snapshot to load or save), so every run starts the same way

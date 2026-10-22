@@ -119,7 +119,7 @@ See `desktop/README.md` and `android/README.md` for details. The platform code i
 `CompatibilityWarning` is shown at the top level.
 
 ### 2. Settings Page
-`CompatibilityInfo` in the About section.
+`CompatibilityInfo` in the About section, in the browser only (not in the Windows and Android apps).
 
 ### 3. Instrument Manager
 Uses `useFeatureSupport('webSerial')` and `useFeatureSupport('webBluetooth')` to disable the USB and Bluetooth options when the APIs are not available. Wi-Fi uses `NativeTcpConnection.isSupported()` to choose between direct TCP (native apps) and WebSocket (browser).

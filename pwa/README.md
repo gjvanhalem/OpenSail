@@ -51,8 +51,7 @@ src/
 ├── store/         # Redux store and slices
 ├── database/      # Dexie database and repositories
 ├── hooks/         # Custom React hooks
-├── utils/         # Calculations, units, route guidance, GPX export
-└── workers/       # Web Worker
+└── utils/         # Calculations, units, route guidance, GPX export
 ```
 
 ## 🔧 Development Scripts

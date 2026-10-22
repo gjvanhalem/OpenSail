@@ -113,7 +113,7 @@ export const ChartPage: React.FC = () => {
 
   const handleTargetSelect = useCallback((target: AISTarget) => {
     console.log('Selected AIS target:', target);
-    // Future: Show detailed target info in sidebar
+    // The target's details show in AISLayer's own popup
   }, []);
 
   const handleRegionSelected = useCallback((bounds: Bounds) => {

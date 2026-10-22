@@ -52,24 +52,6 @@ class ErrorHandlerService {
   }
 
   /**
-   * Handle network errors
-   */
-  handleNetworkError(error: Error, context: string): void {
-    const appError: AppError = {
-      code: 'NETWORK_ERROR',
-      message: 'Network connection failed. The app will continue to work offline.',
-      severity: 'warning',
-      recoverable: true,
-      timestamp: new Date(),
-      context,
-      originalError: error,
-    };
-    
-    this.logError(appError);
-    this.notifyCallbacks(appError);
-  }
-
-  /**
    * Handle storage errors (IndexedDB quota exceeded, etc.)
    */
   handleStorageError(error: Error, context: string): void {
@@ -79,7 +61,7 @@ class ErrorHandlerService {
     const appError: AppError = {
       code: isQuotaError ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_ERROR',
       message: isQuotaError 
-        ? 'Storage quota exceeded. Please clear some cached data in Settings.'
+        ? 'Storage is full. Delete offline chart regions on the Chart page, or old tracks.'
         : 'Failed to save data. Please check available storage.',
       severity: 'error',
       recoverable: isQuotaError,

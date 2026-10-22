@@ -9,6 +9,7 @@ import { AccountSettings } from '@/components/account/AccountSettings';
 import { useAccount } from '@/services/account';
 import { InstrumentAlertSettings } from '@/components/InstrumentAlertSettings';
 import { APP_NAME, APP_VERSION } from '@/utils/constants';
+import { NATIVE_BUILD } from '@/platform/platform';
 import { useUnits } from '@/hooks/useUnits';
 import { raiseAlarm } from '@/store/slices/alertsSlice';
 import { SPEED_GAUGE_RANGES } from '@/components/instruments/dial';
@@ -304,7 +305,8 @@ export const SettingsPage: React.FC = () => {
                 Reset All Settings
               </button>
             </Card>
-            <CompatibilityInfo />
+            {/* Browser feature support doesn't apply to the Windows and Android apps */}
+            {!NATIVE_BUILD && <CompatibilityInfo />}
           </Section>
         </div>
       </div>

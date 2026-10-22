@@ -29,8 +29,6 @@ Set in `vite.config.ts`: name "OpenSail Navigation", short name "OpenSail", disp
 
 The browser offers it: Chrome or Edge **⋮ → Install app** (or the install icon in the address bar), Safari **Share → Add to Home Screen**. It needs HTTPS (or `localhost`).
 
-`src/hooks/usePWAInstall.ts` and `src/components/PWAInstallPrompt.tsx` are an install button of the app's own; the layout doesn't show it at the moment.
-
 ## Testing
 
 ```bash

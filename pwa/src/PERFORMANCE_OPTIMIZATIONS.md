@@ -57,13 +57,6 @@ Database queries use indexes (`src/database/db.ts`):
 - `chartTiles`: `source`, `timestamp`, and a multi-entry index on `regions`
 - `safetyEvents`: `timestamp`, `type`, `sessionId`
 
-## Helpers That Aren't Used Yet
-
-These exist in the code but nothing in the app calls them yet:
-- `src/utils/performanceMonitor.ts`: FPS, memory and render-time monitor (it starts FPS monitoring when imported)
-- `src/utils/storageMonitor.ts`: storage usage and automatic cleanup
-- `src/hooks/useTrackProcessor.ts` with `src/workers/trackProcessor.worker.ts`: Douglas-Peucker track compression and statistics in a Web Worker
-
 ## Best Practices
 
 ### Component Optimization
