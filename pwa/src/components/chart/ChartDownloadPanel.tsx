@@ -175,7 +175,7 @@ export const ChartDownloadPanel: React.FC<ChartDownloadPanelProps> = ({
                 type="text"
                 value={regionName}
                 onChange={(e) => setRegionName(e.target.value)}
-                placeholder="e.g., San Francisco Bay"
+                placeholder="e.g., IJsselmeer"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>

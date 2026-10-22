@@ -82,7 +82,6 @@ UI state.
 - `fullscreenMode`
 - `showRoutes`, `showTracks`, `showAIS`: chart layers (the Layers panel)
 - `activeModal`, `modalData`, `showInstrumentPanel`, `showNavigationInfo`, `isLoading`, `loadingMessage`
-- `notifications`: not used; toasts use the notifications slice
 
 **Actions:**
 - `toggleFullscreen`, `setFullscreen`

@@ -35,7 +35,6 @@ try {
 }
 
 // Handle specific error types
-errorHandler.handleNetworkError(error, 'Catalog.fetch');
 errorHandler.handleStorageError(error, 'Database.save');
 errorHandler.handleDeviceError(error, 'SerialConnection.connect', 'serial');
 errorHandler.handleParseError(error, 'NMEA0183Parser.parse', rawData);
@@ -51,14 +50,9 @@ const recentErrors = errorHandler.getRecentErrors(10);
 
 ### Error Types
 
-#### Network Errors
-- For failed network requests; the message says the app keeps working offline
-- Severity: warning
-- Not called anywhere yet
-
 #### Storage Errors
 - Detects quota exceeded errors
-- Asks the user to clear cached data
+- Points the user to the offline chart regions on the Chart page and old tracks
 - Severity: error
 
 #### Device Errors
@@ -184,10 +178,9 @@ function App() {
 ### When to Use Each Error Handler
 
 1. **errorHandler.handle()** - Generic errors, unknown error types
-2. **errorHandler.handleNetworkError()** - Fetch failures, API errors
-3. **errorHandler.handleStorageError()** - IndexedDB errors, quota exceeded
-4. **errorHandler.handleDeviceError()** - Web Serial/Bluetooth errors
-5. **errorHandler.handleParseError()** - Protocol parsing errors (NMEA, etc.)
+2. **errorHandler.handleStorageError()** - IndexedDB errors, quota exceeded
+3. **errorHandler.handleDeviceError()** - Web Serial/Bluetooth errors
+4. **errorHandler.handleParseError()** - Protocol parsing errors (NMEA, etc.)
 
 ### Error Severity Guidelines
 
@@ -201,7 +194,6 @@ function App() {
 The ErrorHandler automatically converts technical error messages to user-friendly ones:
 
 - "Failed to fetch" → "Network connection failed"
-- "QuotaExceededError" → "Storage quota exceeded. Please clear some cached data in Settings."
 - "NotSupportedError" → "Web Serial API is not supported in this browser. Please use Chrome or Edge."
 
 ### Error Logging

@@ -42,7 +42,7 @@ The chart tests wait until the map is idle before measuring, and the tile server
 
 Lighthouse CI is configured in `../lighthouserc.json`. It audits `/`, `/chart`, `/routes` and `/settings` on the preview server, three runs each, with the desktop preset.
 
-**In CI:** the `lighthouse` job in `.github/workflows/pwa-deploy.yml` runs only on manual runs (Actions → PWA Build and Deploy → Run workflow), to save Actions minutes. The reports are uploaded as the `lighthouse-results` artifact.
+**In CI:** the `lighthouse` job in `.github/workflows/pwa-deploy.yml` runs only on manual runs (Actions → Web app → Run workflow), to save Actions minutes. The reports are uploaded as the `lighthouse-results` artifact.
 
 **Locally:** `@lhci/cli` is not a dependency of the project, so install it first:
 

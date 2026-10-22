@@ -77,8 +77,7 @@ pwa/                      the one frontend
 │   ├── store/            Redux store and slices
 │   ├── hooks/            custom React hooks
 │   ├── models/           TypeScript data models
-│   ├── utils/            calculations, formatting, route guidance, GPX export, feature detection
-│   └── workers/          track processing Web Worker
+│   └── utils/            calculations, formatting, route guidance, GPX export, feature detection
 ├── e2e/                  Playwright tests
 └── public/               icons and static files
 desktop/                  Windows app (Tauri 2)

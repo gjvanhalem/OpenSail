@@ -82,8 +82,7 @@ OpenSail/
 │       ├── store/          # Redux store and slices
 │       ├── database/       # Dexie database, repositories, tile cache
 │       ├── hooks/          # Custom React hooks
-│       ├── utils/          # Calculations, units, route guidance, GPX export
-│       └── workers/        # Web Worker for track processing
+│       └── utils/          # Calculations, units, route guidance, GPX export
 ├── desktop/                # Windows app (Tauri 2)
 ├── android/                # Android app (Capacitor 8)
 ├── server/                 # Web server with user accounts (Node 24, no dependencies)

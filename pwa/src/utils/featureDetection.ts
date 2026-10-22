@@ -38,7 +38,7 @@ export function detectWebSerial(): FeatureSupport {
 /**
  * Detect Web Bluetooth API support
  * Required for Bluetooth instrument connections
- * Supported: Chrome 89+, Edge 89+, Safari 15.4+ (limited)
+ * Supported: Chrome and Edge 89+ (Safari and Firefox have none)
  */
 export function detectWebBluetooth(): FeatureSupport {
   if ('bluetooth' in navigator) {
@@ -46,7 +46,7 @@ export function detectWebBluetooth(): FeatureSupport {
   }
   return {
     supported: false,
-    reason: 'Web Bluetooth API not available. Bluetooth instrument connections require Chrome, Edge, or Safari 15.4+.',
+    reason: 'Web Bluetooth API not available. Bluetooth instrument connections require Chrome or Edge.',
   };
 }
 

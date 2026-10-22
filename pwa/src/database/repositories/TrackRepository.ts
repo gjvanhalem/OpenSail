@@ -25,12 +25,12 @@ export class TrackRepository extends BaseRepository<Track> {
     };
   }
 
-  // Simple Douglas-Peucker simplification
+  // Distance filter: drop points closer than `tolerance` (degrees) to the last kept point.
+  // Not Douglas-Peucker; that is in utils/trackToRoute.ts (track → route).
   private simplifyPoints(points: TrackPoint[], tolerance: number): TrackPoint[] {
     if (points.length <= 2) return points;
     
-    // Keep first and last points, simplify middle
-    // This is a basic implementation - use Web Worker for production
+    // Keep first and last points
     const result: TrackPoint[] = [points[0]];
     let lastPoint = points[0];
     
